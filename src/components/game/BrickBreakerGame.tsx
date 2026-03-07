@@ -154,7 +154,16 @@ const BrickBreakerGame: React.FC = () => {
     const newTotal = persistentCoins - item.cost;
     setPersistentCoins(newTotal);
     setStoredCoins(newTotal);
-    if (item.category === 'powerup') {
+    if (item.category === 'emergency') {
+      // Increment emergency power-up counts (auto, shock, multi)
+      const key = item.type as 'auto' | 'shock' | 'multi';
+      setEmergencyCounts(prev => {
+        const newVal = prev[key] + 1;
+        const updated = { ...prev, [key]: newVal };
+        try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+        return updated;
+      });
+    } else if (item.category === 'powerup') {
       setPendingPowerUps(prev => [...prev, item.type]);
     }
   }, [persistentCoins]);
@@ -307,6 +316,11 @@ const BrickBreakerGame: React.FC = () => {
           <ShopScreen
             coins={persistentCoins}
             onPurchase={handleShopPurchase}
+            onAddCoins={(amount: number) => {
+              const newTotal = persistentCoins + amount;
+              setPersistentCoins(newTotal);
+              setStoredCoins(newTotal);
+            }}
             onClose={() => setActiveModal('none')}
           />
         )}
