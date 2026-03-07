@@ -316,6 +316,11 @@ const BrickBreakerGame: React.FC = () => {
           <ShopScreen
             coins={persistentCoins}
             onPurchase={handleShopPurchase}
+            onAddCoins={(amount: number) => {
+              const newTotal = persistentCoins + amount;
+              setPersistentCoins(newTotal);
+              setStoredCoins(newTotal);
+            }}
             onClose={() => setActiveModal('none')}
           />
         )}
