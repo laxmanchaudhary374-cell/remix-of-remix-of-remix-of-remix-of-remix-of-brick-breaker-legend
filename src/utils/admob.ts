@@ -8,12 +8,14 @@ import { Capacitor } from '@capacitor/core';
 
 // ============================
 // AD UNIT ID CONFIGURATION
-// Replace these with your AdMob ad unit IDs
 // ============================
 export const AD_UNIT_IDS = {
-  // TODO: Replace with your real rewarded ad unit ID from AdMob console
-  REWARDED_COINS: 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY',
+  REWARDED_COINS: 'ca-app-pub-6637721495380199/7860262690',
+  INTERSTITIAL: 'ca-app-pub-6637721495380199/9759645640',
+  BANNER: 'ca-app-pub-6637721495380199/1558102866',
 } as const;
+
+export const ADMOB_APP_ID = 'ca-app-pub-6637721495380199~8632290443';
 
 let AdMob: any = null;
 let initialized = false;
