@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, Tv, Coins } from 'lucide-react';
+import { X, ShoppingBag, Tv } from 'lucide-react';
+import { purchaseCoinPackage } from '@/utils/billing';
+import { showRewardedAd } from '@/utils/admob';
 
 interface ShopScreenProps {
   coins: number;
@@ -58,17 +60,25 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
     setTimeout(() => setPurchased(prev => prev.filter(id => id !== item.id)), 1000);
   };
 
-  const handleBuyCoins = (pkg: typeof COIN_PACKAGES[0]) => {
-    // TODO: Integrate Google Play Billing API here
-    // For now, simulate a successful purchase
-    onAddCoins(pkg.coins);
+  const handleBuyCoins = async (pkg: typeof COIN_PACKAGES[0]) => {
+    // Uses @capgo/native-purchases on native, simulates on web
+    const coins = await purchaseCoinPackage(pkg.id);
+    if (coins > 0) {
+      onAddCoins(coins);
+    }
   };
 
-  const handleWatchAd = () => {
+  const handleWatchAd = async () => {
     if (adTimer !== null) return;
-    // TODO: Integrate AdMob / Google Mobile Ads SDK here
-    // Simulating a 5-second ad
+    // Uses @capacitor-community/admob on native, simulates on web
     setAdTimer(5);
+    const reward = await showRewardedAd();
+    setAdTimer(null);
+    if (reward > 0) {
+      onAddCoins(reward);
+      setAdWatched(true);
+      setTimeout(() => setAdWatched(false), 3000);
+    }
   };
 
   useEffect(() => {
