@@ -1,5 +1,5 @@
 /**
- * Google Play Billing integration via @capawesome/capacitor-google-play-billing
+ * Google Play Billing integration via @capgo/native-purchases
  *
  * TODO: Replace these placeholder product IDs with your actual
  * Google Play Console in-app product IDs before publishing.
@@ -8,7 +8,7 @@ import { Capacitor } from '@capacitor/core';
 
 // ============================
 // PRODUCT ID CONFIGURATION
-// Replace these with your Google Play Console product IDs
+// TODO: Replace these with your Google Play Console product IDs
 // ============================
 export const BILLING_PRODUCT_IDS = {
   COIN_STARTER: 'coin_starter_100',   // 100 coins - $0.99
@@ -30,15 +30,15 @@ const PRODUCT_TO_COINS: Record<string, number> = {
   [BILLING_PRODUCT_IDS.COIN_WHALE]: 1500,
 };
 
-let GooglePlayBilling: any = null;
+let NativePurchases: any = null;
 
 async function getBillingPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
-  if (!GooglePlayBilling) {
-    const mod = await import('@capawesome/capacitor-google-play-billing');
-    GooglePlayBilling = mod.GooglePlayBilling;
+  if (!NativePurchases) {
+    const mod = await import('@capgo/native-purchases');
+    NativePurchases = mod.NativePurchases;
   }
-  return GooglePlayBilling;
+  return NativePurchases;
 }
 
 /**
@@ -50,10 +50,7 @@ export async function initBilling(): Promise<boolean> {
   if (!billing) return false;
 
   try {
-    const { isReady } = await billing.isReady();
-    if (!isReady) {
-      await billing.startConnection();
-    }
+    await billing.initialize();
     return true;
   } catch (err) {
     console.error('[Billing] Failed to init:', err);
@@ -82,39 +79,19 @@ export async function purchaseCoinPackage(packageId: string): Promise<number> {
   }
 
   try {
-    // Query product details
-    const { products } = await billing.getProducts({
-      productIds: [productId],
-      productType: 'inapp',
+    // TODO: Integrate Google Play Billing API here
+    // Launch the native purchase flow for a consumable product
+    const result = await billing.purchaseProduct({
+      productIdentifier: productId,
+      productType: 'CONSUMABLE',
+      quantity: 1,
     });
 
-    if (!products || products.length === 0) {
-      console.error('[Billing] Product not found:', productId);
-      return 0;
+    if (result && result.transactionId) {
+      // Purchase successful — award coins
+      return PRODUCT_TO_COINS[productId] || 0;
     }
-
-    // Launch the purchase flow
-    await billing.launchBillingFlow({
-      productId,
-      productType: 'inapp',
-    });
-
-    // Listen for purchase updates
-    return new Promise<number>((resolve) => {
-      const timeout = setTimeout(() => resolve(0), 120_000); // 2 min timeout
-
-      billing.addListener('purchasesUpdated', async (event: any) => {
-        clearTimeout(timeout);
-        const purchase = event.purchases?.[0];
-        if (purchase && purchase.purchaseState === 1) {
-          // Acknowledge/consume the purchase
-          await billing.consumePurchase({ purchaseToken: purchase.purchaseToken });
-          resolve(PRODUCT_TO_COINS[productId] || 0);
-        } else {
-          resolve(0);
-        }
-      });
-    });
+    return 0;
   } catch (err) {
     console.error('[Billing] Purchase error:', err);
     return 0;
