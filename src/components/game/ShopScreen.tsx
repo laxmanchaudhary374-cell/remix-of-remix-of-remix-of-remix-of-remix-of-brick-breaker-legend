@@ -81,22 +81,17 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
     }
   };
 
+  // Timer display for web preview ad simulation
   useEffect(() => {
     if (adTimer === null || adTimer <= 0) return;
     const interval = setInterval(() => {
       setAdTimer(prev => {
-        if (prev === null) return null;
-        if (prev <= 1) {
-          onAddCoins(50);
-          setAdWatched(true);
-          setTimeout(() => setAdWatched(false), 3000);
-          return null;
-        }
+        if (prev === null || prev <= 1) return prev;
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [adTimer, onAddCoins]);
+  }, [adTimer]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
