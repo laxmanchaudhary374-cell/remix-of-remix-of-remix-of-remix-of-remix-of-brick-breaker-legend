@@ -68,7 +68,7 @@ export async function showRewardedAd(): Promise<number> {
     // Prepare the rewarded ad
     await admob.prepareRewardVideoAd({
       adId: AD_UNIT_IDS.REWARDED_COINS,
-      isTesting: true, // TODO: Set to false for production
+      isTesting: false,
     });
 
     // Show the rewarded ad
