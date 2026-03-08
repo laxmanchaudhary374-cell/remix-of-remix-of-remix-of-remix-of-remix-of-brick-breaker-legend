@@ -39,8 +39,7 @@ export async function initAdMob(): Promise<boolean> {
 
   try {
     await admob.initialize({
-      // TODO: Set to false for production, true for testing
-      initializeForTesting: true,
+      initializeForTesting: false,
     });
     initialized = true;
     return true;
