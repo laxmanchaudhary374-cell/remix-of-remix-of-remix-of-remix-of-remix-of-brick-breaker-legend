@@ -76,6 +76,12 @@ const BrickBreakerGame: React.FC = () => {
 
   const [isNewHighScore, setIsNewHighScore] = useState(false);
 
+  // Initialize native monetization SDKs on mount
+  useEffect(() => {
+    initBilling().then(ok => ok && console.log('[Billing] Ready'));
+    initAdMob().then(ok => ok && console.log('[AdMob] Ready'));
+  }, []);
+
   // Save coins to persistent storage whenever they change in gameState
   useEffect(() => {
     if (gameState.coins > 0) {
