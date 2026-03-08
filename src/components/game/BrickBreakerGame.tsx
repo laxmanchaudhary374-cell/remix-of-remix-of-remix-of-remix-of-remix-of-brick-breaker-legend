@@ -12,6 +12,8 @@ import DailyRewards, { checkDailyReward } from './DailyRewards';
 import LuckyWheel from './LuckyWheel';
 import ShopScreen, { ShopItem } from './ShopScreen';
 import { audioManager } from '@/utils/audioManager';
+import { initBilling } from '@/utils/billing';
+import { initAdMob } from '@/utils/admob';
 import { calculateStars, setLevelStars } from '@/utils/starStorage';
 import spaceBackground from '@/assets/space-background.jpg';
 import { Pause, Play } from 'lucide-react';
