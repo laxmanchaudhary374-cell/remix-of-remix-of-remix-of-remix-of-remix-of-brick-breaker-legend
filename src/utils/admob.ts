@@ -8,12 +8,14 @@ import { Capacitor } from '@capacitor/core';
 
 // ============================
 // AD UNIT ID CONFIGURATION
-// Replace these with your AdMob ad unit IDs
 // ============================
 export const AD_UNIT_IDS = {
-  // TODO: Replace with your real rewarded ad unit ID from AdMob console
-  REWARDED_COINS: 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY',
+  REWARDED_COINS: 'ca-app-pub-6637721495380199/7860262690',
+  INTERSTITIAL: 'ca-app-pub-6637721495380199/9759645640',
+  BANNER: 'ca-app-pub-6637721495380199/1558102866',
 } as const;
+
+export const ADMOB_APP_ID = 'ca-app-pub-6637721495380199~8632290443';
 
 let AdMob: any = null;
 let initialized = false;
@@ -37,8 +39,7 @@ export async function initAdMob(): Promise<boolean> {
 
   try {
     await admob.initialize({
-      // TODO: Set to false for production, true for testing
-      initializeForTesting: true,
+      initializeForTesting: false,
     });
     initialized = true;
     return true;
@@ -67,7 +68,7 @@ export async function showRewardedAd(): Promise<number> {
     // Prepare the rewarded ad
     await admob.prepareRewardVideoAd({
       adId: AD_UNIT_IDS.REWARDED_COINS,
-      isTesting: true, // TODO: Set to false for production
+      isTesting: false,
     });
 
     // Show the rewarded ad
