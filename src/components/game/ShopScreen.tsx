@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, Tv, Coins } from 'lucide-react';
+import { X, ShoppingBag, Tv } from 'lucide-react';
+import { purchaseCoinPackage } from '@/utils/billing';
+import { showRewardedAd } from '@/utils/admob';
 
 interface ShopScreenProps {
   coins: number;
@@ -58,35 +60,38 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
     setTimeout(() => setPurchased(prev => prev.filter(id => id !== item.id)), 1000);
   };
 
-  const handleBuyCoins = (pkg: typeof COIN_PACKAGES[0]) => {
-    // TODO: Integrate Google Play Billing API here
-    // For now, simulate a successful purchase
-    onAddCoins(pkg.coins);
+  const handleBuyCoins = async (pkg: typeof COIN_PACKAGES[0]) => {
+    // Uses @capgo/native-purchases on native, simulates on web
+    const coins = await purchaseCoinPackage(pkg.id);
+    if (coins > 0) {
+      onAddCoins(coins);
+    }
   };
 
-  const handleWatchAd = () => {
+  const handleWatchAd = async () => {
     if (adTimer !== null) return;
-    // TODO: Integrate AdMob / Google Mobile Ads SDK here
-    // Simulating a 5-second ad
+    // Uses @capacitor-community/admob on native, simulates on web
     setAdTimer(5);
+    const reward = await showRewardedAd();
+    setAdTimer(null);
+    if (reward > 0) {
+      onAddCoins(reward);
+      setAdWatched(true);
+      setTimeout(() => setAdWatched(false), 3000);
+    }
   };
 
+  // Timer display for web preview ad simulation
   useEffect(() => {
     if (adTimer === null || adTimer <= 0) return;
     const interval = setInterval(() => {
       setAdTimer(prev => {
-        if (prev === null) return null;
-        if (prev <= 1) {
-          onAddCoins(50);
-          setAdWatched(true);
-          setTimeout(() => setAdWatched(false), 3000);
-          return null;
-        }
+        if (prev === null || prev <= 1) return prev;
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [adTimer, onAddCoins]);
+  }, [adTimer]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
