@@ -86,6 +86,7 @@ const BrickBreakerGame: React.FC = () => {
   useEffect(() => {
     if (gameState.coins > 0) {
       const total = persistentCoins + gameState.coins;
+      setStoredCoins(total);
     }
   }, [gameState.coins]);
 
