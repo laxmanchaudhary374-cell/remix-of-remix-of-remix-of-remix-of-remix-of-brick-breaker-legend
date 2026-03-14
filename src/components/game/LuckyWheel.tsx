@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { showRewardedAd } from '@/utils/admob';
 
 interface LuckyWheelProps {
   onClose: (reward?: { type: string; amount: number; label: string }) => void;
@@ -49,6 +50,7 @@ const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [result, setResult] = useState<(typeof SEGMENTS)[0] | null>(null);
+  const [adWatched, setAdWatched] = useState(false);
   const rotationRef = useRef(0);
   const animRef = useRef<number | null>(null);
   const { can, timeLeft } = canSpin();
@@ -175,7 +177,7 @@ const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
     drawWheel(0);
   }, []);
 
-  const spin = () => {
+  const handleSpin = () => {
     if (isSpinning || !can) return;
     setIsSpinning(true);
     setResult(null);
@@ -208,6 +210,21 @@ const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
     };
 
     animRef.current = requestAnimationFrame(animate);
+  };
+
+  const handleSpinClick = async () => {
+    if (isSpinning || !can) return;
+    if (!adWatched) {
+      const reward = await showRewardedAd();
+      if (reward > 0) {
+        setAdWatched(true);
+        handleSpin();
+      } else {
+        alert('Please watch the full ad to spin the wheel!');
+      }
+      return;
+    }
+    handleSpin();
   };
 
   return (
@@ -295,7 +312,7 @@ const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
           {!result ? (
             <>
               <button
-                onClick={spin}
+                onClick={handleSpinClick}
                 disabled={isSpinning || !can}
                 className="flex-1 py-3.5 font-display text-sm font-bold rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
@@ -307,7 +324,7 @@ const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
                   border: '1px solid hsla(45, 100%, 60%, 0.6)',
                 }}
               >
-                {isSpinning ? '🌀 Spinning...' : can ? '🎰 SPIN FREE' : `⏳ ${timeLeft}`}
+                {isSpinning ? '🌀 Spinning...' : !can ? `⏳ ${timeLeft}` : !adWatched ? '🎬 Watch Ad to Spin' : '🎡 SPIN!'}
               </button>
             </>
           ) : (

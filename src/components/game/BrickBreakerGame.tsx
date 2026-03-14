@@ -203,6 +203,7 @@ const BrickBreakerGame: React.FC = () => {
 
   const handleLevelComplete = useCallback(() => {
     const totalLevels = getTotalLevels();
+    showInterstitialAd();
     if (gameState.level >= totalLevels) {
       setScreenState('won');
       setGameState(prev => ({ ...prev, status: 'won' }));
