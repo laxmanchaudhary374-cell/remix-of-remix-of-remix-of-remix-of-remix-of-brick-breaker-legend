@@ -34,6 +34,14 @@ export const checkDailyReward = (): { shouldShow: boolean; day: number } => {
     if (!lastClaim) return { shouldShow: true, day: 1 };
     
     const lastDate = new Date(lastClaim);
+    
+    // Clock manipulation detection: if lastClaim is in the future, reset
+    if (lastDate > now) {
+      localStorage.removeItem(STORAGE_KEYS.lastClaim);
+      localStorage.removeItem(STORAGE_KEYS.streak);
+      return { shouldShow: true, day: 1 };
+    }
+    
     const daysDiff = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysDiff === 1) {

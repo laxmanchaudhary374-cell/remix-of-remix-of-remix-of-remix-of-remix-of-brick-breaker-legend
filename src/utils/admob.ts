@@ -1,14 +1,8 @@
 /**
  * AdMob integration via @capacitor-community/admob
- *
- * TODO: Replace the placeholder ad unit IDs with your actual
- * AdMob ad unit IDs before publishing.
  */
 import { Capacitor } from '@capacitor/core';
 
-// ============================
-// AD UNIT ID CONFIGURATION
-// ============================
 export const AD_UNIT_IDS = {
   REWARDED_COINS: 'ca-app-pub-6637721495380199/7860262690',
   INTERSTITIAL: 'ca-app-pub-6637721495380199/9759645640',
@@ -29,10 +23,6 @@ async function getAdMobPlugin() {
   return AdMob;
 }
 
-/**
- * Initialize AdMob SDK.
- * Call once at app startup.
- */
 export async function initAdMob(): Promise<boolean> {
   const admob = await getAdMobPlugin();
   if (!admob || initialized) return initialized;
@@ -49,38 +39,71 @@ export async function initAdMob(): Promise<boolean> {
   }
 }
 
-/**
- * Show a rewarded video ad and return the coin reward.
- * @returns Number of coins earned (50), or 0 if ad was skipped/failed
- */
 export async function showRewardedAd(): Promise<number> {
   const admob = await getAdMobPlugin();
+  if (!admob) return 0;
 
-  // Fallback for web preview: simulate a 5-second ad
-  if (!admob) {
-    console.log('[AdMob] Web preview — simulating rewarded ad');
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(50), 5000);
-    });
-  }
+  return new Promise(async (resolve) => {
+    try {
+      let rewardGranted = false;
+
+      await admob.prepareRewardVideoAd({
+        adId: AD_UNIT_IDS.REWARDED_COINS,
+        isTesting: false,
+      });
+
+      const rewardListener = await admob.addListener('onRewardedVideoAdRewarded', () => {
+        rewardGranted = true;
+      });
+
+      const closeListener = await admob.addListener('onRewardedVideoAdClosed', () => {
+        rewardListener.remove();
+        closeListener.remove();
+        resolve(rewardGranted ? 50 : 0);
+      });
+
+      await admob.showRewardVideoAd();
+    } catch (err) {
+      console.error('[AdMob] Rewarded ad error:', err);
+      resolve(0);
+    }
+  });
+}
+
+export async function showBannerAd(): Promise<void> {
+  const admob = await getAdMobPlugin();
+  if (!admob) return;
 
   try {
-    // Prepare the rewarded ad
-    await admob.prepareRewardVideoAd({
-      adId: AD_UNIT_IDS.REWARDED_COINS,
+    await admob.showBanner({
+      adId: AD_UNIT_IDS.BANNER,
+      adSize: 'BANNER',
+      position: 'BOTTOM_CENTER',
       isTesting: false,
     });
-
-    // Show the rewarded ad
-    const result = await admob.showRewardVideoAd();
-
-    // The ad was completed — award coins
-    if (result) {
-      return 50;
-    }
-    return 0;
   } catch (err) {
-    console.error('[AdMob] Rewarded ad error:', err);
-    return 0;
+    console.error('[AdMob] Banner error:', err);
+  }
+}
+
+let lastInterstitialTime = 0;
+const INTERSTITIAL_COOLDOWN = 60000;
+
+export async function showInterstitialAd(): Promise<void> {
+  const admob = await getAdMobPlugin();
+  if (!admob) return;
+
+  const now = Date.now();
+  if (now - lastInterstitialTime < INTERSTITIAL_COOLDOWN) return;
+
+  try {
+    await admob.prepareInterstitial({
+      adId: AD_UNIT_IDS.INTERSTITIAL,
+      isTesting: false,
+    });
+    await admob.showInterstitial();
+    lastInterstitialTime = now;
+  } catch (err) {
+    console.error('[AdMob] Interstitial error:', err);
   }
 }

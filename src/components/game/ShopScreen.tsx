@@ -207,9 +207,6 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
                 </div>
               ))}
 
-              <p className="font-game text-xs text-muted-foreground/50 text-center mt-2">
-                Purchases are simulated in preview mode
-              </p>
             </div>
           ) : (
             filteredItems.map(item => {

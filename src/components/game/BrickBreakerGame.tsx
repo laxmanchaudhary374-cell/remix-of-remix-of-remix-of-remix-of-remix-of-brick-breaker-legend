@@ -13,7 +13,7 @@ import LuckyWheel from './LuckyWheel';
 import ShopScreen, { ShopItem } from './ShopScreen';
 import { audioManager } from '@/utils/audioManager';
 import { initBilling } from '@/utils/billing';
-import { initAdMob } from '@/utils/admob';
+import { initAdMob, showBannerAd, showInterstitialAd } from '@/utils/admob';
 import { calculateStars, setLevelStars } from '@/utils/starStorage';
 import spaceBackground from '@/assets/space-background.jpg';
 import { Pause, Play } from 'lucide-react';
@@ -79,13 +79,14 @@ const BrickBreakerGame: React.FC = () => {
   // Initialize native monetization SDKs on mount
   useEffect(() => {
     initBilling().then(ok => ok && console.log('[Billing] Ready'));
-    initAdMob().then(ok => ok && console.log('[AdMob] Ready'));
+    initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
   }, []);
 
   // Save coins to persistent storage whenever they change in gameState
   useEffect(() => {
     if (gameState.coins > 0) {
       const total = persistentCoins + gameState.coins;
+      setStoredCoins(total);
     }
   }, [gameState.coins]);
 
@@ -202,6 +203,7 @@ const BrickBreakerGame: React.FC = () => {
 
   const handleLevelComplete = useCallback(() => {
     const totalLevels = getTotalLevels();
+    showInterstitialAd();
     if (gameState.level >= totalLevels) {
       setScreenState('won');
       setGameState(prev => ({ ...prev, status: 'won' }));
