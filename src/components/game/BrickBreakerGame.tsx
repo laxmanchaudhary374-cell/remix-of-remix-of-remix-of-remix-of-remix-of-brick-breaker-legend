@@ -79,7 +79,7 @@ const BrickBreakerGame: React.FC = () => {
   // Initialize native monetization SDKs on mount
   useEffect(() => {
     initBilling().then(ok => ok && console.log('[Billing] Ready'));
-    initAdMob().then(ok => ok && console.log('[AdMob] Ready'));
+    initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
   }, []);
 
   // Save coins to persistent storage whenever they change in gameState
