@@ -132,6 +132,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       setLasers([]);
       setCoins([]);
       setExplosions([]);
+      setParticles([]);
       setPlane(null);
       setIsFireball(false);
       setIsBigBall(false);
