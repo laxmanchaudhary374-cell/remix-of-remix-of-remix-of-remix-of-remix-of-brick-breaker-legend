@@ -82,13 +82,6 @@ const BrickBreakerGame: React.FC = () => {
     initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
   }, []);
 
-  // Save coins to persistent storage whenever they change in gameState
-  useEffect(() => {
-    if (gameState.coins > 0) {
-      const total = persistentCoins + gameState.coins;
-      setStoredCoins(total);
-    }
-  }, [gameState.coins]);
 
   // Update high score and unlocked level when game ends
   useEffect(() => {
