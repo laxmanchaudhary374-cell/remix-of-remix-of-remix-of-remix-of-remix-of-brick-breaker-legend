@@ -1286,87 +1286,137 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.translate(shakeX, shakeY);
     }
 
-    // Dynamic 4K space background with nebulae, twinkling stars, and planets
+    // Galaxy space background with spiral nebula, clouds, and stars
+    // Base dark space gradient
     const bgGradient = ctx.createRadialGradient(
-      GAME_WIDTH * 0.3, GAME_HEIGHT * 0.2, 0,
-      GAME_WIDTH / 2, GAME_HEIGHT * 0.5, GAME_HEIGHT
+      GAME_WIDTH * 0.5, GAME_HEIGHT * 0.55, 0,
+      GAME_WIDTH * 0.5, GAME_HEIGHT * 0.5, GAME_HEIGHT * 0.9
     );
-    bgGradient.addColorStop(0, 'hsl(240, 50%, 12%)');
-    bgGradient.addColorStop(0.3, 'hsl(220, 60%, 8%)');
-    bgGradient.addColorStop(0.7, 'hsl(260, 40%, 6%)');
-    bgGradient.addColorStop(1, 'hsl(230, 70%, 3%)');
+    bgGradient.addColorStop(0, 'hsl(220, 40%, 10%)');
+    bgGradient.addColorStop(0.4, 'hsl(215, 50%, 7%)');
+    bgGradient.addColorStop(0.7, 'hsl(210, 45%, 5%)');
+    bgGradient.addColorStop(1, 'hsl(220, 60%, 3%)');
     ctx.fillStyle = bgGradient;
     ctx.fillRect(-10, -10, GAME_WIDTH + 20, GAME_HEIGHT + 20);
 
-    // Slow-moving nebula clouds
-    const nebulaTime = gameTime * 0.05;
-    const neb1X = GAME_WIDTH * 0.7 + Math.sin(nebulaTime * 0.7) * 30;
-    const neb1Y = GAME_HEIGHT * 0.25 + Math.cos(nebulaTime * 0.5) * 20;
-    const nebGrad1 = ctx.createRadialGradient(neb1X, neb1Y, 0, neb1X, neb1Y, 120);
-    nebGrad1.addColorStop(0, 'hsla(280, 70%, 40%, 0.12)');
-    nebGrad1.addColorStop(0.4, 'hsla(300, 60%, 30%, 0.06)');
-    nebGrad1.addColorStop(1, 'transparent');
-    ctx.fillStyle = nebGrad1;
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    
-    const neb2X = GAME_WIDTH * 0.2 + Math.sin(nebulaTime * 0.4 + 2) * 25;
-    const neb2Y = GAME_HEIGHT * 0.6 + Math.cos(nebulaTime * 0.6 + 1) * 15;
-    const nebGrad2 = ctx.createRadialGradient(neb2X, neb2Y, 0, neb2X, neb2Y, 100);
-    nebGrad2.addColorStop(0, 'hsla(200, 80%, 35%, 0.10)');
-    nebGrad2.addColorStop(0.5, 'hsla(220, 60%, 25%, 0.05)');
-    nebGrad2.addColorStop(1, 'transparent');
-    ctx.fillStyle = nebGrad2;
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    // Twinkling stars
-    for (let i = 0; i < 60; i++) {
+    // Distant stars layer (tiny dots)
+    for (let i = 0; i < 80; i++) {
       const starX = ((i * 137 + 17) % GAME_WIDTH);
       const starY = ((i * 89 + 31) % GAME_HEIGHT);
-      const baseSize = (i % 3) * 0.4 + 0.3;
-      const twinkle = 0.3 + 0.7 * ((Math.sin(gameTime * (1.5 + (i % 5) * 0.3) + i * 1.7) + 1) / 2);
-      const alpha = twinkle * (0.15 + (i % 4) * 0.1);
-      
+      const baseSize = (i % 3) * 0.3 + 0.2;
+      const twinkle = 0.3 + 0.7 * ((Math.sin(gameTime * (1.2 + (i % 5) * 0.2) + i * 1.7) + 1) / 2);
+      const alpha = twinkle * (0.1 + (i % 4) * 0.08);
       ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
       ctx.beginPath();
       ctx.arc(starX, starY, baseSize, 0, Math.PI * 2);
       ctx.fill();
-      
-      if (i % 8 === 0 && twinkle > 0.8) {
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
+      if (i % 10 === 0 && twinkle > 0.85) {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
         ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.moveTo(starX - 3, starY);
-        ctx.lineTo(starX + 3, starY);
-        ctx.moveTo(starX, starY - 3);
-        ctx.lineTo(starX, starY + 3);
+        ctx.moveTo(starX - 2, starY);
+        ctx.lineTo(starX + 2, starY);
+        ctx.moveTo(starX, starY - 2);
+        ctx.lineTo(starX, starY + 2);
         ctx.stroke();
       }
     }
 
-    // Distant rotating planets
-    const p1Angle = gameTime * 0.02;
-    const p1X = GAME_WIDTH * 0.85 + Math.cos(p1Angle) * 5;
-    const p1Y = GAME_HEIGHT * 0.15 + Math.sin(p1Angle) * 3;
-    const p1Grad = ctx.createRadialGradient(p1X - 2, p1Y - 2, 0, p1X, p1Y, 8);
-    p1Grad.addColorStop(0, 'hsl(15, 60%, 50%)');
-    p1Grad.addColorStop(0.7, 'hsl(10, 50%, 35%)');
-    p1Grad.addColorStop(1, 'hsl(5, 40%, 20%)');
-    ctx.fillStyle = p1Grad;
+    // Galaxy spiral nebula (center-right of canvas)
+    const galaxyTime = gameTime * 0.015;
+    const galaxyCX = GAME_WIDTH * 0.55;
+    const galaxyCY = GAME_HEIGHT * 0.58;
+    const galaxyRadius = GAME_WIDTH * 0.55;
+
+    // Outer glow halo
+    const haloGrad = ctx.createRadialGradient(galaxyCX, galaxyCY, 0, galaxyCX, galaxyCY, galaxyRadius * 1.1);
+    haloGrad.addColorStop(0, 'hsla(270, 60%, 50%, 0.08)');
+    haloGrad.addColorStop(0.3, 'hsla(250, 50%, 40%, 0.05)');
+    haloGrad.addColorStop(0.6, 'hsla(220, 40%, 30%, 0.03)');
+    haloGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = haloGrad;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Spiral arms
+    ctx.save();
+    ctx.translate(galaxyCX, galaxyCY);
+    ctx.rotate(galaxyTime * 0.3);
+    const numArms = 2;
+    for (let arm = 0; arm < numArms; arm++) {
+      const armOffset = (arm / numArms) * Math.PI * 2;
+      for (let j = 0; j < 60; j++) {
+        const t = j / 60;
+        const angle = armOffset + t * Math.PI * 3.5;
+        const r = t * galaxyRadius * 0.9;
+        const sx = Math.cos(angle) * r;
+        const sy = Math.sin(angle) * r * 0.6; // Flatten for perspective
+        const dotSize = (1 - t) * 8 + 1;
+        const hue = 260 + t * 60 + arm * 30; // Purple to blue shift
+        const lightness = 45 + (1 - t) * 20;
+        const alpha = (1 - t * 0.8) * 0.15;
+        
+        const spiralGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, dotSize);
+        spiralGrad.addColorStop(0, `hsla(${hue}, 60%, ${lightness}%, ${alpha * 1.5})`);
+        spiralGrad.addColorStop(0.5, `hsla(${hue}, 50%, ${lightness - 10}%, ${alpha * 0.7})`);
+        spiralGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = spiralGrad;
+        ctx.fillRect(sx - dotSize, sy - dotSize, dotSize * 2, dotSize * 2);
+      }
+    }
+
+    // Galaxy bright core
+    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
+    coreGrad.addColorStop(0, 'hsla(40, 80%, 85%, 0.25)');
+    coreGrad.addColorStop(0.3, 'hsla(280, 60%, 60%, 0.15)');
+    coreGrad.addColorStop(0.6, 'hsla(260, 50%, 45%, 0.08)');
+    coreGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = coreGrad;
     ctx.beginPath();
-    ctx.arc(p1X, p1Y, 8, 0, Math.PI * 2);
+    ctx.arc(0, 0, 25, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+
+    // Ambient nebula clouds (top-left and bottom-right atmospheric glow)
+    const cloudTime = gameTime * 0.03;
     
-    const p2Angle = gameTime * 0.015 + 2;
-    const p2X = GAME_WIDTH * 0.12 + Math.cos(p2Angle) * 3;
-    const p2Y = GAME_HEIGHT * 0.08 + Math.sin(p2Angle) * 2;
-    const p2Grad = ctx.createRadialGradient(p2X - 1, p2Y - 1, 0, p2X, p2Y, 5);
-    p2Grad.addColorStop(0, 'hsl(170, 60%, 55%)');
-    p2Grad.addColorStop(0.7, 'hsl(180, 50%, 35%)');
-    p2Grad.addColorStop(1, 'hsl(190, 40%, 20%)');
-    ctx.fillStyle = p2Grad;
+    // Top-right cloud
+    const c1X = GAME_WIDTH * 0.8 + Math.sin(cloudTime * 0.5) * 15;
+    const c1Y = GAME_HEIGHT * 0.12 + Math.cos(cloudTime * 0.3) * 10;
+    const cGrad1 = ctx.createRadialGradient(c1X, c1Y, 0, c1X, c1Y, 100);
+    cGrad1.addColorStop(0, 'hsla(210, 50%, 35%, 0.08)');
+    cGrad1.addColorStop(0.5, 'hsla(220, 40%, 25%, 0.04)');
+    cGrad1.addColorStop(1, 'transparent');
+    ctx.fillStyle = cGrad1;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Bottom-left cloud
+    const c2X = GAME_WIDTH * 0.15 + Math.sin(cloudTime * 0.4 + 2) * 12;
+    const c2Y = GAME_HEIGHT * 0.85 + Math.cos(cloudTime * 0.6 + 1) * 8;
+    const cGrad2 = ctx.createRadialGradient(c2X, c2Y, 0, c2X, c2Y, 120);
+    cGrad2.addColorStop(0, 'hsla(200, 45%, 30%, 0.07)');
+    cGrad2.addColorStop(0.5, 'hsla(210, 35%, 20%, 0.03)');
+    cGrad2.addColorStop(1, 'transparent');
+    ctx.fillStyle = cGrad2;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Dark planet silhouette (bottom-left, like in reference)
+    const planetX = GAME_WIDTH * 0.06;
+    const planetY = GAME_HEIGHT * 0.52;
+    const planetR = 22;
+    const planetGrad = ctx.createRadialGradient(planetX + 4, planetY - 4, 0, planetX, planetY, planetR);
+    planetGrad.addColorStop(0, 'hsl(220, 20%, 18%)');
+    planetGrad.addColorStop(0.6, 'hsl(220, 25%, 10%)');
+    planetGrad.addColorStop(1, 'hsl(220, 30%, 5%)');
+    ctx.fillStyle = planetGrad;
     ctx.beginPath();
-    ctx.arc(p2X, p2Y, 5, 0, Math.PI * 2);
+    ctx.arc(planetX, planetY, planetR, 0, Math.PI * 2);
     ctx.fill();
+    // Planet edge glow
+    ctx.strokeStyle = 'hsla(200, 60%, 50%, 0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(planetX, planetY, planetR, -0.8, 0.8);
+    ctx.stroke();
 
     // Draw shield - solid blue line that bounces ball
     if (paddle.hasShield) {
