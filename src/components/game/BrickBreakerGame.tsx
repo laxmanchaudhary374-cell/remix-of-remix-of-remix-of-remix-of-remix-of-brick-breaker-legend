@@ -101,10 +101,10 @@ const BrickBreakerGame: React.FC = () => {
         const stars = calculateStars(gameState.lives, gameState.maxCombo, gameState.score, gameState.level);
         setLevelStars(gameState.level, stars);
         
-        const coinReward = gameState.level <= 10 ? 5 :
-          gameState.level <= 20 ? 8 :
-          gameState.level <= 30 ? 12 :
-          gameState.level <= 50 ? 15 : 20;
+        const coinReward = gameState.level <= 10 ? 3 :
+  gameState.level <= 20 ? 4 :
+  gameState.level <= 30 ? 6 :
+  gameState.level <= 50 ? 8 : 10;
         const newTotal = persistentCoins + gameState.coins + coinReward;
         setPersistentCoins(newTotal);
         setStoredCoins(newTotal);
