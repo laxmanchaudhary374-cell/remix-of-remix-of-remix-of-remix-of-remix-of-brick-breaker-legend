@@ -159,7 +159,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         laserAutoFireRef.current = null;
       }
       
-      const numCoins = 3 + Math.floor(gameState.level / 50);
+      const numCoins = 1 + Math.floor(gameState.level / 100);
       const newLevelCoins: LevelCoin[] = [];
       for (let i = 0; i < numCoins; i++) {
         newLevelCoins.push({
