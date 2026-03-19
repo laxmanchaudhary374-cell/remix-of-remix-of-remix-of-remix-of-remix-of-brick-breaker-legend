@@ -167,7 +167,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           x: 50 + Math.random() * (GAME_WIDTH - 100),
           y: 100 + Math.random() * 200,
           collected: false,
-          value: 10 + Math.floor(gameState.level / 10) * 5,
+          value: Math.min(10 + Math.floor(gameState.level / 10) * 5, 25),
         });
       }
       setLevelCoins(newLevelCoins);
