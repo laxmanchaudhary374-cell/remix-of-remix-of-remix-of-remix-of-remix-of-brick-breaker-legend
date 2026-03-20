@@ -340,18 +340,6 @@ const BrickBreakerGame: React.FC = () => {
       style={{
   background: 'hsl(220, 60%, 3%)',
 }}
-```
-
----
-
-That's it! Just that one simple change. 😊
-
-Then do:
-```
-git pull
-npm run build
-npx cap sync android
-      }}
     >
       <div className="fixed inset-0 bg-black/40 pointer-events-none" />
       
