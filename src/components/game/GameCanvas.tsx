@@ -159,7 +159,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         laserAutoFireRef.current = null;
       }
       
-      const numCoins = 1 + Math.floor(gameState.level / 100);
+      const numCoins = Math.random() < 0.3 ? 1 : 0;
       const newLevelCoins: LevelCoin[] = [];
       for (let i = 0; i < numCoins; i++) {
         newLevelCoins.push({
@@ -167,7 +167,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           x: 50 + Math.random() * (GAME_WIDTH - 100),
           y: 100 + Math.random() * 200,
           collected: false,
-          value: Math.min(10 + Math.floor(gameState.level / 10) * 5, 25),
+          value: Math.min(3 + Math.floor(gameState.level / 20) * 2, 8),
         });
       }
       setLevelCoins(newLevelCoins);
@@ -286,14 +286,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     
     if (brick.type === 'coin') {
       // Gold bricks release 3 coins when broken
-      for (let i = 0; i < 3; i++) {
-        const coin = createCoin(
-          brick.x + brick.width / 2 + (i - 1) * 10,
-          brick.y + brick.height / 2,
-          3
-        );
-        setCoins(prev => [...prev, coin]);
-      }
+      for (let i = 0; i < 2; i++) {
+  const coin = createCoin(
+    brick.x + brick.width / 2 + (i - 1) * 10,
+    brick.y + brick.height / 2,
+    2
+  );
+  setCoins(prev => [...prev, coin]);
+}
     }
     
     if (shouldDropPowerUp() && brick.type !== 'coin') {
