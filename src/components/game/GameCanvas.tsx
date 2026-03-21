@@ -1304,8 +1304,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       const starX = ((i * 137 + 17) % GAME_WIDTH);
       const starY = ((i * 89 + 31) % GAME_HEIGHT);
       const baseSize = (i % 3) * 0.3 + 0.2;
-      const twinkle = 0.3 + 0.7 * ((Math.sin(gameTime * (1.2 + (i % 5) * 0.2) + i * 1.7) + 1) / 2);
-      const alpha = twinkle * (0.1 + (i % 4) * 0.08);
+      const twinkle = 1; // No twinkling - always full brightness
+      const alpha = 0.5; // Fixed alpha value
       ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
       ctx.beginPath();
       ctx.arc(starX, starY, baseSize, 0, Math.PI * 2);
