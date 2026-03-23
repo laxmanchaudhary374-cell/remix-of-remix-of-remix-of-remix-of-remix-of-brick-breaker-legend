@@ -93,7 +93,9 @@
   * {
     @apply border-border;
   }
-
+canvas {
+  border: none !important;
+}
   body {
     @apply bg-background text-foreground font-game;
     background: linear-gradient(180deg, hsl(240 20% 6%) 0%, hsl(240 30% 2%) 100%);
