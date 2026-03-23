@@ -1292,10 +1292,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       GAME_WIDTH * 0.5, GAME_HEIGHT * 0.55, 0,
       GAME_WIDTH * 0.5, GAME_HEIGHT * 0.5, GAME_HEIGHT * 0.9
     );
-    bgGradient.addColorStop(0, 'hsl(220, 40%, 10%)');
-    bgGradient.addColorStop(0.4, 'hsl(215, 50%, 7%)');
-    bgGradient.addColorStop(0.7, 'hsl(210, 45%, 5%)');
-    bgGradient.addColorStop(1, 'hsl(220, 60%, 3%)');
+    bgGradient.addColorStop(0, 'hsl(220, 10%, 2%)');
+bgGradient.addColorStop(0.4, 'hsl(215, 10%, 1%)');
+bgGradient.addColorStop(0.7, 'hsl(210, 10%, 1%)');
+bgGradient.addColorStop(1, 'hsl(220, 10%, 0.5%)');
     ctx.fillStyle = bgGradient;
     ctx.fillRect(-10, -10, GAME_WIDTH + 20, GAME_HEIGHT + 20);
 
@@ -1886,10 +1886,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     >
       <canvas
         ref={canvasRef}
-        className="w-full h-auto rounded-lg box-glow-cyan"
-        style={{ 
-          aspectRatio: `${GAME_WIDTH}/${GAME_HEIGHT}`,
-        }}
+        className="w-full h-auto rounded-lg"
+style={{ 
+  aspectRatio: `${GAME_WIDTH}/${GAME_HEIGHT}`,
+  display: 'block',
+}}
       />
     </div>
   );
