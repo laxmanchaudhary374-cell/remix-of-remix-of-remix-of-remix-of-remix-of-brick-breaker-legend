@@ -4,11 +4,14 @@
 import { LevelConfig, BrickColor } from '@/types/game';
 import { 
   createBrickRow, createPyramid, createCheckerboard, createVShape,
+  createStaircase, createReverseStaircase, createWings, createColumnsWithGaps,
+  createInvertedPyramid, createMaze, createHourglass, createCrossWithWings,
+  createAlternatingRows,
   B, EX, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
 
 // Pattern types for variety
-type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks';
+type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows';
 
 // Get difficulty parameters based on level
 const getDifficultyParams = (level: number) => {
@@ -101,7 +104,15 @@ const getLevelName = (level: number, pattern: PatternType): string => {
     wave_solid: ['WAVES', 'OCEAN', 'SURF', 'CURRENT'],
     grid_holes: ['GRID', 'LATTICE', 'MESH', 'NET'],
     corner_blocks: ['CORNERS', 'BLOCKS', 'QUAD', 'SECTORS'],
-  };
+  staircase: ['STAIRCASE', 'STEPS', 'LADDER', 'CLIMB'],
+reverse_staircase: ['REVERSE STAIRS', 'DESCENT', 'FALL', 'DROP'],
+wings_outlaw: ['WINGS', 'FLIGHT', 'SOAR', 'GLIDE'],
+columns_gaps: ['COLUMNS', 'PILLARS', 'POSTS', 'SUPPORTS'],
+inverted_pyramid: ['INVERTED', 'TOPPLE', 'FLIP', 'REVERSE'],
+maze_outlaw: ['MAZE', 'LABYRINTH', 'PUZZLE', 'MYSTERY'],
+hourglass_outlaw: ['HOURGLASS', 'TIMER', 'SANDS', 'GLASS'],
+cross_wings: ['CROSS+WINGS', 'HYBRID', 'FUSION', 'BLEND'],
+alternating_rows: ['ALTERNATING', 'RHYTHM', 'PATTERN', 'BEAT'],};
   
   const names = patternNames[pattern];
   const name = names[level % names.length];
@@ -1027,6 +1038,15 @@ export const generateLevel = (level: number): LevelConfig => {
     case 'wings': bricks = generateWingsPattern(level, params); break;
     case 'anchor': bricks = generateAnchorPattern(level, params); break;
     case 'mushroom': bricks = generateMushroomPattern(level, params); break;
+      case 'staircase': bricks = createStaircase(0, 6, colors[0]); break;
+case 'reverse_staircase': bricks = createReverseStaircase(0, 6, colors[0]); break;
+case 'wings_outlaw': bricks = createWings(0, 6, [colors[0], colors[1]]); break;
+case 'columns_gaps': bricks = createColumnsWithGaps(0, 6, [colors[0], colors[1]]); break;
+case 'inverted_pyramid': bricks = createInvertedPyramid(0, 5, [colors[0], colors[1]]); break;
+case 'maze_outlaw': bricks = createMaze(0, colors[0]); break;
+case 'hourglass_outlaw': bricks = createHourglass(0, [colors[0], colors[1]]); break;
+case 'cross_wings': bricks = createCrossWithWings(0, [colors[0], colors[1]]); break;
+case 'alternating_rows': bricks = createAlternatingRows(0, 8, [colors[0], colors[1]]); break;
     case 'cup': bricks = generateCupPattern(level, params); break;
     case 'city_skyline': bricks = generateCitySkylinePattern(level, params); break;
     case 'letter_f': bricks = generateLetterFPattern(level, params); break;
