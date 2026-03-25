@@ -202,3 +202,377 @@ export const COLORS: BrickColor[] = ['cyan', 'magenta', 'yellow', 'green', 'oran
 export const getRandomColor = (): BrickColor => {
   return COLORS[Math.floor(Math.random() * COLORS.length)];
 };
+// SPACE OUTLAW INSPIRED BRICK PATTERNS - Add to levelPatterns.ts
+
+/**
+ * STAIRCASE PATTERN
+ * Steps going down from left to right
+ * Like the staircase pattern seen in Space Outlaw
+ */
+export const createStaircase = (
+  startRow: number,
+  steps: number,
+  color: BrickColor
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  for (let step = 0; step < steps; step++) {
+    for (let col = step; col < 8; col++) {
+      bricks.push({
+        x: startX + col * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + step) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + col * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+
+  return bricks;
+};
+
+/**
+ * REVERSE STAIRCASE PATTERN
+ * Steps going down from right to left
+ */
+export const createReverseStaircase = (
+  startRow: number,
+  steps: number,
+  color: BrickColor
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  for (let step = 0; step < steps; step++) {
+    for (let col = 0; col < 8 - step; col++) {
+      bricks.push({
+        x: startX + col * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + step) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + col * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+
+  return bricks;
+};
+
+/**
+ * WINGS PATTERN
+ * Two symmetric wings on left and right sides with gap in middle
+ * Like the wing shape seen in Space Outlaw
+ */
+export const createWings = (
+  startRow: number,
+  rows: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  for (let r = 0; r < rows; r++) {
+    const color = colors[r % colors.length];
+    const wingWidth = rows - r; // Wings get narrower as they go down
+
+    // Left wing
+    for (let c = 0; c < wingWidth && c < 3; c++) {
+      bricks.push({
+        x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+
+    // Right wing (mirror)
+    for (let c = 0; c < wingWidth && c < 3; c++) {
+      const rightCol = 7 - c;
+      bricks.push({
+        x: startX + rightCol * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + rightCol * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+
+  return bricks;
+};
+
+/**
+ * COLUMNS WITH GAPS PATTERN
+ * Separate columns with empty space between them
+ * Like the column pattern in Space Outlaw
+ */
+export const createColumnsWithGaps = (
+  startRow: number,
+  rows: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+  // Place columns at positions 0, 2, 4, 6 (skip odd columns)
+  const columnPositions = [0, 2, 4, 6];
+
+  for (let r = 0; r < rows; r++) {
+    const color = colors[r % colors.length];
+    for (const col of columnPositions) {
+      bricks.push({
+        x: startX + col * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + col * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+
+  return bricks;
+};
+
+/**
+ * INVERTED PYRAMID PATTERN
+ * Wide at top, narrow at bottom (opposite of pyramid)
+ * Like top-heavy structures in Space Outlaw
+ */
+export const createInvertedPyramid = (
+  startRow: number,
+  rows: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const maxCols = 8;
+  const startX = (GAME_WIDTH - maxCols * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  for (let r = 0; r < rows; r++) {
+    const color = colors[r % colors.length];
+    const cols = maxCols - r * 2;
+    if (cols <= 0) break;
+    const offset = r;
+
+    for (let c = 0; c < cols; c++) {
+      bricks.push({
+        x: startX + (offset + c) * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + (offset + c) * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+
+  return bricks;
+};
+
+/**
+ * MAZE PATTERN
+ * L-shaped maze corridors
+ * Like the maze/spiral pattern in bottom-right of Space Outlaw
+ */
+export const createMaze = (
+  startRow: number,
+  color: BrickColor
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  // Define maze layout as a grid (1 = brick, 0 = empty)
+  const maze = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 1, 1, 1, 1, 1, 0],
+    [1, 0, 1, 0, 0, 0, 1, 0],
+    [1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 0, 1, 0, 0, 0, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+  ];
+
+  for (let r = 0; r < maze.length; r++) {
+    for (let c = 0; c < maze[r].length; c++) {
+      if (maze[r][c] === 1) {
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+
+  return bricks;
+};
+
+/**
+ * DOUBLE TRIANGLE PATTERN
+ * Two triangles pointing at each other (hourglass shape)
+ */
+export const createHourglass = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const maxCols = 8;
+  const startX = (GAME_WIDTH - maxCols * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+  const rows = 4;
+
+  // Top triangle (inverted pyramid)
+  for (let r = 0; r < rows; r++) {
+    const color = colors[r % colors.length];
+    const cols = maxCols - r * 2;
+    if (cols <= 0) break;
+    const offset = r;
+    for (let c = 0; c < cols; c++) {
+      bricks.push({
+        x: startX + (offset + c) * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + (offset + c) * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+
+  // Bottom triangle (pyramid)
+  for (let r = 0; r < rows; r++) {
+    const color = colors[(rows + r) % colors.length];
+    const cols = (r + 1) * 2;
+    const offset = rows - r - 1;
+    for (let c = 0; c < cols; c++) {
+      bricks.push({
+        x: startX + (offset + c) * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + rows + r) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + (offset + c) * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+
+  return bricks;
+};
+
+/**
+ * CROSS WITH WINGS PATTERN
+ * A cross shape with extra bricks on the sides
+ * Like the cross+wings pattern in Space Outlaw top-right
+ */
+export const createCrossWithWings = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  // Layout grid (1=color1, 2=color2, 0=empty)
+  const layout = [
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 0, 1, 0, 0, 1, 0, 0],
+    [1, 1, 1, 0, 0, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 0, 0, 1, 1, 1],
+    [0, 0, 1, 0, 0, 1, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[(layout[r][c] - 1) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+
+  return bricks;
+};
+
+/**
+ * ALTERNATING ROWS WITH GAPS PATTERN
+ * Rows of bricks with gaps between each row
+ * Like the alternating column pattern in Space Outlaw left side
+ */
+export const createAlternatingRows = (
+  startRow: number,
+  numRows: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  for (let r = 0; r < numRows; r++) {
+    const color = colors[r % colors.length];
+    // Alternate between full row and short row
+    const isFullRow = r % 2 === 0;
+    const colCount = isFullRow ? 8 : 4;
+    const colOffset = isFullRow ? 0 : 2;
+
+    for (let c = 0; c < colCount; c++) {
+      bricks.push({
+        x: startX + (colOffset + c) * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + (colOffset + c) * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+
+  return bricks;
+};
