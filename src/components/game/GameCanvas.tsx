@@ -471,6 +471,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // Game loop
   const gameLoop = useCallback((deltaTime: number) => {
+     if (levelCompletingRef.current) {
+    return;
+  }
     // Use fixed sub-steps for smoother physics
     const numSteps = Math.max(1, Math.ceil(deltaTime / 0.008));
     const stepDt = deltaTime / numSteps;
@@ -820,10 +823,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Check laser-brick collisions
     let laserDestroyedBrick = false;
-    setLasers(prevLasers => {
-      return prevLasers.filter(laser => {
-        for (const brick of bricks) {
-          if (!brick.destroyed && checkLaserBrickCollision(laser, brick)) {
+if (!levelCompletingRef.current) {
+setLasers(prevLasers => {
+  return prevLasers.filter(laser => {
+    for (const brick of bricks) {
+      if (!brick.destroyed && checkLaserBrickCollision(laser, brick)) {
             setBricks(prev => {
               const updated = prev.map(b => {
                 if (b.id === brick.id && b.type !== 'indestructible') {
@@ -847,7 +851,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         return true;
       });
     });
-
+}
     // Check brick collisions
     setBricks(prevBricks => {
       let scoreToAdd = 0;
@@ -936,7 +940,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Electric ball: side arcs destroy bricks LEFT and RIGHT only, NOT front/back
       // Ball still bounces off front bricks normally (handled by collision response below)
-      if (isShock) {
+      if (isShock && !levelCompletingRef.current) {
         balls.forEach(ball => {
           if (ball.velocity.dx === 0 && ball.velocity.dy === 0) return;
           
@@ -967,7 +971,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       // Handle explosions affecting bricks
-      explosions.forEach(explosion => {
+      if (explosions.length > 0 && !levelCompletingRef.current) {
+explosions.forEach(explosion => {
         const affectedBricks = getBricksInExplosionRadius(
           { x: explosion.x, y: explosion.y, radius: explosion.maxRadius * 0.8 },
           updatedBricks
@@ -981,7 +986,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           }
         });
       });
-
+      }
       // Check ball-level coin collisions
       setLevelCoins(prevCoins => {
         return prevCoins.map(coin => {
@@ -1292,10 +1297,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       GAME_WIDTH * 0.5, GAME_HEIGHT * 0.55, 0,
       GAME_WIDTH * 0.5, GAME_HEIGHT * 0.5, GAME_HEIGHT * 0.9
     );
-    bgGradient.addColorStop(0, 'hsl(220, 10%, 2%)');
-bgGradient.addColorStop(0.4, 'hsl(215, 10%, 1%)');
-bgGradient.addColorStop(0.7, 'hsl(210, 10%, 1%)');
-bgGradient.addColorStop(1, 'hsl(220, 10%, 0.5%)');
+    bgGradient.addColorStop(0, 'hsl(270, 10%, 2%)');
+bgGradient.addColorStop(0.4, 'hsl(265, 10%, 1%)');
+bgGradient.addColorStop(0.7, 'hsl(260, 10%, 1%)');
+bgGradient.addColorStop(1, 'hsl(270, 10%, 0.5%)');
     ctx.fillStyle = bgGradient;
     ctx.fillRect(-10, -10, GAME_WIDTH + 20, GAME_HEIGHT + 20);
 
