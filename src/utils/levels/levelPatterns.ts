@@ -575,8 +575,7 @@ export const createStar = (
 // 10 NEW SPACE OUTLAW-INSPIRED COMPLEX PATTERNS
 // Based on research of Space Outlaw game brick layouts
 
-import { BrickColor, LevelBrickConfig } from '@/types/game';
-import { GAME_WIDTH, BRICK_WIDTH, BRICK_HEIGHT, BRICK_PADDING } from './levelPatterns';
+
 
 /**
  * MAZE PATTERN - Complex L-shaped maze corridors
