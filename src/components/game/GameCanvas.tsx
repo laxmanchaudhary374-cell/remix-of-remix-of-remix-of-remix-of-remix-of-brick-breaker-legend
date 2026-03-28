@@ -46,6 +46,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   emergencyRef,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const bgImageRef = useRef<HTMLImageElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const [paddle, setPaddle] = useState<Paddle>({
@@ -103,7 +104,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const levelCompletingRef = useRef(false);
   
   // Initialize level - only reinitialize when level actually changes (not on pause/resume)
-  useEffect(() => {
+  useEffect(() => {const img = new Image();
+img.src = '/galaxy-bg.jpg';
+img.onload = () => { bgImageRef.current = img; };
     const levelChanged = prevLevelRef.current !== gameState.level;
     const justStartedPlaying = prevStatusRef.current !== 'playing' && gameState.status === 'playing' && 
                                prevStatusRef.current !== 'paused';
@@ -1293,16 +1296,12 @@ explosions.forEach(explosion => {
 
     // Galaxy space background with spiral nebula, clouds, and stars
     // Base dark space gradient
-    const bgGradient = ctx.createRadialGradient(
-      GAME_WIDTH * 0.5, GAME_HEIGHT * 0.55, 0,
-      GAME_WIDTH * 0.5, GAME_HEIGHT * 0.5, GAME_HEIGHT * 0.9
-    );
-    bgGradient.addColorStop(0, 'hsl(270, 10%, 2%)');
-bgGradient.addColorStop(0.4, 'hsl(265, 10%, 1%)');
-bgGradient.addColorStop(0.7, 'hsl(260, 10%, 1%)');
-bgGradient.addColorStop(1, 'hsl(270, 10%, 0.5%)');
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(-10, -10, GAME_WIDTH + 20, GAME_HEIGHT + 20);
+    if (bgImageRef.current) {
+  ctx.drawImage(bgImageRef.current, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+} else {
+  ctx.fillStyle = 'hsl(270, 10%, 2%)';
+  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+}
 
     // Distant stars layer (tiny dots)
     for (let i = 0; i < 80; i++) {
