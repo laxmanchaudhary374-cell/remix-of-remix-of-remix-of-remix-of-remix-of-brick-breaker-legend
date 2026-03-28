@@ -203,6 +203,833 @@ export const getRandomColor = (): BrickColor => {
   return COLORS[Math.floor(Math.random() * COLORS.length)];
 };
 // SPACE OUTLAW INSPIRED BRICK PATTERNS - Add to levelPatterns.ts
+// COMPLEX SPACE OUTLAW STYLE PATTERNS
+
+/**
+ * HEART SHAPE - Like the heart pattern in Space Outlaw
+ */
+export const createHeart = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  // Heart grid layout (1=color1, 2=color2, 3=color3, 0=empty)
+  const layout = [
+    [0, 1, 1, 0, 0, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 2, 1, 1, 1, 1, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[(layout[r][c] - 1) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * H SHAPE - Like the H pattern in Space Outlaw
+ */
+export const createHShape = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[r % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * SPACESHIP SHAPE - Like the spaceship pattern in Space Outlaw
+ */
+export const createSpaceship = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 2, 2, 1, 1, 0],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[(layout[r][c] - 1) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * BAR CHART - Columns of different heights like bar chart
+ * Similar to the bar chart pattern in Space Outlaw
+ */
+export const createBarChart = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  // Heights for each column (like a bar chart)
+  const heights = [3, 5, 7, 6, 6, 7, 5, 3];
+  const maxHeight = Math.max(...heights);
+
+  for (let c = 0; c < 8; c++) {
+    const color = colors[c % colors.length];
+    const colHeight = heights[c];
+    const rowOffset = maxHeight - colHeight; // Align to bottom
+
+    for (let r = 0; r < colHeight; r++) {
+      bricks.push({
+        x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        y: 30 + (startRow + rowOffset + r) * (BRICK_HEIGHT + BRICK_PADDING),
+        width: BRICK_WIDTH,
+        height: BRICK_HEIGHT,
+        hits: 1,
+        maxHits: 1,
+        color,
+        type: 'normal',
+        originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+      });
+    }
+  }
+  return bricks;
+};
+
+/**
+ * ARROW POINTING UP - Like arrow patterns in Space Outlaw
+ */
+export const createArrowUp = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[r % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * DIAMOND WITH FRAME - Diamond inside a frame
+ */
+export const createDiamondFrame = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 1, 1, 0, 0, 1],
+    [1, 0, 2, 2, 2, 2, 0, 1],
+    [1, 1, 2, 0, 0, 2, 1, 1],
+    [1, 0, 2, 2, 2, 2, 0, 1],
+    [1, 0, 0, 1, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[(layout[r][c] - 1) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * TWIN TOWERS - Two tall columns like skyscrapers
+ */
+export const createTwinTowers = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 1, 0, 1, 1, 0, 1, 1],
+    [1, 1, 0, 1, 1, 0, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 0, 1, 1, 0, 1, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[c < 4 ? 0 : 1];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * WAVE PATTERN - Multiple wave rows
+ */
+export const createWaveRows = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [0, 1, 1, 0, 0, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 0, 0, 1, 1, 0],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [0, 1, 1, 0, 0, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[r % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * STAR SHAPE - Like a star/asterisk
+ */
+export const createStar = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 0, 0, 1, 1, 0, 0, 1],
+    [0, 1, 0, 1, 1, 0, 1, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 0, 1, 1, 0, 1, 0],
+    [1, 0, 0, 1, 1, 0, 0, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[(layout[r][c] - 1) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+// 10 NEW SPACE OUTLAW-INSPIRED COMPLEX PATTERNS
+// Based on research of Space Outlaw game brick layouts
+
+import { BrickColor, LevelBrickConfig } from '@/types/game';
+import { GAME_WIDTH, BRICK_WIDTH, BRICK_HEIGHT, BRICK_PADDING } from './levelPatterns';
+
+/**
+ * MAZE PATTERN - Complex L-shaped maze corridors
+ * Like the maze pattern visible in Space Outlaw
+ */
+export const createMazeComplex = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 1, 1, 1, 1, 1, 0],
+    [1, 0, 1, 0, 0, 0, 1, 0],
+    [1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 0, 1, 0, 0, 0, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[r % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * L-SHAPE PATTERN - Large L-shaped structure
+ */
+export const createLShape = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[(r + c) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * T-SHAPE PATTERN - Large T-shaped structure
+ */
+export const createTShape = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[r % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * U-SHAPE PATTERN - U-shaped structure with open top
+ */
+export const createUShape = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 1, 1, 0, 0, 1, 1, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[c % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * E-SHAPE PATTERN - E-shaped structure
+ */
+export const createEShape = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 0],
+    [1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[r % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * EXPLOSION BURST PATTERN - Bricks radiating from center like explosion
+ */
+export const createExplosionBurst = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[(layout[r][c] - 1) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * CONSTELLATION PATTERN - Scattered bricks forming pattern
+ */
+export const createConstellation = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 1, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 1, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 1, 0, 0, 1, 0, 0],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[(r + c) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * SHIELD PATTERN - Shield-shaped structure
+ */
+export const createShield = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [1, 1, 1, 2, 2, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] !== 0) {
+        const color = colors[(layout[r][c] - 1) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * CASTLE WALL PATTERN - Castle wall with towers
+ */
+export const createCastleWall = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [1, 1, 1, 0, 0, 1, 1, 1],
+    [1, 1, 1, 0, 0, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[r % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * ROCKET PATTERN - Rocket ship shape
+ */
+export const createRocketShape = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 0, 0, 1, 1, 0],
+    [0, 0, 1, 0, 0, 1, 0, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[r % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
+
+/**
+ * RING PATTERN - Circular ring of bricks
+ */
+export const createRing = (
+  startRow: number,
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
+
+  const layout = [
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+  ];
+
+  for (let r = 0; r < layout.length; r++) {
+    for (let c = 0; c < layout[r].length; c++) {
+      if (layout[r][c] === 1) {
+        const color = colors[(r + c) % colors.length];
+        bricks.push({
+          x: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+          y: 30 + (startRow + r) * (BRICK_HEIGHT + BRICK_PADDING),
+          width: BRICK_WIDTH,
+          height: BRICK_HEIGHT,
+          hits: 1,
+          maxHits: 1,
+          color,
+          type: 'normal',
+          originalX: startX + c * (BRICK_WIDTH + BRICK_PADDING),
+        });
+      }
+    }
+  }
+  return bricks;
+};
 
 /**
  * STAIRCASE PATTERN
