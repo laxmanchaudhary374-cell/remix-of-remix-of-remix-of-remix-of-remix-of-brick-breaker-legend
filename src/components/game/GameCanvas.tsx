@@ -293,7 +293,7 @@ img.onload = () => { bgImageRef.current = img; };
         const coin = createCoin(brick.x + brick.width / 2, brick.y + brick.height / 2);
         setCoins(prev => [...prev, coin]);
       }
-    
+    }
     if (shouldDropPowerUp() && brick.type !== 'coin') {
       const powerUp = createPowerUp(brick.x + brick.width / 2, brick.y + brick.height);
       setPowerUps(prev => [...prev, powerUp]);
