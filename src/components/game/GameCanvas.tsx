@@ -1885,12 +1885,6 @@ explosions.forEach(explosion => {
       ref={containerRef}
       className="relative w-full max-w-[400px] mx-auto touch-none"
     >
-      // ============================================
-// COMPLETE SHOP CODE - COPY AND PASTE ALL THIS
-// ============================================
-// Add this BEFORE the <canvas> element
-// ============================================
-
 {/* Shop Button - Top Right Corner */}
 <button
   onClick={() => setShowShop(!showShop)}
