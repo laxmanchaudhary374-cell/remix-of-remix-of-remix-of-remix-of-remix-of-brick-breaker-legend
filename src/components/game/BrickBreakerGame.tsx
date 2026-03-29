@@ -374,6 +374,9 @@ const BrickBreakerGame: React.FC = () => {
           setGameState={setGameState}
           onGameOver={handleGameOver}
           onLevelComplete={handleLevelComplete}
+          // Award level completion bonus
+const levelBonus = Math.floor(currentLevel / 5) + 10; // 10 coins at level 1, 12 at level 5, etc.
+setGameState(prev => ({ ...prev, coins: prev.coins + levelBonus }));
           onScoreChange={handleScoreChange}
           emergencyRef={emergencyRef}
         />
