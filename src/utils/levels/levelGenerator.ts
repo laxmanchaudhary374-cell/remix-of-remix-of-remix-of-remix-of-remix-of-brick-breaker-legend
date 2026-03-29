@@ -1134,9 +1134,6 @@ const getPatternType = (level: number): PatternType => {
   
   return 'rows';
 };
-  const shuffledIndex = Math.abs(Math.floor(Math.sin(level * 12.9898) * 43758.5453)) % patterns.length;
-return patterns[shuffledIndex];
-};
 
 // Generate a single level
 export const generateLevel = (level: number): LevelConfig => {
