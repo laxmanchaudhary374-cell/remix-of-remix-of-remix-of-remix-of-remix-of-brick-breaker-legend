@@ -1402,3 +1402,63 @@ export const createAlternatingRows = (
 
   return bricks;
 };
+/**
+ * Create bricks from a 2D grid pattern
+ * Grid values: 0=empty, 1=primary, 2=secondary, 3=accent, 4=indestructible
+ * Auto-sizes bricks to fit 8 columns within GAME_WIDTH
+ * Keeps bottom 30% of screen empty for ball bouncing
+ */
+export const createGridPattern = (
+  gridPattern: number[][],
+  colors: BrickColor[]
+): LevelBrickConfig[] => {
+  const bricks: LevelBrickConfig[] = [];
+  
+  // Calculate brick size to fit 8 columns
+  const maxCols = 8;
+  const maxGameHeight = GAME_HEIGHT * 0.7; // Only use top 70%
+  
+  const brickWidth = Math.floor((GAME_WIDTH - 10) / maxCols);
+  const brickHeight = Math.floor(brickWidth * 0.6); // Maintain aspect ratio
+  
+  // Calculate starting position (centered)
+  const totalWidth = gridPattern[0]?.length * brickWidth || GAME_WIDTH;
+  const startX = (GAME_WIDTH - totalWidth) / 2;
+  const startY = 30;
+  
+  // Create bricks from grid
+  gridPattern.forEach((row, rowIdx) => {
+    const maxRowsAllowed = Math.floor(maxGameHeight / brickHeight);
+    if (rowIdx >= maxRowsAllowed) return; // Don't exceed 70% height
+    
+    row.forEach((cellValue, colIdx) => {
+      if (cellValue === 0) return; // Skip empty cells
+      
+      // Map grid value to color
+      let color: BrickColor;
+      if (cellValue === 4) {
+        color = 'purple'; // Indestructible
+      } else {
+        color = colors[(cellValue - 1) % colors.length];
+      }
+      
+      // Determine hits based on cell value
+      const hits = cellValue === 4 ? 999 : 1;
+      const type = cellValue === 4 ? 'indestructible' : 'normal';
+      
+      bricks.push({
+        x: startX + colIdx * brickWidth,
+        y: startY + rowIdx * brickHeight,
+        width: brickWidth,
+        height: brickHeight,
+        hits,
+        maxHits: hits,
+        color,
+        type,
+        originalX: startX + colIdx * brickWidth,
+      });
+    });
+  });
+  
+  return bricks;
+};
