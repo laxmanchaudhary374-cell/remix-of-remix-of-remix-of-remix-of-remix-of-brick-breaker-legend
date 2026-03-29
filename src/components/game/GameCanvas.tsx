@@ -288,16 +288,11 @@ img.onload = () => { bgImageRef.current = img; };
     }
     
     if (brick.type === 'coin') {
-      // Gold bricks release 3 coins when broken
-      for (let i = 0; i < 2; i++) {
-  const coin = createCoin(
-    brick.x + brick.width / 2 + (i - 1) * 10,
-    brick.y + brick.height / 2,
-    2
-  );
-  setCoins(prev => [...prev, coin]);
-}
-    }
+            // Gold bricks release 1 coin when broken (reduced from 3)
+      if (brick.color === 'gold') {
+        const coin = createCoin(brick.x + brick.width / 2, brick.y + brick.height / 2);
+        setCoins(prev => [...prev, coin]);
+      }
     
     if (shouldDropPowerUp() && brick.type !== 'coin') {
       const powerUp = createPowerUp(brick.x + brick.width / 2, brick.y + brick.height);
@@ -1001,7 +996,8 @@ explosions.forEach(explosion => {
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance < ball.radius + 12) {
-              setGameState(prev => ({ ...prev, coins: prev.coins + coin.value }));
+                            // Reduced coin value from coin.value to 1
+              setGameState(prev => ({ ...prev, coins: prev.coins + 1 }));
               createParticles(coin.x, coin.y, 'hsl(45, 100%, 55%)', 10);
               audioManager.playCoinCollect();
               return { ...coin, collected: true };
@@ -1238,7 +1234,8 @@ explosions.forEach(explosion => {
           coin.x + 10 > paddle.x &&
           coin.x - 10 < paddle.x + paddle.width
         ) {
-          setGameState(prev => ({ ...prev, coins: prev.coins + coin.value }));
+                    // Reduced coin value from coin.value to 1
+          setGameState(prev => ({ ...prev, coins: prev.coins + 1 }));
           createParticles(coin.x, coin.y, 'hsl(45, 100%, 55%)', 8);
           audioManager.playCoinCollect();
           return false;
