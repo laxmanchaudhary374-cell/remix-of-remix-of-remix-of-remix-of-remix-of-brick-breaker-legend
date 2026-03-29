@@ -8,16 +8,18 @@ import {
   createDiamondFrame, createTwinTowers, createWaveRows, createStar,
   createMazeComplex, createLShape, createTShape, createUShape, createEShape,
   createExplosionBurst, createConstellation, createShield, createCastleWall,
-  createRocketShape, createRing,
+  createRocketShape, createRing, createGridPattern,
   B, EX, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
+import { GRID_PATTERNS } from './gridPatterns';
 
 // Pattern types for variety
-type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows' | 'complex_heart' | 'complex_h' | 'complex_spaceship' | 'complex_bar'
+type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows'
+| 'complex_heart' | 'complex_h' | 'complex_spaceship' | 'complex_bar'
 | 'complex_arrow' | 'complex_diamond_frame' | 'complex_towers' | 'complex_wave'
 | 'complex_star' | 'maze_complex' | 'l_shape' | 't_shape' | 'u_shape'
 | 'e_shape' | 'explosion_burst' | 'constellation' | 'shield'
-| 'castle_wall' | 'rocket_shape' | 'ring';
+| 'castle_wall' | 'rocket_shape' | 'ring' | 'grid';
 
 // Get difficulty parameters based on level
 const getDifficultyParams = (level: number) => {
@@ -124,6 +126,7 @@ complex_h: ['H-SHAPE', 'LETTER', 'SYMBOL', 'FORM'],
 complex_spaceship: ['SPACESHIP', 'VESSEL', 'CRAFT', 'SHIP'],
 complex_bar: ['BAR CHART', 'GRAPH', 'COLUMNS', 'BARS'],
 complex_arrow: ['ARROW', 'DIRECTION', 'POINTER', 'VECTOR'],
+        grid: ['GRID', 'MATRIX', 'LATTICE', 'MESH'],
 complex_diamond_frame: ['DIAMOND', 'GEM', 'FRAME', 'BORDER'],
 complex_towers: ['TOWERS', 'SKYSCRAPERS', 'TWIN', 'PEAKS'],
 complex_wave: ['WAVE', 'RIPPLE', 'FLOW', 'TIDE'],
@@ -1118,20 +1121,19 @@ const generateRingPattern = (level: number, params: ReturnType<typeof getDifficu
 };
 // Get pattern type for level
 const getPatternType = (level: number): PatternType => {
-  // Boss levels every 20 levels
-  if (level % 20 === 0) return 'boss';
+  // Levels 1-10: Use existing simple patterns
+  if (level <= 10) {
+    const patterns: PatternType[] = ['rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag', 'heart', 'star'];
+    return patterns[(level - 1) % patterns.length];
+  }
   
-  const patterns: PatternType[] = [
-    'rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag',
-    'heart', 'star', 'arrow', 'circle', 'spiral', 'random', 'spaceship', 'robot',
-    'castle', 'bars', 'xshape', 'frame', 'hourglass', 'butterfly', 'crown', 'skull', 'tree', 'diagonal',
-    'towers', 'bridge', 'letter_e', 'letter_h', 'steps_lr', 'steps_rl', 'pillars', 'maze',
-    'tetris_l', 'tetris_t', 'wings', 'anchor', 'mushroom', 'cup',
-    'city_skyline', 'letter_f', 'letter_t', 'invader', 'cactus', 'umbrella', 'rocket', 'wave_solid', 'grid_holes', 'corner_blocks', 'complex_heart', 'complex_h', 'complex_spaceship', 'complex_bar', 'complex_arrow',
-'complex_diamond_frame', 'complex_towers', 'complex_wave', 'complex_star',
-'maze_complex', 'l_shape', 't_shape', 'u_shape', 'e_shape',
-'explosion_burst', 'constellation', 'shield', 'castle_wall', 'rocket_shape', 'ring',
-  ];
+  // Levels 11+: Use 500 grid patterns
+  if (level > 10) {
+    return 'grid';
+  }
+  
+  return 'rows';
+};
   const shuffledIndex = Math.abs(Math.floor(Math.sin(level * 12.9898) * 43758.5453)) % patterns.length;
 return patterns[shuffledIndex];
 };
@@ -1226,6 +1228,13 @@ case 'shield': bricks = generateShieldPattern(level, params); break;
 case 'castle_wall': bricks = generateCastleWallPattern(level, params); break;
 case 'rocket_shape': bricks = generateRocketShapePattern(level, params); break;
 case 'ring': bricks = generateRingPattern(level, params); break;
+          case 'grid': {
+      // Use grid patterns for levels 11+
+      const patternIndex = (level - 11) % GRID_PATTERNS.length;
+      const gridPattern = GRID_PATTERNS[patternIndex];
+      bricks = createGridPattern(gridPattern, COLORS);
+      break;
+    }
     default: bricks = generateRowPattern(level, params);
   }
   
