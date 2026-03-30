@@ -11,7 +11,7 @@ import {
   createRocketShape, createRing, createGridPattern,
   B, EX, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
-import { GRID_PATTERNS } from './gridPatterns';
+import { GRID_PATTERNS } from '../gridPatterns';
 
 // Pattern types for variety
 type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows'
