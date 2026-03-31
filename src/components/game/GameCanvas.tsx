@@ -27,6 +27,7 @@ import {
 import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
+import spaceBackground from '@/assets/space-background.jpg';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -104,9 +105,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const levelCompletingRef = useRef(false);
   
   // Initialize level - only reinitialize when level actually changes (not on pause/resume)
-  useEffect(() => {const img = new Image();
-img.src = '/galaxy-bg.jpg';
-img.onload = () => { bgImageRef.current = img; };
+  useEffect(() => {
+    const img = new Image();
+    img.src = spaceBackground;
+    img.onload = () => { bgImageRef.current = img; };
     const levelChanged = prevLevelRef.current !== gameState.level;
     const justStartedPlaying = prevStatusRef.current !== 'playing' && gameState.status === 'playing' && 
                                prevStatusRef.current !== 'paused';
