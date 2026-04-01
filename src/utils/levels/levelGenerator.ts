@@ -1106,7 +1106,7 @@ const generateShieldPattern = (level: number, params: ReturnType<typeof getDiffi
 };
 
 // Generate castle wall pattern
-const generateCastleWallPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateCastleWallPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createCastleWall(0, colors);
 };
