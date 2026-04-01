@@ -1118,7 +1118,7 @@ const generateRocketShapePattern = (level: number, params: ReturnType<typeof get
 };
 
 // Generate ring pattern
-const generateRingPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateRingPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createRing(0, colors);
 };
