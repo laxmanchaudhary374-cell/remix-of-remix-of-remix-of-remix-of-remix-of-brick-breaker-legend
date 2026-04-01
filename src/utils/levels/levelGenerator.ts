@@ -1088,7 +1088,7 @@ const generateEShapePattern = (level: number, params: ReturnType<typeof getDiffi
 };
 
 // Generate explosion burst pattern
-const generateExplosionBurstPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateExplosionBurstPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createExplosionBurst(0, colors);
 };
