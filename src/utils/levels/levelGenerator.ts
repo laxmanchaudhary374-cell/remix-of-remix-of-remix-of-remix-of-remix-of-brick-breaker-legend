@@ -1040,7 +1040,7 @@ const generateDiamondFramePattern = (level: number, params: ReturnType<typeof ge
 };
 
 // Generate twin towers pattern
-const generateTwinTowersPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateTwinTowersPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 3) % COLORS.length], COLORS[(level + 6) % COLORS.length]];
   return createTwinTowers(0, colors);
 };
