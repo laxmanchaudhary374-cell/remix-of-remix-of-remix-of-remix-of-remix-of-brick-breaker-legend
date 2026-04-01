@@ -1058,7 +1058,7 @@ const generateComplexStarPattern = (level: number, params: ReturnType<typeof get
 };
 
 // Generate maze complex pattern
-const generateMazeComplexPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateMazeComplexPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const color = COLORS[level % COLORS.length];
   return createMazeComplex(0, [color, COLORS[(level + 2) % COLORS.length]]);
 };
