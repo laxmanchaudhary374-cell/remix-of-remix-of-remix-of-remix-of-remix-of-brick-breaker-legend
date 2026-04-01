@@ -84,7 +84,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [isBigBall, setIsBigBall] = useState(false);
   const [lastPowerUpTime, setLastPowerUpTime] = useState(0);
   const [isGhostPaddle, setIsGhostPaddle] = useState(false);
-    const [showShop, setShowShop] = useState(false);
+    
   const paddleTargetRef = useRef(paddle.x);
   const magnetBallRef = useRef<Ball | null>(null);
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
