@@ -1064,7 +1064,7 @@ const generateMazeComplexPattern = (level: number, params: ReturnType<typeof get
 };
 
 // Generate L-shape pattern
-const generateLShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateLShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createLShape(0, colors);
 };
