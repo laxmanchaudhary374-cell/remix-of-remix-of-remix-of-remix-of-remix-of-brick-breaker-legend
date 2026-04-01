@@ -1112,7 +1112,7 @@ const generateCastleWallPattern = (level: number, params: ReturnType<typeof getD
 };
 
 // Generate rocket shape pattern
-const generateRocketShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateRocketShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createRocketShape(0, colors);
 };
