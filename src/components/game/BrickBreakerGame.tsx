@@ -68,6 +68,7 @@ const BrickBreakerGame: React.FC = () => {
   const [pendingPowerUps, setPendingPowerUps] = useState<string[]>([]);
   const [emergencyCounts, setEmergencyCounts] = useState(getEmergencyCounts);
   const emergencyRef = useRef<string | null>(null);
+  const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | null>(null);
 
   const [gameState, setGameState] = useState<GameState>({
     status: 'menu',
