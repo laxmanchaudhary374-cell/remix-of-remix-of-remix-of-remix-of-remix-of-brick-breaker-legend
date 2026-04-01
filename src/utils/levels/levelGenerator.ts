@@ -9,6 +9,9 @@ import {
   createMazeComplex, createLShape, createTShape, createUShape, createEShape,
   createExplosionBurst, createConstellation, createShield, createCastleWall,
   createRocketShape, createRing, createGridPattern,
+  createStaircase, createReverseStaircase, createWings, createColumnsWithGaps,
+  createInvertedPyramid, createMaze, createHourglass, createCrossWithWings,
+  createAlternatingRows,
   B, EX, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
 import { GRID_PATTERNS } from '../gridPatterns';
@@ -1013,109 +1016,109 @@ const generateComplexHPattern = (level: number, params: ReturnType<typeof getDif
 };
 
 // Generate complex spaceship pattern
-const generateComplexSpaceshipPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateComplexSpaceshipPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createSpaceship(0, colors);
 };
 
 // Generate bar chart pattern
-const generateBarChartPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateBarChartPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createBarChart(0, colors);
 };
 
 // Generate complex arrow pattern
-const generateComplexArrowPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateComplexArrowPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createArrowUp(0, colors);
 };
 
 // Generate diamond frame pattern
-const generateDiamondFramePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateDiamondFramePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createDiamondFrame(0, colors);
 };
 
 // Generate twin towers pattern
-const generateTwinTowersPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateTwinTowersPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 3) % COLORS.length], COLORS[(level + 6) % COLORS.length]];
   return createTwinTowers(0, colors);
 };
 
 // Generate complex wave pattern
-const generateComplexWavePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateComplexWavePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createWaveRows(0, colors);
 };
 
 // Generate complex star pattern
-const generateComplexStarPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateComplexStarPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createStar(0, colors);
 };
 
 // Generate maze complex pattern
-const generateMazeComplexPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateMazeComplexPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const color = COLORS[level % COLORS.length];
   return createMazeComplex(0, [color, COLORS[(level + 2) % COLORS.length]]);
 };
 
 // Generate L-shape pattern
-const generateLShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateLShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createLShape(0, colors);
 };
 
 // Generate T-shape pattern
-const generateTShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateTShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createTShape(0, colors);
 };
 
 // Generate U-shape pattern
-const generateUShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateUShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createUShape(0, colors);
 };
 
 // Generate E-shape pattern
-const generateEShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateEShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createEShape(0, colors);
 };
 
 // Generate explosion burst pattern
-const generateExplosionBurstPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateExplosionBurstPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createExplosionBurst(0, colors);
 };
 
 // Generate constellation pattern
-const generateConstellationPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateConstellationPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createConstellation(0, colors);
 };
 
 // Generate shield pattern
-const generateShieldPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateShieldPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createShield(0, colors);
 };
 
 // Generate castle wall pattern
-const generateCastleWallPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateCastleWallPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createCastleWall(0, colors);
 };
 
 // Generate rocket shape pattern
-const generateRocketShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateRocketShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createRocketShape(0, colors);
 };
 
 // Generate ring pattern
-const generateRingPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateRingPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createRing(0, colors);
 };
@@ -1185,15 +1188,15 @@ export const generateLevel = (level: number): LevelConfig => {
     case 'wings': bricks = generateWingsPattern(level, params); break;
     case 'anchor': bricks = generateAnchorPattern(level, params); break;
     case 'mushroom': bricks = generateMushroomPattern(level, params); break;
-      case 'staircase': bricks = createStaircase(0, 6, colors[0]); break;
-case 'reverse_staircase': bricks = createReverseStaircase(0, 6, colors[0]); break;
-case 'wings_outlaw': bricks = createWings(0, 6, [colors[0], colors[1]]); break;
-case 'columns_gaps': bricks = createColumnsWithGaps(0, 6, [colors[0], colors[1]]); break;
-case 'inverted_pyramid': bricks = createInvertedPyramid(0, 5, [colors[0], colors[1]]); break;
-case 'maze_outlaw': bricks = createMaze(0, colors[0]); break;
-case 'hourglass_outlaw': bricks = createHourglass(0, [colors[0], colors[1]]); break;
-case 'cross_wings': bricks = createCrossWithWings(0, [colors[0], colors[1]]); break;
-case 'alternating_rows': bricks = createAlternatingRows(0, 8, [colors[0], colors[1]]); break;
+    case 'staircase': bricks = createStaircase(0, 6, COLORS[level % COLORS.length]); break;
+    case 'reverse_staircase': bricks = createReverseStaircase(0, 6, COLORS[level % COLORS.length]); break;
+    case 'wings_outlaw': bricks = createWings(0, 6, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
+    case 'columns_gaps': bricks = createColumnsWithGaps(0, 6, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
+    case 'inverted_pyramid': bricks = createInvertedPyramid(0, 5, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
+    case 'maze_outlaw': bricks = createMaze(0, COLORS[level % COLORS.length]); break;
+    case 'hourglass_outlaw': bricks = createHourglass(0, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
+    case 'cross_wings': bricks = createCrossWithWings(0, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
+    case 'alternating_rows': bricks = createAlternatingRows(0, 8, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
     case 'cup': bricks = generateCupPattern(level, params); break;
     case 'city_skyline': bricks = generateCitySkylinePattern(level, params); break;
     case 'letter_f': bricks = generateLetterFPattern(level, params); break;
