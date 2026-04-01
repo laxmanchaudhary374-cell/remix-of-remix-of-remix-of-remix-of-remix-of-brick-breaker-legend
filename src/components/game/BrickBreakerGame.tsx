@@ -44,6 +44,12 @@ const setStoredCoins = (coins: number) => {
 type ScreenState = 'splash' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'won';
 type ModalType = 'none' | 'daily' | 'wheel' | 'shop';
 
+const EMERGENCY_PRICES: Record<string, { cost: number; label: string }> = {
+  auto: { cost: 50, label: 'Auto Paddle' },
+  shock: { cost: 75, label: 'Electric Shock' },
+  multi: { cost: 100, label: 'Three-Ball' },
+};
+
 const getEmergencyCounts = () => {
   try {
     return {
