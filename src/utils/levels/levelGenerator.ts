@@ -9,6 +9,9 @@ import {
   createMazeComplex, createLShape, createTShape, createUShape, createEShape,
   createExplosionBurst, createConstellation, createShield, createCastleWall,
   createRocketShape, createRing, createGridPattern,
+  createStaircase, createReverseStaircase, createWings, createColumnsWithGaps,
+  createInvertedPyramid, createMaze, createHourglass, createCrossWithWings,
+  createAlternatingRows,
   B, EX, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
 import { GRID_PATTERNS } from '../gridPatterns';
