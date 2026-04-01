@@ -1070,7 +1070,7 @@ const generateLShapePattern = (level: number, params: ReturnType<typeof getDiffi
 };
 
 // Generate T-shape pattern
-const generateTShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateTShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createTShape(0, colors);
 };
