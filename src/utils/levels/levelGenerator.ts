@@ -1082,7 +1082,7 @@ const generateUShapePattern = (level: number, params: ReturnType<typeof getDiffi
 };
 
 // Generate E-shape pattern
-const generateEShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateEShapePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
   return createEShape(0, colors);
 };
