@@ -106,10 +106,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   
   // Initialize level - only reinitialize when level actually changes (not on pause/resume)
   useEffect(() => {
-    const img = new Image();
-    img.src = spaceBackground;
-    img.onload = () => { bgImageRef.current = img; };
-    const levelChanged = prevLevelRef.current !== gameState.level;
+  const img = new Image();
+  img.src = spaceBackground;
+  img.onload = () => { bgImageRef.current = img; };
+  img.onerror = () => { console.error('Failed to load image'); };
+}, []);
+
+useEffect(() => {
+  const levelChanged = prevLevelRef.current !== gameState.level;
     const justStartedPlaying = prevStatusRef.current !== 'playing' && gameState.status === 'playing' && 
                                prevStatusRef.current !== 'paused';
     
