@@ -467,7 +467,33 @@ const BrickBreakerGame: React.FC = () => {
           </div>
         )}
 
-        {screenState === 'paused' && (
+        {screenState === 'paused' && buyPrompt && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-lg z-50">
+            <div className="text-center p-6 rounded-xl border border-neon-cyan/30" style={{ background: 'linear-gradient(135deg, hsl(220,60%,8%), hsl(220,50%,14%))' }}>
+              <h2 className="font-display text-xl text-neon-cyan text-glow-cyan mb-2">BUY POWER-UP</h2>
+              <p className="text-foreground/80 text-sm mb-1">{EMERGENCY_PRICES[buyPrompt].label}</p>
+              <p className="text-neon-yellow font-bold text-lg mb-4">🪙 {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
+              <p className="text-muted-foreground text-xs mb-4">You have: 🪙 {persistentCoins}</p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleBuyEmergency}
+                  disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-base rounded-lg transition-all transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                >
+                  {persistentCoins >= EMERGENCY_PRICES[buyPrompt].cost ? 'BUY & USE' : 'NOT ENOUGH'}
+                </button>
+                <button
+                  onClick={handleCancelBuy}
+                  className="w-48 py-2 px-6 bg-muted/30 hover:bg-muted/50 text-foreground/70 font-display text-sm rounded-lg transition-all"
+                >
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {screenState === 'paused' && !buyPrompt && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg">
             <div className="text-center p-6">
               <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
