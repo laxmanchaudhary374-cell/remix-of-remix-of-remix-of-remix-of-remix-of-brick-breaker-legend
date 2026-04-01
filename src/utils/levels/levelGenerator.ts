@@ -1052,7 +1052,7 @@ const generateComplexWavePattern = (level: number, params: ReturnType<typeof get
 };
 
 // Generate complex star pattern
-const generateComplexStarPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateComplexStarPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createStar(0, colors);
 };
