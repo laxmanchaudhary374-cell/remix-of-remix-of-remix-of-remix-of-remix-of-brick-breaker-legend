@@ -1016,7 +1016,7 @@ const generateComplexHPattern = (level: number, params: ReturnType<typeof getDif
 };
 
 // Generate complex spaceship pattern
-const generateComplexSpaceshipPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateComplexSpaceshipPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createSpaceship(0, colors);
 };
