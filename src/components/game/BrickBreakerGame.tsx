@@ -297,7 +297,14 @@ const BrickBreakerGame: React.FC = () => {
   }, [screenState]);
 
   const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi') => {
-    if (emergencyCounts[type] <= 0 || screenState !== 'playing') return;
+    if (screenState !== 'playing') return;
+    if (emergencyCounts[type] <= 0) {
+      // Show buy prompt and pause game
+      setBuyPrompt(type);
+      setScreenState('paused');
+      setGameState(prev => ({ ...prev, status: 'paused' }));
+      return;
+    }
     emergencyRef.current = type;
     setEmergencyCounts(prev => {
       const newVal = prev[type] - 1;
@@ -306,6 +313,26 @@ const BrickBreakerGame: React.FC = () => {
       return updated;
     });
   }, [emergencyCounts, screenState]);
+
+  const handleBuyEmergency = useCallback(() => {
+    if (!buyPrompt) return;
+    const price = EMERGENCY_PRICES[buyPrompt].cost;
+    if (persistentCoins < price) { setBuyPrompt(null); return; }
+    const newCoins = persistentCoins - price;
+    setPersistentCoins(newCoins);
+    setStoredCoins(newCoins);
+    // Add 1 and immediately use it
+    emergencyRef.current = buyPrompt;
+    setBuyPrompt(null);
+    setScreenState('playing');
+    setGameState(prev => ({ ...prev, status: 'playing' }));
+  }, [buyPrompt, persistentCoins]);
+
+  const handleCancelBuy = useCallback(() => {
+    setBuyPrompt(null);
+    setScreenState('playing');
+    setGameState(prev => ({ ...prev, status: 'playing' }));
+  }, []);
 
   if (screenState === 'splash') {
     return <SplashScreen onPlay={handlePlayFromSplash} />;
