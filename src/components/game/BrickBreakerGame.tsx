@@ -44,6 +44,12 @@ const setStoredCoins = (coins: number) => {
 type ScreenState = 'splash' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'won';
 type ModalType = 'none' | 'daily' | 'wheel' | 'shop';
 
+const EMERGENCY_PRICES: Record<string, { cost: number; label: string }> = {
+  auto: { cost: 50, label: 'Auto Paddle' },
+  shock: { cost: 75, label: 'Electric Shock' },
+  multi: { cost: 100, label: 'Three-Ball' },
+};
+
 const getEmergencyCounts = () => {
   try {
     return {
@@ -62,6 +68,7 @@ const BrickBreakerGame: React.FC = () => {
   const [pendingPowerUps, setPendingPowerUps] = useState<string[]>([]);
   const [emergencyCounts, setEmergencyCounts] = useState(getEmergencyCounts);
   const emergencyRef = useRef<string | null>(null);
+  const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | null>(null);
 
   const [gameState, setGameState] = useState<GameState>({
     status: 'menu',
@@ -290,7 +297,14 @@ const BrickBreakerGame: React.FC = () => {
   }, [screenState]);
 
   const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi') => {
-    if (emergencyCounts[type] <= 0 || screenState !== 'playing') return;
+    if (screenState !== 'playing') return;
+    if (emergencyCounts[type] <= 0) {
+      // Show buy prompt and pause game
+      setBuyPrompt(type);
+      setScreenState('paused');
+      setGameState(prev => ({ ...prev, status: 'paused' }));
+      return;
+    }
     emergencyRef.current = type;
     setEmergencyCounts(prev => {
       const newVal = prev[type] - 1;
@@ -299,6 +313,26 @@ const BrickBreakerGame: React.FC = () => {
       return updated;
     });
   }, [emergencyCounts, screenState]);
+
+  const handleBuyEmergency = useCallback(() => {
+    if (!buyPrompt) return;
+    const price = EMERGENCY_PRICES[buyPrompt].cost;
+    if (persistentCoins < price) { setBuyPrompt(null); return; }
+    const newCoins = persistentCoins - price;
+    setPersistentCoins(newCoins);
+    setStoredCoins(newCoins);
+    // Add 1 and immediately use it
+    emergencyRef.current = buyPrompt;
+    setBuyPrompt(null);
+    setScreenState('playing');
+    setGameState(prev => ({ ...prev, status: 'playing' }));
+  }, [buyPrompt, persistentCoins]);
+
+  const handleCancelBuy = useCallback(() => {
+    setBuyPrompt(null);
+    setScreenState('playing');
+    setGameState(prev => ({ ...prev, status: 'playing' }));
+  }, []);
 
   if (screenState === 'splash') {
     return <SplashScreen onPlay={handlePlayFromSplash} />;
@@ -433,7 +467,33 @@ const BrickBreakerGame: React.FC = () => {
           </div>
         )}
 
-        {screenState === 'paused' && (
+        {screenState === 'paused' && buyPrompt && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-lg z-50">
+            <div className="text-center p-6 rounded-xl border border-neon-cyan/30" style={{ background: 'linear-gradient(135deg, hsl(220,60%,8%), hsl(220,50%,14%))' }}>
+              <h2 className="font-display text-xl text-neon-cyan text-glow-cyan mb-2">BUY POWER-UP</h2>
+              <p className="text-foreground/80 text-sm mb-1">{EMERGENCY_PRICES[buyPrompt].label}</p>
+              <p className="text-neon-yellow font-bold text-lg mb-4">🪙 {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
+              <p className="text-muted-foreground text-xs mb-4">You have: 🪙 {persistentCoins}</p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleBuyEmergency}
+                  disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-base rounded-lg transition-all transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                >
+                  {persistentCoins >= EMERGENCY_PRICES[buyPrompt].cost ? 'BUY & USE' : 'NOT ENOUGH'}
+                </button>
+                <button
+                  onClick={handleCancelBuy}
+                  className="w-48 py-2 px-6 bg-muted/30 hover:bg-muted/50 text-foreground/70 font-display text-sm rounded-lg transition-all"
+                >
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {screenState === 'paused' && !buyPrompt && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg">
             <div className="text-center p-6">
               <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
