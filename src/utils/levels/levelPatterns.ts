@@ -1416,7 +1416,7 @@ export const createGridPattern = (
   
   // Calculate brick size to fit 8 columns
   const maxCols = 8;
-  const maxGameHeight = GAME_HEIGHT * 0.7; // Only use top 70%
+  const maxGameHeight = GAME_WIDTH * 1.5 * 0.7; // Approximate game height, only use top 70%
   
   const brickWidth = Math.floor((GAME_WIDTH - 10) / maxCols);
   const brickHeight = Math.floor(brickWidth * 0.6); // Maintain aspect ratio
