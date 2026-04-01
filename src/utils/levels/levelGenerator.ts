@@ -1034,7 +1034,7 @@ const generateComplexArrowPattern = (level: number, params: ReturnType<typeof ge
 };
 
 // Generate diamond frame pattern
-const generateDiamondFramePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelBrickConfig[] => {
+const generateDiamondFramePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 2) % COLORS.length], COLORS[(level + 4) % COLORS.length]];
   return createDiamondFrame(0, colors);
 };
