@@ -84,7 +84,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [isBigBall, setIsBigBall] = useState(false);
   const [lastPowerUpTime, setLastPowerUpTime] = useState(0);
   const [isGhostPaddle, setIsGhostPaddle] = useState(false);
-    const [showShop, setShowShop] = useState(false);
+    
   const paddleTargetRef = useRef(paddle.x);
   const magnetBallRef = useRef<Ball | null>(null);
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
@@ -1891,128 +1891,7 @@ explosions.forEach(explosion => {
       ref={containerRef}
       className="relative w-full max-w-[400px] mx-auto touch-none"
     >
-{/* Shop Button - Top Right Corner */}
-<button
-  onClick={() => setShowShop(!showShop)}
-  style={{
-    position: 'absolute',
-    top: '10px',
-    right: '10px',
-    padding: '8px 16px',
-    backgroundColor: '#FFD700',
-    color: '#000',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    zIndex: 100,
-  }}
->
-  🛒 Shop ({gameState.coins})
-</button>
 
-{/* Shop Modal - Popup Window */}
-{showShop && (
-  <div style={{
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    border: '2px solid #FFD700',
-    borderRadius: '10px',
-    padding: '20px',
-    zIndex: 200,
-    maxWidth: '300px',
-  }}>
-    <h3 style={{ color: '#FFD700', marginTop: 0 }}>Power-Up Shop</h3>
-    
-    {/* Laser Power-up Button */}
-    <button onClick={() => {
-      if (gameState.coins >= 50) {
-        setGameState(prev => ({ ...prev, coins: prev.coins - 50 }));
-        setPaddle(prev => ({ ...prev, hasLaser: true }));
-        setShowShop(false);
-      }
-    }} style={{
-      display: 'block',
-      width: '100%',
-      padding: '10px',
-      marginBottom: '10px',
-      backgroundColor: '#FF6B6B',
-      color: 'white',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: gameState.coins >= 50 ? 'pointer' : 'not-allowed',
-      opacity: gameState.coins >= 50 ? 1 : 0.5,
-    }}>
-      🔫 Laser - 50 coins
-    </button>
-
-    {/* Shield Power-up Button */}
-    <button onClick={() => {
-      if (gameState.coins >= 40) {
-        setGameState(prev => ({ ...prev, coins: prev.coins - 40 }));
-        setPaddle(prev => ({ ...prev, hasShield: true }));
-        setShowShop(false);
-      }
-    }} style={{
-      display: 'block',
-      width: '100%',
-      padding: '10px',
-      marginBottom: '10px',
-      backgroundColor: '#4ECDC4',
-      color: 'white',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: gameState.coins >= 40 ? 'pointer' : 'not-allowed',
-      opacity: gameState.coins >= 40 ? 1 : 0.5,
-    }}>
-      🛡️ Shield - 40 coins
-    </button>
-
-    {/* Magnet Power-up Button */}
-    <button onClick={() => {
-      if (gameState.coins >= 35) {
-        setGameState(prev => ({ ...prev, coins: prev.coins - 35 }));
-        setPaddle(prev => ({ ...prev, hasMagnet: true }));
-        setShowShop(false);
-      }
-    }} style={{
-      display: 'block',
-      width: '100%',
-      padding: '10px',
-      marginBottom: '10px',
-      backgroundColor: '#95E1D3',
-      color: 'white',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: gameState.coins >= 35 ? 'pointer' : 'not-allowed',
-      opacity: gameState.coins >= 35 ? 1 : 0.5,
-    }}>
-      🧲 Magnet - 35 coins
-    </button>
-
-    {/* Close Button */}
-    <button onClick={() => setShowShop(false)} style={{
-      display: 'block',
-      width: '100%',
-      padding: '10px',
-      backgroundColor: '#666',
-      color: 'white',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: 'pointer',
-    }}>
-      Close
-    </button>
-  </div>
-)}
-
-// ============================================
-// END OF SHOP CODE - PASTE EVERYTHING ABOVE
-// ============================================
 
       <canvas
         ref={canvasRef}
