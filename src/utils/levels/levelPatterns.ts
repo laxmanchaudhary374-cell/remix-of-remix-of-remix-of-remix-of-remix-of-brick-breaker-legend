@@ -1403,48 +1403,174 @@ export const createAlternatingRows = (
   return bricks;
 };
 /**
- * Create bricks from a 2D grid pattern
+ * Create bricks from a 2D grid pattern with diverse brick types
  * Grid values: 0=empty, 1=primary, 2=secondary, 3=accent, 4=indestructible
  * Auto-sizes bricks to fit 8 columns within GAME_WIDTH
  * Keeps bottom 30% of screen empty for ball bouncing
+ * Level parameter controls color rotation and special brick mixing
  */
 export const createGridPattern = (
   gridPattern: number[][],
-  colors: BrickColor[]
+  colors: BrickColor[],
+  level: number = 1
 ): LevelBrickConfig[] => {
   const bricks: LevelBrickConfig[] = [];
   
   // Calculate brick size to fit 8 columns
   const maxCols = 8;
-  const maxGameHeight = GAME_WIDTH * 1.5 * 0.7; // Approximate game height, only use top 70%
+  const maxGameHeight = GAME_WIDTH * 1.5 * 0.7; // Use top 70%
   
   const brickWidth = Math.floor((GAME_WIDTH - 10) / maxCols);
-  const brickHeight = Math.floor(brickWidth * 0.6); // Maintain aspect ratio
+  const brickHeight = Math.floor(brickWidth * 0.6);
+  
+  // Stack pattern to fill more vertical space (70% of screen)
+  const maxRowsAllowed = Math.floor(maxGameHeight / brickHeight);
+  const expandedPattern: number[][] = [];
+  
+  // First add the original pattern
+  for (const row of gridPattern) {
+    if (expandedPattern.length >= maxRowsAllowed) break;
+    expandedPattern.push([...row]);
+  }
+  
+  // If pattern is small, repeat it (mirrored/shifted) to fill space
+  if (expandedPattern.length < maxRowsAllowed - 2) {
+    // Add a gap row
+    expandedPattern.push(new Array(gridPattern[0]?.length || 8).fill(0));
+    
+    // Add reversed pattern
+    const reversed = [...gridPattern].reverse();
+    for (const row of reversed) {
+      if (expandedPattern.length >= maxRowsAllowed) break;
+      expandedPattern.push([...row]);
+    }
+  }
+  
+  // If still small, add another copy with shifted colors
+  if (expandedPattern.length < maxRowsAllowed - 2) {
+    expandedPattern.push(new Array(gridPattern[0]?.length || 8).fill(0));
+    for (const row of gridPattern) {
+      if (expandedPattern.length >= maxRowsAllowed) break;
+      // Shift values: 1->2, 2->3, 3->1
+      expandedPattern.push(row.map(v => v === 0 ? 0 : ((v % 3) + 1)));
+    }
+  }
+  
+  // Rotate color palette based on level so each level looks different
+  const colorOffset = level % colors.length;
+  const rotatedColors = [...colors.slice(colorOffset), ...colors.slice(0, colorOffset)];
+  
+  // Difficulty params for special bricks
+  const tier = Math.floor((level - 1) / 50);
+  const explosiveChance = 0.06 + tier * 0.02;
+  const steelChance = 0.04 + tier * 0.015;
+  const coinChance = 0.10;
+  const movingChance = 0.03 + tier * 0.01;
+  const chainChance = 0.03 + tier * 0.01;
+  const ghostChance = tier >= 2 ? 0.02 : 0;
+  const rainbowChance = tier >= 1 ? 0.015 : 0;
+  
+  // Seed random based on level for consistent patterns
+  let seed = level * 7 + 13;
+  const seededRandom = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+  
+  // Track explosives for spacing
+  const explosivePositions: { row: number; col: number }[] = [];
+  const totalCells = expandedPattern.reduce((sum, row) => sum + row.filter(v => v > 0).length, 0);
+  const maxExplosives = Math.max(2, Math.floor(totalCells * 0.08));
   
   // Calculate starting position (centered)
-  const totalWidth = gridPattern[0]?.length * brickWidth || GAME_WIDTH;
+  const totalWidth = (expandedPattern[0]?.length || maxCols) * brickWidth;
   const startX = (GAME_WIDTH - totalWidth) / 2;
-  const startY = 30;
+  const startY = 20;
   
-  // Create bricks from grid
-  gridPattern.forEach((row, rowIdx) => {
-    const maxRowsAllowed = Math.floor(maxGameHeight / brickHeight);
-    if (rowIdx >= maxRowsAllowed) return; // Don't exceed 70% height
-    
+  expandedPattern.forEach((row, rowIdx) => {
     row.forEach((cellValue, colIdx) => {
-      if (cellValue === 0) return; // Skip empty cells
+      if (cellValue === 0) return;
       
-      // Map grid value to color
+      // Rotate colors based on level
       let color: BrickColor;
       if (cellValue === 4) {
-        color = 'purple'; // Indestructible
+        color = 'purple';
       } else {
-        color = colors[(cellValue - 1) % colors.length];
+        color = rotatedColors[(cellValue - 1 + Math.floor(rowIdx / 2)) % rotatedColors.length];
       }
       
-      // Determine hits based on cell value
-      const hits = cellValue === 4 ? 999 : 1;
-      const type = cellValue === 4 ? 'indestructible' : 'normal';
+      let hits = cellValue === 4 ? 999 : 1;
+      let type: BrickType = cellValue === 4 ? 'indestructible' : 'normal';
+      let moveSpeed: number | undefined;
+      let moveRange: number | undefined;
+      
+      // Apply special brick types based on randomness
+      if (cellValue !== 4) {
+        const rand = seededRandom();
+        let cumulative = 0;
+        
+        // Steel bricks
+        cumulative += steelChance;
+        if (rand < cumulative) {
+          type = 'steel';
+          color = 'purple';
+          hits = 2;
+        }
+        // Explosive bricks (with spacing)
+        else {
+          cumulative += explosiveChance;
+          const nearExplosive = explosivePositions.some(p =>
+            Math.abs(p.row - rowIdx) <= 3 && Math.abs(p.col - colIdx) <= 3
+          );
+          if (rand < cumulative && !nearExplosive && explosivePositions.length < maxExplosives) {
+            type = 'explosive';
+            explosivePositions.push({ row: rowIdx, col: colIdx });
+          }
+          // Moving bricks
+          else {
+            cumulative += movingChance;
+            if (rand < cumulative) {
+              type = 'moving';
+              moveSpeed = 50 + seededRandom() * 50;
+              moveRange = 20 + seededRandom() * 30;
+            }
+            // Chain bricks
+            else {
+              cumulative += chainChance;
+              if (rand < cumulative) {
+                type = 'chain';
+              }
+              // Coin bricks
+              else {
+                cumulative += coinChance;
+                if (rand < cumulative) {
+                  type = 'coin';
+                  color = 'gold';
+                }
+                // Ghost bricks
+                else {
+                  cumulative += ghostChance;
+                  if (rand < cumulative) {
+                    type = 'ghost';
+                  }
+                  // Rainbow bricks
+                  else {
+                    cumulative += rainbowChance;
+                    if (rand < cumulative) {
+                      type = 'rainbow';
+                      color = 'magenta';
+                    }
+                    // Multi-hit normal bricks at higher levels
+                    else if (tier >= 1 && seededRandom() < 0.3) {
+                      hits = Math.min(1 + Math.floor(seededRandom() * (1 + tier)), 4);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
       
       bricks.push({
         x: startX + colIdx * brickWidth,
@@ -1455,6 +1581,8 @@ export const createGridPattern = (
         maxHits: hits,
         color,
         type,
+        moveSpeed,
+        moveRange,
         originalX: startX + colIdx * brickWidth,
       });
     });

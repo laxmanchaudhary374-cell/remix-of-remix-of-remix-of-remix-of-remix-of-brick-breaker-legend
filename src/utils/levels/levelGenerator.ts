@@ -1232,7 +1232,7 @@ case 'ring': bricks = generateRingPattern(level, params); break;
       // Use grid patterns for levels 11+
       const patternIndex = (level - 11) % GRID_PATTERNS.length;
       const gridPattern = GRID_PATTERNS[patternIndex];
-      bricks = createGridPattern(gridPattern, COLORS);
+      bricks = createGridPattern(gridPattern, COLORS, level);
       break;
     }
     default: bricks = generateRowPattern(level, params);
