@@ -12,7 +12,7 @@ export const GRID_PATTERNS: number[][][] = [
   ...GRID_PATTERNS_5
 ];
 
-// Helper to get pattern by level (cycles through all 500)
+// Helper to get pattern by level (cycles through all 530)
 export const getPatternForLevel = (level: number): number[][] => {
   const index = (level - 1) % GRID_PATTERNS.length;
   return GRID_PATTERNS[index];
