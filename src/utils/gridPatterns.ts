@@ -12,7 +12,7 @@ export const GRID_PATTERNS: number[][][] = [
   ...GRID_PATTERNS_5
 ];
 
-// Helper to get pattern by level (cycles through all 500)
+// Helper to get pattern by level (cycles through all 530)
 export const getPatternForLevel = (level: number): number[][] => {
   const index = (level - 1) % GRID_PATTERNS.length;
   return GRID_PATTERNS[index];
@@ -140,6 +140,14 @@ export const getPatternDisplayName = (level: number): string => {
     'FINAL BOSS 2','FINAL BOSS 3','FINAL BOSS 4','FINAL BOSS 5',
     'FINAL BOSS 6','FINAL BOSS 7','FINAL BOSS 8','FINAL BOSS 9',
     'FINAL BOSS 10','ULTIMATE MASTER',
+    'CENTER TUNNEL','ZIGZAG TUNNEL','LEFT TUNNEL','RIGHT TUNNEL',
+    'SNAKE TUNNEL','DOUBLE TUNNEL','FUNNEL','MAZE TUNNEL',
+    'SPIRAL TUNNEL','CROSS TUNNELS','DIAGONAL LEFT','DIAGONAL RIGHT',
+    'CHAMBERS','NARROW MAZE','BOTTLENECK','CORRIDOR ROOMS',
+    'WATERFALL','T-JUNCTION','PINCH POINTS','LABYRINTH',
+    'HOURGLASS TUNNEL','COMB TUNNEL','ARROW TUNNEL','NESTED TUNNELS',
+    'GRID TUNNELS','WINDING CANYON','PIPE SYSTEM','FORTRESS GATE',
+    'DIAMOND TUNNEL','ULTIMATE MAZE',
   ];
   const index = (level - 1) % names.length;
   return names[index] || `LEVEL ${level}`;
