@@ -23,7 +23,7 @@ type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'sp
 | 'complex_arrow' | 'complex_diamond_frame' | 'complex_towers' | 'complex_wave'
 | 'complex_star' | 'maze_complex' | 'l_shape' | 't_shape' | 'u_shape'
 | 'e_shape' | 'explosion_burst' | 'constellation' | 'shield'
-| 'castle_wall' | 'rocket_shape' | 'ring' | 'grid';
+| 'castle_wall' | 'rocket_shape' | 'ring' | 'grid' | 'shape_library';
 
 // Get difficulty parameters based on level
 const getDifficultyParams = (level: number) => {
