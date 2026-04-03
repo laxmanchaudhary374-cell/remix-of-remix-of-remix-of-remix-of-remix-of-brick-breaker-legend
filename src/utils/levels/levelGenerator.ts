@@ -1254,8 +1254,12 @@ case 'shield': bricks = generateShieldPattern(level, params); break;
 case 'castle_wall': bricks = generateCastleWallPattern(level, params); break;
 case 'rocket_shape': bricks = generateRocketShapePattern(level, params); break;
 case 'ring': bricks = generateRingPattern(level, params); break;
-          case 'grid': {
-      // Use grid patterns for levels 11+
+    case 'shape_library': {
+      const shapeIndex = Math.floor((level - 11) / 3) % ALL_SHAPES.length;
+      bricks = generateShapePattern(level, params, ALL_SHAPES[shapeIndex]);
+      break;
+    }
+    case 'grid': {
       const patternIndex = (level - 11) % GRID_PATTERNS.length;
       const gridPattern = GRID_PATTERNS[patternIndex];
       bricks = createGridPattern(gridPattern, COLORS, level);
