@@ -1889,17 +1889,15 @@ explosions.forEach(explosion => {
   return (
     <div 
       ref={containerRef}
-      className="relative w-full max-w-[400px] mx-auto touch-none"
+      className="relative w-full max-w-[400px] mx-auto touch-none overflow-hidden"
+      style={{ borderRadius: '8px' }}
     >
-
-
       <canvas
         ref={canvasRef}
-        className="w-full h-auto rounded-lg"
-style={{ 
-  aspectRatio: `${GAME_WIDTH}/${GAME_HEIGHT}`,
-  display: 'block',
-}}
+        className="w-full h-auto block"
+        style={{ 
+          aspectRatio: `${GAME_WIDTH}/${GAME_HEIGHT}`,
+        }}
       />
     </div>
   );

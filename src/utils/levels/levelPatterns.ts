@@ -1,9 +1,9 @@
 import { BrickColor, BrickType } from '@/types/game';
 
-// Smaller bricks for more variety and denser patterns
-export const BRICK_WIDTH = 38;  // Reduced from 45 (15% smaller)
-export const BRICK_HEIGHT = 22; // Reduced from 26 (15% smaller)
-export const BRICK_PADDING = 0;
+// Bigger bricks for better visibility and denser patterns
+export const BRICK_WIDTH = 48;  // Larger bricks for better visual
+export const BRICK_HEIGHT = 26; // Taller bricks
+export const BRICK_PADDING = 1;
 export const GAME_WIDTH = 400;
 
 export interface BrickDef {
@@ -1416,12 +1416,13 @@ export const createGridPattern = (
 ): LevelBrickConfig[] => {
   const bricks: LevelBrickConfig[] = [];
   
-  // Calculate brick size to fit 8 columns
+  // Calculate brick size to fit 8 columns with margin
   const maxCols = 8;
+  const margin = 4; // Side margin to prevent clipping
   const maxGameHeight = GAME_WIDTH * 1.5 * 0.7; // Use top 70%
   
-  const brickWidth = Math.floor((GAME_WIDTH - 10) / maxCols);
-  const brickHeight = Math.floor(brickWidth * 0.6);
+  const brickWidth = Math.floor((GAME_WIDTH - margin * 2) / maxCols);
+  const brickHeight = Math.floor(brickWidth * 0.55);
   
   // Stack pattern to fill more vertical space (70% of screen)
   const maxRowsAllowed = Math.floor(maxGameHeight / brickHeight);

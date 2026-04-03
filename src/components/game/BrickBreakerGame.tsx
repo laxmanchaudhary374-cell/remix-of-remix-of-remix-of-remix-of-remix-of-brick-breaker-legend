@@ -321,8 +321,14 @@ const BrickBreakerGame: React.FC = () => {
     const newCoins = persistentCoins - price;
     setPersistentCoins(newCoins);
     setStoredCoins(newCoins);
-    // Add 1 and immediately use it
-    emergencyRef.current = buyPrompt;
+    // Add to inventory only - don't use immediately
+    const key = buyPrompt as 'auto' | 'shock' | 'multi';
+    setEmergencyCounts(prev => {
+      const newVal = prev[key] + 1;
+      const updated = { ...prev, [key]: newVal };
+      try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+      return updated;
+    });
     setBuyPrompt(null);
     setScreenState('playing');
     setGameState(prev => ({ ...prev, status: 'playing' }));
@@ -370,10 +376,10 @@ const BrickBreakerGame: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col items-center justify-center p-4 select-none"
+      className="min-h-screen flex flex-col items-center justify-center p-2 select-none overflow-hidden"
       style={{
-  background: 'hsl(220, 60%, 3%)',
-}}
+        background: 'hsl(220, 60%, 3%)',
+      }}
     >
       <div className="fixed inset-0 bg-black/40 pointer-events-none" />
       
@@ -480,7 +486,7 @@ const BrickBreakerGame: React.FC = () => {
                   disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost}
                   className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-base rounded-lg transition-all transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
                 >
-                  {persistentCoins >= EMERGENCY_PRICES[buyPrompt].cost ? 'BUY & USE' : 'NOT ENOUGH'}
+                  {persistentCoins >= EMERGENCY_PRICES[buyPrompt].cost ? 'BUY' : 'NOT ENOUGH'}
                 </button>
                 <button
                   onClick={handleCancelBuy}
