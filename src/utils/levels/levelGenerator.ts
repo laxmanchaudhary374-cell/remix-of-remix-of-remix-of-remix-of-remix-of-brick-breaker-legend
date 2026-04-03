@@ -145,7 +145,8 @@ constellation: ['CONSTELLATION', 'STARS', 'PATTERN', 'COSMIC'],
 shield: ['SHIELD', 'PROTECT', 'BARRIER', 'DEFENSE'],
 castle_wall: ['CASTLE', 'WALL', 'FORTRESS', 'TOWER'],
 rocket_shape: ['ROCKET', 'SHIP', 'LAUNCH', 'THRUST'],
-ring: ['RING', 'CIRCLE', 'ORBIT', 'HALO'],};
+ring: ['RING', 'CIRCLE', 'ORBIT', 'HALO'],
+    shape_library: ['SHAPE', 'DESIGN', 'PATTERN', 'FORM'],};
   
   const names = patternNames[pattern];
   const name = names[level % names.length];
