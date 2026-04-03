@@ -1,9 +1,9 @@
 import { BrickColor, BrickType } from '@/types/game';
 
-// Smaller bricks for more variety and denser patterns
-export const BRICK_WIDTH = 38;  // Reduced from 45 (15% smaller)
-export const BRICK_HEIGHT = 22; // Reduced from 26 (15% smaller)
-export const BRICK_PADDING = 0;
+// Bigger bricks for better visibility and denser patterns
+export const BRICK_WIDTH = 48;  // Larger bricks for better visual
+export const BRICK_HEIGHT = 26; // Taller bricks
+export const BRICK_PADDING = 1;
 export const GAME_WIDTH = 400;
 
 export interface BrickDef {

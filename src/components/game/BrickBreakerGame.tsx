@@ -321,8 +321,14 @@ const BrickBreakerGame: React.FC = () => {
     const newCoins = persistentCoins - price;
     setPersistentCoins(newCoins);
     setStoredCoins(newCoins);
-    // Add 1 and immediately use it
-    emergencyRef.current = buyPrompt;
+    // Add to inventory only - don't use immediately
+    const key = buyPrompt as 'auto' | 'shock' | 'multi';
+    setEmergencyCounts(prev => {
+      const newVal = prev[key] + 1;
+      const updated = { ...prev, [key]: newVal };
+      try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+      return updated;
+    });
     setBuyPrompt(null);
     setScreenState('playing');
     setGameState(prev => ({ ...prev, status: 'playing' }));
