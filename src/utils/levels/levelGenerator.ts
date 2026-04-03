@@ -15,6 +15,7 @@ import {
   B, EX, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
 import { GRID_PATTERNS } from '../gridPatterns';
+import { ALL_SHAPES, SHAPE_NAMES } from '../shapeLibrary';
 
 // Pattern types for variety
 type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows'
@@ -22,7 +23,7 @@ type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'sp
 | 'complex_arrow' | 'complex_diamond_frame' | 'complex_towers' | 'complex_wave'
 | 'complex_star' | 'maze_complex' | 'l_shape' | 't_shape' | 'u_shape'
 | 'e_shape' | 'explosion_burst' | 'constellation' | 'shield'
-| 'castle_wall' | 'rocket_shape' | 'ring' | 'grid';
+| 'castle_wall' | 'rocket_shape' | 'ring' | 'grid' | 'shape_library';
 
 // Get difficulty parameters based on level
 const getDifficultyParams = (level: number) => {
@@ -144,7 +145,8 @@ constellation: ['CONSTELLATION', 'STARS', 'PATTERN', 'COSMIC'],
 shield: ['SHIELD', 'PROTECT', 'BARRIER', 'DEFENSE'],
 castle_wall: ['CASTLE', 'WALL', 'FORTRESS', 'TOWER'],
 rocket_shape: ['ROCKET', 'SHIP', 'LAUNCH', 'THRUST'],
-ring: ['RING', 'CIRCLE', 'ORBIT', 'HALO'],};
+ring: ['RING', 'CIRCLE', 'ORBIT', 'HALO'],
+    shape_library: ['SHAPE', 'DESIGN', 'PATTERN', 'FORM'],};
   
   const names = patternNames[pattern];
   const name = names[level % names.length];
@@ -1150,9 +1152,12 @@ const getPatternType = (level: number): PatternType => {
   ];
   
   const cyclePos = (level - 11);
-  // Every 5th level = grid pattern, rest = shape patterns for max variety
-  if (cyclePos % 5 === 0) {
+  // Every 7th level = grid pattern, every 3rd = new shape library pattern, rest = classic shape patterns
+  if (cyclePos % 7 === 0) {
     return 'grid';
+  }
+  if (cyclePos % 3 === 0) {
+    return 'shape_library' as PatternType;
   }
   
   // Use different shape pattern for each level
@@ -1249,8 +1254,12 @@ case 'shield': bricks = generateShieldPattern(level, params); break;
 case 'castle_wall': bricks = generateCastleWallPattern(level, params); break;
 case 'rocket_shape': bricks = generateRocketShapePattern(level, params); break;
 case 'ring': bricks = generateRingPattern(level, params); break;
-          case 'grid': {
-      // Use grid patterns for levels 11+
+    case 'shape_library': {
+      const shapeIndex = Math.floor((level - 11) / 3) % ALL_SHAPES.length;
+      bricks = generateShapePattern(level, params, ALL_SHAPES[shapeIndex]);
+      break;
+    }
+    case 'grid': {
       const patternIndex = (level - 11) % GRID_PATTERNS.length;
       const gridPattern = GRID_PATTERNS[patternIndex];
       bricks = createGridPattern(gridPattern, COLORS, level);
