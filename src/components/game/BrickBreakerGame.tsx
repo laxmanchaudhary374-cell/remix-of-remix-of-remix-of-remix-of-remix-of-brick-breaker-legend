@@ -376,10 +376,10 @@ const BrickBreakerGame: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col items-center justify-center p-4 select-none"
+      className="min-h-screen flex flex-col items-center justify-center p-2 select-none overflow-hidden"
       style={{
-  background: 'hsl(220, 60%, 3%)',
-}}
+        background: 'hsl(220, 60%, 3%)',
+      }}
     >
       <div className="fixed inset-0 bg-black/40 pointer-events-none" />
       
