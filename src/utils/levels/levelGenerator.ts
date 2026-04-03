@@ -1151,9 +1151,12 @@ const getPatternType = (level: number): PatternType => {
   ];
   
   const cyclePos = (level - 11);
-  // Every 5th level = grid pattern, rest = shape patterns for max variety
-  if (cyclePos % 5 === 0) {
+  // Every 7th level = grid pattern, every 3rd = new shape library pattern, rest = classic shape patterns
+  if (cyclePos % 7 === 0) {
     return 'grid';
+  }
+  if (cyclePos % 3 === 0) {
+    return 'shape_library' as PatternType;
   }
   
   // Use different shape pattern for each level
