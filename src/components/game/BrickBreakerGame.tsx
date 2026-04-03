@@ -480,7 +480,7 @@ const BrickBreakerGame: React.FC = () => {
                   disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost}
                   className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-base rounded-lg transition-all transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
                 >
-                  {persistentCoins >= EMERGENCY_PRICES[buyPrompt].cost ? 'BUY & USE' : 'NOT ENOUGH'}
+                  {persistentCoins >= EMERGENCY_PRICES[buyPrompt].cost ? 'BUY' : 'NOT ENOUGH'}
                 </button>
                 <button
                   onClick={handleCancelBuy}
