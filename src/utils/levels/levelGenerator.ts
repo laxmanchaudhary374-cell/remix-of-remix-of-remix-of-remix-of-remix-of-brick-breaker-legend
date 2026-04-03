@@ -1130,8 +1130,8 @@ const getPatternType = (level: number): PatternType => {
     return patterns[(level - 1) % patterns.length];
   }
   
-  // Levels 11+: Mix grid patterns with shape patterns for variety
-  // Every 3rd level uses a special shape pattern, others use grid
+  // Levels 11+: Heavily mix shape patterns with grid for maximum variety
+  // 60% shape patterns, 40% grid patterns
   const shapePatterns: PatternType[] = [
     'complex_heart', 'complex_spaceship', 'complex_star', 'maze_complex',
     'complex_diamond_frame', 'complex_towers', 'complex_wave', 'complex_arrow',
@@ -1142,20 +1142,21 @@ const getPatternType = (level: number): PatternType => {
     'skull', 'tree', 'towers', 'bridge', 'maze', 'wings',
     'anchor', 'mushroom', 'cup', 'city_skyline', 'invader', 'cactus',
     'umbrella', 'rocket', 'staircase', 'reverse_staircase',
+    'zigzag', 'pyramid', 'fortress', 'diagonal', 'frame',
+    'hourglass', 'bars', 'xshape', 'spiral', 'wave',
+    'arrow', 'circle', 'checker', 'diamond',
+    'pillars', 'steps_lr', 'steps_rl', 'letter_e', 'letter_h',
+    'letter_f', 'letter_t', 'wave_solid', 'corner_blocks',
   ];
   
   const cyclePos = (level - 11);
-  // Every 3rd level = shape pattern, every 5th = boss-style, rest = grid
-  if (cyclePos % 5 === 4) {
-    // Every 5th level from 15 onwards: use shape patterns
-    return shapePatterns[Math.floor(cyclePos / 5) % shapePatterns.length];
-  }
-  if (cyclePos % 3 === 2) {
-    // Every 3rd level: alternate shape pattern  
-    return shapePatterns[(Math.floor(cyclePos / 3) + 10) % shapePatterns.length];
+  // Every 5th level = grid pattern, rest = shape patterns for max variety
+  if (cyclePos % 5 === 0) {
+    return 'grid';
   }
   
-  return 'grid';
+  // Use different shape pattern for each level
+  return shapePatterns[cyclePos % shapePatterns.length];
 };
 
 // Generate a single level
