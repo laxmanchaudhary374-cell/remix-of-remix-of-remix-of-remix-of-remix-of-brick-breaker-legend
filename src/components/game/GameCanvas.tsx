@@ -1872,6 +1872,9 @@ explosions.forEach(explosion => {
     // Auto-paddle countdown moved to HUD
 
     ctx.restore();
+    // Fully reset transform to prevent any drift between frames
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
 
   }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo]);
 
