@@ -1289,13 +1289,11 @@ explosions.forEach(explosion => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    if (screenShake > 0) {
-      const shakeX = Math.max(-5, Math.min(5, (Math.random() - 0.5) * screenShake));
-      const shakeY = Math.max(-5, Math.min(5, (Math.random() - 0.5) * screenShake));
-      ctx.translate(shakeX, shakeY);
-    }
+    // Reset transform fully to prevent drift between frames
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const dpr = window.devicePixelRatio || 1;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // Galaxy space background with spiral nebula, clouds, and stars
     // Base dark space gradient
