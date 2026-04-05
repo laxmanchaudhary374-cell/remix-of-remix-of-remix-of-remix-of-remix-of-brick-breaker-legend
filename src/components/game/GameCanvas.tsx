@@ -1423,6 +1423,14 @@ explosions.forEach(explosion => {
     ctx.arc(planetX, planetY, planetR, -0.8, 0.8);
     ctx.stroke();
 
+    // Apply screen shake ONLY to game elements (not background)
+    ctx.save();
+    if (screenShake > 0) {
+      const shakeX = Math.max(-5, Math.min(5, (Math.random() - 0.5) * screenShake));
+      const shakeY = Math.max(-5, Math.min(5, (Math.random() - 0.5) * screenShake));
+      ctx.translate(shakeX, shakeY);
+    }
+
     // Draw shield - solid blue line that bounces ball
     if (paddle.hasShield) {
       ctx.save();
