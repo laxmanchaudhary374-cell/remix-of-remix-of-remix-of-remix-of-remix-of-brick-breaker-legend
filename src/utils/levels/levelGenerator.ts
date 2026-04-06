@@ -1178,6 +1178,11 @@ export const generateLevel = (level: number): LevelConfig => {
   let bricks: LevelConfig['bricks'];
   
   switch (pattern) {
+    case 'custom_level': {
+      const customPattern = CUSTOM_LEVEL_PATTERNS[level - 1];
+      bricks = generateShapePattern(level, params, customPattern);
+      break;
+    }
     case 'rows': bricks = generateRowPattern(level, params); break;
     case 'pyramid': bricks = generatePyramidPattern(level, params); break;
     case 'checker': bricks = generateCheckerPattern(level, params); break;
