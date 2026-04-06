@@ -66,6 +66,7 @@ const getLevelName = (level: number, pattern: PatternType): string => {
     'PHANTOM', 'ECLIPSE', 'AURORA', 'ZENITH', 'NEXUS', 'INFINITY', 'BEYOND', 'ABSOLUTE', 'PARAGON', 'SINGULARITY',
   ];
   const patternNames: Record<PatternType, string[]> = {
+    custom_level: ['SERPENT', 'ARSENAL', 'GAUNTLET', 'VAULT', 'MAZE', 'ARCHWAYS', 'MATRIX', 'FACE', 'REACTOR'],
     rows: ['LAYERS', 'STRIPES', 'BANDS', 'HORIZON'],
     pyramid: ['PYRAMID', 'MOUNTAIN', 'PEAK', 'SUMMIT'],
     checker: ['CHECKERS', 'GRID', 'MATRIX', 'TILES'],
