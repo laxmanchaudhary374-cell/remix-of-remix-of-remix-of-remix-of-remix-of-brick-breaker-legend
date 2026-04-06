@@ -16,9 +16,10 @@ import {
 } from './levelPatterns';
 import { GRID_PATTERNS } from '../gridPatterns';
 import { ALL_SHAPES, SHAPE_NAMES } from '../shapeLibrary';
+import { CUSTOM_LEVEL_PATTERNS } from '../customLevelPatterns';
 
 // Pattern types for variety
-type PatternType = 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows'
+type PatternType = 'custom_level' | 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows'
 | 'complex_heart' | 'complex_h' | 'complex_spaceship' | 'complex_bar'
 | 'complex_arrow' | 'complex_diamond_frame' | 'complex_towers' | 'complex_wave'
 | 'complex_star' | 'maze_complex' | 'l_shape' | 't_shape' | 'u_shape'
@@ -65,6 +66,7 @@ const getLevelName = (level: number, pattern: PatternType): string => {
     'PHANTOM', 'ECLIPSE', 'AURORA', 'ZENITH', 'NEXUS', 'INFINITY', 'BEYOND', 'ABSOLUTE', 'PARAGON', 'SINGULARITY',
   ];
   const patternNames: Record<PatternType, string[]> = {
+    custom_level: ['SERPENT', 'ARSENAL', 'GAUNTLET', 'VAULT', 'MAZE', 'ARCHWAYS', 'MATRIX', 'FACE', 'REACTOR'],
     rows: ['LAYERS', 'STRIPES', 'BANDS', 'HORIZON'],
     pyramid: ['PYRAMID', 'MOUNTAIN', 'PEAK', 'SUMMIT'],
     checker: ['CHECKERS', 'GRID', 'MATRIX', 'TILES'],
@@ -1126,10 +1128,13 @@ const generateRingPattern = (level: number, params: ReturnType<typeof getDifficu
 };
 // Get pattern type for level
 const getPatternType = (level: number): PatternType => {
-  // Levels 1-10: Use existing simple patterns
-  if (level <= 10) {
-    const patterns: PatternType[] = ['rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag', 'heart', 'star'];
-    return patterns[(level - 1) % patterns.length];
+  // Levels 1-9: Use custom designed patterns
+  if (level >= 1 && level <= 9) {
+    return 'custom_level' as PatternType;
+  }
+  // Level 10: simple star pattern
+  if (level === 10) {
+    return 'star';
   }
   
   // Levels 11+: Heavily mix shape patterns with grid for maximum variety
@@ -1174,6 +1179,11 @@ export const generateLevel = (level: number): LevelConfig => {
   let bricks: LevelConfig['bricks'];
   
   switch (pattern) {
+    case 'custom_level': {
+      const customPattern = CUSTOM_LEVEL_PATTERNS[level - 1];
+      bricks = generateShapePattern(level, params, customPattern);
+      break;
+    }
     case 'rows': bricks = generateRowPattern(level, params); break;
     case 'pyramid': bricks = generatePyramidPattern(level, params); break;
     case 'checker': bricks = generateCheckerPattern(level, params); break;
