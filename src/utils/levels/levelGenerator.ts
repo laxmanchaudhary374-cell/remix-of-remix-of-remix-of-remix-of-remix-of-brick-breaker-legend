@@ -1127,10 +1127,13 @@ const generateRingPattern = (level: number, params: ReturnType<typeof getDifficu
 };
 // Get pattern type for level
 const getPatternType = (level: number): PatternType => {
-  // Levels 1-10: Use existing simple patterns
-  if (level <= 10) {
-    const patterns: PatternType[] = ['rows', 'pyramid', 'checker', 'diamond', 'fortress', 'wave', 'cross', 'zigzag', 'heart', 'star'];
-    return patterns[(level - 1) % patterns.length];
+  // Levels 1-9: Use custom designed patterns
+  if (level >= 1 && level <= 9) {
+    return 'custom_level' as PatternType;
+  }
+  // Level 10: simple star pattern
+  if (level === 10) {
+    return 'star';
   }
   
   // Levels 11+: Heavily mix shape patterns with grid for maximum variety
