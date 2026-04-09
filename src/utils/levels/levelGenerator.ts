@@ -17,6 +17,7 @@ import {
 import { GRID_PATTERNS } from '../gridPatterns';
 import { ALL_SHAPES, SHAPE_NAMES } from '../shapeLibrary';
 import { CUSTOM_LEVEL_PATTERNS } from '../customLevelPatterns';
+import { getShapeForLevel, ALL_BASE_SHAPES } from '../shapes';
 
 // Pattern types for variety
 type PatternType = 'custom_level' | 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows'
@@ -1137,8 +1138,18 @@ const getPatternType = (level: number): PatternType => {
     return 'star';
   }
   
-  // Levels 11+: Heavily mix shape patterns with grid for maximum variety
-  // 60% shape patterns, 40% grid patterns
+  // Levels 11+: Use new shape library system as primary (every other level)
+  // This gives us 57 base shapes × transformations = 500+ unique patterns
+  const cyclePos = (level - 11);
+  
+  // 50% shape_library (new system), 15% grid, 35% classic patterns
+  if (cyclePos % 2 === 0) {
+    return 'shape_library' as PatternType;
+  }
+  if (cyclePos % 7 === 0) {
+    return 'grid';
+  }
+  
   const shapePatterns: PatternType[] = [
     'complex_heart', 'complex_spaceship', 'complex_star', 'maze_complex',
     'complex_diamond_frame', 'complex_towers', 'complex_wave', 'complex_arrow',
@@ -1156,16 +1167,6 @@ const getPatternType = (level: number): PatternType => {
     'letter_f', 'letter_t', 'wave_solid', 'corner_blocks',
   ];
   
-  const cyclePos = (level - 11);
-  // Every 7th level = grid pattern, every 3rd = new shape library pattern, rest = classic shape patterns
-  if (cyclePos % 7 === 0) {
-    return 'grid';
-  }
-  if (cyclePos % 3 === 0) {
-    return 'shape_library' as PatternType;
-  }
-  
-  // Use different shape pattern for each level
   return shapePatterns[cyclePos % shapePatterns.length];
 };
 
@@ -1265,8 +1266,9 @@ case 'castle_wall': bricks = generateCastleWallPattern(level, params); break;
 case 'rocket_shape': bricks = generateRocketShapePattern(level, params); break;
 case 'ring': bricks = generateRingPattern(level, params); break;
     case 'shape_library': {
-      const shapeIndex = Math.floor((level - 11) / 3) % ALL_SHAPES.length;
-      bricks = generateShapePattern(level, params, ALL_SHAPES[shapeIndex]);
+      // Use the new 57-shape library with transformations
+      const { shape } = getShapeForLevel(level);
+      bricks = generateShapePattern(level, params, shape);
       break;
     }
     case 'grid': {
