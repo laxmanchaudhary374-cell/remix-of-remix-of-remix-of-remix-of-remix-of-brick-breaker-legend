@@ -1266,8 +1266,9 @@ case 'castle_wall': bricks = generateCastleWallPattern(level, params); break;
 case 'rocket_shape': bricks = generateRocketShapePattern(level, params); break;
 case 'ring': bricks = generateRingPattern(level, params); break;
     case 'shape_library': {
-      const shapeIndex = Math.floor((level - 11) / 3) % ALL_SHAPES.length;
-      bricks = generateShapePattern(level, params, ALL_SHAPES[shapeIndex]);
+      // Use the new 57-shape library with transformations
+      const { shape } = getShapeForLevel(level);
+      bricks = generateShapePattern(level, params, shape);
       break;
     }
     case 'grid': {
