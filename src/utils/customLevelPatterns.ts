@@ -1,9 +1,8 @@
-// 9 custom patterns for levels 1-9 matching reference screenshots exactly
+// 11 custom patterns for levels 1-11
 // Grid: 8 columns. 0=empty, 1=normal, 2=steel(indestructible), 3=explosive
-// Patterns are 14-16 rows tall for dense coverage (~70% of play area)
+// Patterns are 10 rows tall
 
 // Level 1: THE WINDING SERPENT
-// S-curve tunnel carved through steel walls. Ball must navigate narrow winding path.
 export const LEVEL1_WINDING_SERPENT: number[][] = [
   [1,0,1,0,1,0,1,0],
   [1,0,1,0,1,0,1,0],
@@ -15,9 +14,6 @@ export const LEVEL1_WINDING_SERPENT: number[][] = [
   [1,0,1,0,1,0,1,0],
   [1,0,1,0,1,0,1,0],
   [1,0,1,0,1,0,1,0],
-  [1,0,1,0,1,0,1,0],
-  [0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0],
 ];
 
 // Level 2: GEMINI PATTERN 1 - FORTRESS FRAME
@@ -173,9 +169,3 @@ export const CUSTOM_LEVEL_PATTERNS: number[][][] = [
   LEVEL10_GEMINI_PATTERN_9,
   LEVEL11_GEMINI_PATTERN_10,
 ];
-
-
-
-// Level 3: THE TACTICAL GAUNTLET
-// Central fortress with nested rooms and corridors. Steel border, inner chambers.
-export const LEVEL3_TACTICAL_GAUNTLET: 
