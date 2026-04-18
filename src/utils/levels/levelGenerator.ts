@@ -207,7 +207,7 @@ const generateShapePattern = (
   for (let row = 0; row < shape.length; row++) {
     const rowBricks: (BrickDef | BrickColor | null)[] = [];
     for (let col = 0; col < shape[row].length; col++) {
-             const cell = shape[row][col];
+                   const cell = shape[row][col];
       if (cell === 1) {
         const color = COLORS[(level + row + col) % COLORS.length];
         const def = getBrickDef(color, params, false, explosivePositions, row, col);
@@ -239,6 +239,7 @@ const generateShapePattern = (
       } else {
         rowBricks.push(null);
       }
+
        if (def?.type         const nearExplosiv          Math.abs(p.row - row) <= 4 && Math.abs        if          explosivePositions.pus    bricks.p const generateRowPattern = (level: number, params: ReturnType<typeof getDifficultyPara  const bricks: LevelConfi  const colorO    for (let col = 0      if (Math.ern
 const generatePyramidPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const bricks: LevelConfig['bricks'] = [];
