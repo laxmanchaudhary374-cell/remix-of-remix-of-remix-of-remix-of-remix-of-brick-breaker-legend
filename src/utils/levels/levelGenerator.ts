@@ -195,6 +195,7 @@ const getBrickDef = (color: BrickColor, params: ReturnType<typeof getDifficultyP
 };
 
 // Generic shape pattern helper with bomb spacing
+// Generic shape pattern helper with bomb spacing
 const generateShapePattern = (
   level: number,
   params: ReturnType<typeof getDifficultyParams>,
@@ -207,7 +208,7 @@ const generateShapePattern = (
   for (let row = 0; row < shape.length; row++) {
     const rowBricks: (BrickDef | BrickColor | null)[] = [];
     for (let col = 0; col < shape[row].length; col++) {
-                   const cell = shape[row][col];
+      const cell = shape[row][col];
       if (cell === 1) {
         const color = COLORS[(level + row + col) % COLORS.length];
         const def = getBrickDef(color, params, false, explosivePositions, row, col);
@@ -239,47 +240,12 @@ const generateShapePattern = (
       } else {
         rowBricks.push(null);
       }
-
-       if (def?.type         const nearExplosiv          Math.abs(p.row - row) <= 4 && Math.abs        if          explosivePositions.pus    bricks.p const generateRowPattern = (level: number, params: ReturnType<typeof getDifficultyPara  const bricks: LevelConfi  const colorO    for (let col = 0      if (Math.ern
-const generatePyramidPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
-  const bricks: LevelConfig['bricks'] = [];
-  const color = COLORS[level % COLORS.length];
-  const inverted = level % 3 === 0;
-  
-  if (inverted) {
-    for (let row = 0; row < Math.min(params.rows, 5); row++) {
-      const colsInRow = params.cols - row;
-      const rowBricks: (BrickDef | BrickColor | null)[] = [];
-      
-      for (let i = 0; i < row; i++) rowBricks.push(null);
-      for (let col = 0; col < colsInRow; col++) {
-        rowBricks.push(getBrickDef(COLORS[(level + row + col) % COLORS.length], params));
-      }
-      
-      bricks.push(...createBrickRow(row, rowBricks));
     }
-  } else {
-    bricks.push(...createPyramid(0, Math.min(params.cols, 6), color, Math.min(params.maxHits, 2)));
+    bricks.push(...createBrickRow(row, rowBricks));
   }
-  
   return bricks;
 };
-
-// Generate checker pattern
-const generateCheckerPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
-  const color1 = COLORS[level % COLORS.length];
-  const color2 = COLORS[(level + 3) % COLORS.length];
-  return createCheckerboard(0, params.rows, params.cols, color1, color2);
-};
-
-// Generate diamond pattern
-const generateDiamondPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
-  const bricks: LevelConfig['bricks'] = [];
-  const centerCol = Math.floor(params.cols / 2);
-  
-  const height = Math.min(5, params.rows);
-  for (let row = 0; row < height; row++) {
-    const width = row < height / 2 ? row * 2 + 1 : (height - row - 1) * 2 + 1;
+  params: ReturnT  shape: num  const bricks: Leve  for (let row    for (let col                    const cell         const color = COLORS[(level + row + col)         const def         const nearExplosive = explosivePositions.some          Math.ab          rowBricks.push(B(CO      } else if (cell === 5           if (def?.type         const nearExplosiv          Math.abs(p.row - row) <= 4 && Math.abs        if          explosivePositions.pus    bricks.p const generateRowPattern = (level: number, params: ReturnType<typeof getDifficultyPara  const bricks: LevelConfi  const colorO    for (let col = const generatePyramidPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks']         rowBricks.push(getBrickDef(COLORS[(level + row + col) % COLORS.l  const generateCheckerPattern = (level: number, params: ReturnType<typeof getDifficultyPa  const c  return createCheckerboard(0, params.rows, params.cols, color1,const generateDiamondPattern = (level: number, params: ReturnType<typeof getDifficultyPara  const bricks: LevelConfig* 2 + 1 : (height - row - 1) * 2 + 1;
     const startCol = centerCol - Math.floor(width / 2);
     const rowBricks: (BrickDef | BrickColor | null)[] = [];
     
