@@ -245,9 +245,6 @@ const generateShapePattern = (
   }
   return bricks;
 };
-  params: ReturnT  shape: num  const bricks: Leve  for (let row    for (let col                    const cell         const color = COLORS[(level + row + col)         const def         const nearExplosive = explosivePositions.some          Math.ab          rowBricks.push(B(CO      } else if (cell === 5           if (def?.type         const nearExplosiv          Math.abs(p.row - row) <= 4 && Math.abs        if          explosivePositions.pus    bricks.p const generateRowPattern = (level: number, params: ReturnType<typeof getDifficultyPara  const bricks: LevelConfi  const colorO    for (let col = const generatePyramidPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks']         rowBricks.push(getBrickDef(COLORS[(level + row + col) % COLORS.l  const generateCheckerPattern = (level: number, params: ReturnType<typeof getDifficultyPa  const c  return createCheckerboard(0, params.rows, params.cols, color1,const generateDiamondPattern = (level: number, params: ReturnType<typeof getDifficultyPara  const bricks: LevelConfig* 2 + 1 : (height - row - 1) * 2 + 1;
-    const startCol = centerCol - Math.floor(width / 2);
-    const rowBricks: (BrickDef | BrickColor | null)[] = [];
     
     for (let col = 0; col < params.cols; col++) {
       if (col >= startCol && col < startCol + width) {
