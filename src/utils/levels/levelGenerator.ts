@@ -207,7 +207,7 @@ const generateShapePattern = (
   for (let row = 0; row < shape.length; row++) {
     const rowBricks: (BrickDef | BrickColor | null)[] = [];
     for (let col = 0; col < shape[row].length; col++) {
-      const cell = shape[row][col];
+        const cell = shape[row][col];
       if (cell === 1) {
         const color = COLORS[(level + row + col) % COLORS.length];
         const def = getBrickDef(color, params, false, explosivePositions, row, col);
@@ -228,9 +228,18 @@ const generateShapePattern = (
         } else {
           rowBricks.push(B(COLORS[(level + col) % COLORS.length], 2));
         }
+      } else if (cell === 4) {
+        // Moving brick
+        const color = COLORS[(level + row + col) % COLORS.length];
+        rowBricks.push(MV(color, 50 + Math.random() * 50, 20 + Math.random() * 30));
+      } else if (cell === 5) {
+        // Chain reaction brick
+        const color = COLORS[(level + row + col) % COLORS.length];
+        rowBricks.push(CH(color));
       } else {
         rowBricks.push(null);
       }
+   if (def?.type         const nearExplosive = explosivePositions.some(p 
     }
     bricks.push(...createBrickRow(row, rowBricks));
   }
