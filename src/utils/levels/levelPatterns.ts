@@ -1592,3 +1592,37 @@ export const createGridPattern = (
   
   return bricks;
 };
+// --- ADD THIS TO THE VERY END OF levelPatterns.ts ---
+
+export const COLORS: BrickColor[] = ['cyan', 'magenta', 'blue', 'purple', 'white'];
+
+export interface BrickDef {
+  type: 'normal' | 'steel' | 'explosive' | 'moving' | 'chain' | 'coin' | 'ghost' | 'rainbow';
+  hits: number;
+  color: BrickColor;
+  moveSpeed?: number;
+  moveRange?: number;
+}
+
+export const B = (color: BrickColor, hits: number = 1): BrickDef => ({ type: 'normal', hits, color });
+export const ST = (): BrickDef => ({ type: 'steel', hits: -1, color: 'white' });
+export const EX = (color: BrickColor): BrickDef => ({ type: 'explosive', hits: 1, color });
+export const MV = (color: BrickColor, speed: number, range: number): BrickDef => ({ type: 'moving', hits: 1, color, moveSpeed: speed, moveRange: range });
+export const CH = (color: BrickColor): BrickDef => ({ type: 'chain', hits: 1, color });
+export const CO = (): BrickDef => ({ type: 'coin', hits: 1, color: 'gold' as any });
+export const GH = (color: BrickColor): BrickDef => ({ type: 'ghost', hits: 1, color });
+export const RB = (): BrickDef => ({ type: 'rainbow', hits: 1, color: 'magenta' });
+
+// Ensure all your pattern functions are exported
+export {
+  createBrickRow, createPyramid, createCheckerboard, createVShape,
+  createHeart, createHShape, createSpaceship, createBarChart, createArrowUp,
+  createDiamondFrame, createTwinTowers, createWaveRows, createStar,
+  createMazeComplex, createLShape, createTShape, createUShape, createEShape,
+  createExplosionBurst, createConstellation, createShield, createCastleWall,
+  createRocketShape, createRing, createGridPattern,
+  createStaircase, createReverseStaircase, createWings, createColumnsWithGaps,
+  createInvertedPyramid, createMaze, createHourglass, createCrossWithWings,
+  createAlternatingRows
+};
+
