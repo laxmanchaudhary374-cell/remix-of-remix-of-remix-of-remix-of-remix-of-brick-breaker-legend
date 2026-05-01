@@ -1198,12 +1198,10 @@ case 'ring': bricks = generateRingPattern(level, params); break;
       break;
     }
     case 'grid': {
-      const patternIndex = (level - 11) % GRID_PATTERNS.length;
-      const gridPattern = GRID_PATTERNS[patternIndex];
-      bricks = createGridPattern(gridPattern, COLORS, level);
+      bricks = createGridPattern(0, COLORS);
       break;
     }
-    default: bricks = generateRowPattern(level, params);
+    default: bricks = generateFortressPattern(level, params);
   }
   
   return {
