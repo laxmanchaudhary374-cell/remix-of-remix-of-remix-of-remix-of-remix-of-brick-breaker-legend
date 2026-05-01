@@ -1111,10 +1111,10 @@ export const generateLevel = (level: number): LevelConfig => {
       bricks = generateShapePattern(level, params, customPattern);
       break;
     }
-    case 'rows': bricks = generateRowPattern(level, params); break;
-    case 'pyramid': bricks = generatePyramidPattern(level, params); break;
-    case 'checker': bricks = generateCheckerPattern(level, params); break;
-    case 'diamond': bricks = generateDiamondPattern(level, params); break;
+    case 'rows': bricks = generateFortressPattern(level, params); break;
+    case 'pyramid': bricks = generateFortressPattern(level, params); break;
+    case 'checker': bricks = generateFortressPattern(level, params); break;
+    case 'diamond': bricks = generateDiagonalPattern(level, params); break;
     case 'fortress': bricks = generateFortressPattern(level, params); break;
     case 'wave': bricks = generateWavePattern(level, params); break;
     case 'cross': bricks = generateCrossPattern(level, params); break;
