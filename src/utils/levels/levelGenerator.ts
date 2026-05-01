@@ -979,7 +979,7 @@ const generateTwinTowersPattern = (level: number, params: ReturnType<typeof getD
 // Generate complex wave pattern
 const generateComplexWavePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
-  return createWaveRows(0, colors);
+  return createWaveRows(0, 5, colors);
 };
 
 // Generate complex star pattern
