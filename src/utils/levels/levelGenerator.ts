@@ -245,21 +245,6 @@ const generateShapePattern = (
   }
   return bricks;
 };
-    
-    for (let col = 0; col < params.cols; col++) {
-      if (col >= startCol && col < startCol + width) {
-        const color = COLORS[(level + row + col) % COLORS.length];
-        rowBricks.push(getBrickDef(color, params));
-      } else {
-        rowBricks.push(null);
-      }
-    }
-    
-    bricks.push(...createBrickRow(row, rowBricks));
-  }
-  
-  return bricks;
-};
 
 // Generate fortress pattern
 const generateFortressPattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
