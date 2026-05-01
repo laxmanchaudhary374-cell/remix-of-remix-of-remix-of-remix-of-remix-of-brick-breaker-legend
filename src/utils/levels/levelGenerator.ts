@@ -9,8 +9,6 @@ import {
   createMazeComplex, createLShape, createTShape, createUShape, createEShape,
   createExplosionBurst, createConstellation, createShield, createCastleWall,
   createRocketShape, createRing, createGridPattern,
-  createStaircase, createReverseStaircase, createWings, createColumnsWithGaps,
-  createInvertedPyramid, createMaze, createHourglass, createCrossWithWings,
   createAlternatingRows,
   B, EX, ST, MV, CH, CO, RB, GH, BrickDef, COLORS
 } from './levelPatterns';
@@ -243,21 +241,6 @@ const generateShapePattern = (
     }
     bricks.push(...createBrickRow(row, rowBricks));
   }
-  return bricks;
-};
-    
-    for (let col = 0; col < params.cols; col++) {
-      if (col >= startCol && col < startCol + width) {
-        const color = COLORS[(level + row + col) % COLORS.length];
-        rowBricks.push(getBrickDef(color, params));
-      } else {
-        rowBricks.push(null);
-      }
-    }
-    
-    bricks.push(...createBrickRow(row, rowBricks));
-  }
-  
   return bricks;
 };
 
@@ -996,7 +979,7 @@ const generateTwinTowersPattern = (level: number, params: ReturnType<typeof getD
 // Generate complex wave pattern
 const generateComplexWavePattern = (level: number, params: ReturnType<typeof getDifficultyParams>): LevelConfig['bricks'] => {
   const colors = [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length], COLORS[(level + 2) % COLORS.length]];
-  return createWaveRows(0, colors);
+  return createWaveRows(0, 5, colors);
 };
 
 // Generate complex star pattern
@@ -1128,10 +1111,10 @@ export const generateLevel = (level: number): LevelConfig => {
       bricks = generateShapePattern(level, params, customPattern);
       break;
     }
-    case 'rows': bricks = generateRowPattern(level, params); break;
-    case 'pyramid': bricks = generatePyramidPattern(level, params); break;
-    case 'checker': bricks = generateCheckerPattern(level, params); break;
-    case 'diamond': bricks = generateDiamondPattern(level, params); break;
+    case 'rows': bricks = generateFortressPattern(level, params); break;
+    case 'pyramid': bricks = generateFortressPattern(level, params); break;
+    case 'checker': bricks = generateFortressPattern(level, params); break;
+    case 'diamond': bricks = generateDiagonalPattern(level, params); break;
     case 'fortress': bricks = generateFortressPattern(level, params); break;
     case 'wave': bricks = generateWavePattern(level, params); break;
     case 'cross': bricks = generateCrossPattern(level, params); break;
@@ -1168,14 +1151,14 @@ export const generateLevel = (level: number): LevelConfig => {
     case 'wings': bricks = generateWingsPattern(level, params); break;
     case 'anchor': bricks = generateAnchorPattern(level, params); break;
     case 'mushroom': bricks = generateMushroomPattern(level, params); break;
-    case 'staircase': bricks = createStaircase(0, 6, COLORS[level % COLORS.length]); break;
-    case 'reverse_staircase': bricks = createReverseStaircase(0, 6, COLORS[level % COLORS.length]); break;
-    case 'wings_outlaw': bricks = createWings(0, 6, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
-    case 'columns_gaps': bricks = createColumnsWithGaps(0, 6, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
-    case 'inverted_pyramid': bricks = createInvertedPyramid(0, 5, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
-    case 'maze_outlaw': bricks = createMaze(0, COLORS[level % COLORS.length]); break;
-    case 'hourglass_outlaw': bricks = createHourglass(0, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
-    case 'cross_wings': bricks = createCrossWithWings(0, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
+    case 'staircase': bricks = generateDiagonalPattern(level, params); break;
+    case 'reverse_staircase': bricks = generateDiagonalPattern(level, params); break;
+    case 'wings_outlaw': bricks = generateWingsPattern(level, params); break;
+    case 'columns_gaps': bricks = generatePillarsPattern(level, params); break;
+    case 'inverted_pyramid': bricks = generateFortressPattern(level, params); break;
+    case 'maze_outlaw': bricks = generateMazePattern(level, params); break;
+    case 'hourglass_outlaw': bricks = generateHourglassPattern(level, params); break;
+    case 'cross_wings': bricks = generateCrossPattern(level, params); break;
     case 'alternating_rows': bricks = createAlternatingRows(0, 8, [COLORS[level % COLORS.length], COLORS[(level + 1) % COLORS.length]]); break;
     case 'cup': bricks = generateCupPattern(level, params); break;
     case 'city_skyline': bricks = generateCitySkylinePattern(level, params); break;
@@ -1215,12 +1198,10 @@ case 'ring': bricks = generateRingPattern(level, params); break;
       break;
     }
     case 'grid': {
-      const patternIndex = (level - 11) % GRID_PATTERNS.length;
-      const gridPattern = GRID_PATTERNS[patternIndex];
-      bricks = createGridPattern(gridPattern, COLORS, level);
+      bricks = createGridPattern(0, COLORS);
       break;
     }
-    default: bricks = generateRowPattern(level, params);
+    default: bricks = generateFortressPattern(level, params);
   }
   
   return {

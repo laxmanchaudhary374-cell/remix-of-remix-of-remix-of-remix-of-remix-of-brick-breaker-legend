@@ -1110,14 +1110,6 @@ export const ALL_PATTERNS: Record<string, PatternFunction> = {
   createRocketShape: (startRow, colors) => createRocketShape(startRow, colors),
   createRing: (startRow, colors) => createRing(startRow, colors),
   createGridPattern: (startRow, colors) => createGridPattern(startRow, colors),
-  createStaircase: (startRow, colors) => createStaircase(startRow, 5, colors[0] || 'cyan'),
-  createReverseStaircase: (startRow, colors) => createReverseStaircase(startRow, 5, colors[0] || 'cyan'),
-  createWings: (startRow, colors) => createWings(startRow, 5, colors),
-  createColumnsWithGaps: (startRow, colors) => createColumnsWithGaps(startRow, 5, colors),
-  createInvertedPyramid: (startRow, colors) => createInvertedPyramid(startRow, 5, colors),
-  createMaze: (startRow, colors) => createMaze(startRow, colors[0] || 'cyan'),
-  createHourglass: (startRow, colors) => createHourglass(startRow, colors),
-  createCrossWithWings: (startRow, colors) => createCrossWithWings(startRow, colors),
   createAlternatingRows: (startRow, colors) => createAlternatingRows(startRow, 5, colors),
 };
 
@@ -1131,7 +1123,7 @@ export const generatePatternBricks = (
   const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
   const startY = 30;
 
-  const availableColors: BrickColor[] = ['cyan', 'magenta', 'blue', 'purple', 'white', 'yellow', 'green', 'orange', 'red', 'gold'];
+  const availableColors: BrickColor[] = ['cyan', 'magenta', 'purple', 'yellow', 'green', 'orange', 'red', 'gold'];
   const levelColors: BrickColor[] = [];
   for (let i = 0; i < 5; i++) {
     levelColors.push(availableColors[Math.floor(seededRandom() * availableColors.length)]);
@@ -1144,7 +1136,7 @@ export const generatePatternBricks = (
       return patternFunction(0, levelColors, params);
     } else {
       // For patterns that expect an array of colors
-      return patternFunction(0, levelColors);
+      return patternFunction(0, levelColors, params);
     }
   }
 
@@ -1161,7 +1153,7 @@ export const generateComplexPatternBricks = (
   const startX = (GAME_WIDTH - 8 * (BRICK_WIDTH + BRICK_PADDING)) / 2;
   const startY = 30;
 
-  const availableColors: BrickColor[] = ['cyan', 'magenta', 'blue', 'purple', 'white', 'yellow', 'green', 'orange', 'red', 'gold'];
+  const availableColors: BrickColor[] = ['cyan', 'magenta', 'purple', 'yellow', 'green', 'orange', 'red', 'gold'];
   const levelColors: BrickColor[] = [];
   for (let i = 0; i < 5; i++) {
     levelColors.push(availableColors[Math.floor(seededRandom() * availableColors.length)]);
@@ -1169,7 +1161,7 @@ export const generateComplexPatternBricks = (
 
   const patternFunction = ALL_PATTERNS[patternName];
   if (patternFunction) {
-    return patternFunction(0, levelColors);
+    return patternFunction(0, levelColors, params);
   }
 
   return bricks;
