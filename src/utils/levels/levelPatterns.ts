@@ -1136,7 +1136,7 @@ export const generatePatternBricks = (
       return patternFunction(0, levelColors, params);
     } else {
       // For patterns that expect an array of colors
-      return patternFunction(0, levelColors);
+      return patternFunction(0, levelColors, params);
     }
   }
 
