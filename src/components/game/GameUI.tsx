@@ -53,9 +53,18 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, persistentCoins }) => {
       ) : null}
 
       {/* Coins Box */}
-      <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-neon-yellow/40 rounded-lg px-3 py-1.5">
-        <Coins className="w-4 h-4 text-yellow-400" />
-        <span className="font-display text-sm text-yellow-400">
+      <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-yellow-400/60 rounded-lg px-3 py-1.5">
+        <span
+          className="inline-flex items-center justify-center w-4 h-4 rounded-full font-bold text-[9px] text-yellow-900"
+          style={{
+            background: 'radial-gradient(circle at 35% 30%, #fff5a8, #facc15 55%, #b8860b)',
+            boxShadow: '0 0 6px rgba(250,204,21,0.7), inset 0 -1px 2px rgba(0,0,0,0.4)',
+            border: '1px solid #92710a',
+          }}
+        >
+          $
+        </span>
+        <span className="font-display text-sm text-yellow-300" style={{ textShadow: '0 0 6px rgba(250,204,21,0.6)' }}>
           {(persistentCoins ?? 0) + gameState.coins}
         </span>
       </div>
