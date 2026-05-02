@@ -11,6 +11,7 @@ import AudioControls from './AudioControls';
 import DailyRewards, { checkDailyReward } from './DailyRewards';
 import LuckyWheel from './LuckyWheel';
 import ShopScreen, { ShopItem } from './ShopScreen';
+import TutorialOverlay, { hasSeenTutorial } from './TutorialOverlay';
 import { audioManager } from '@/utils/audioManager';
 import { initBilling } from '@/utils/billing';
 import { initAdMob, showBannerAd, showInterstitialAd } from '@/utils/admob';
@@ -42,7 +43,7 @@ const setStoredCoins = (coins: number) => {
 };
 
 type ScreenState = 'splash' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'won';
-type ModalType = 'none' | 'daily' | 'wheel' | 'shop';
+type ModalType = 'none' | 'daily' | 'wheel' | 'shop' | 'tutorial';
 
 const EMERGENCY_PRICES: Record<string, { cost: number; label: string }> = {
   auto: { cost: 50, label: 'Auto Paddle' },
@@ -121,9 +122,21 @@ const BrickBreakerGame: React.FC = () => {
 
   const handlePlayFromSplash = useCallback(() => {
     setScreenState('menu');
+    if (!hasSeenTutorial()) {
+      setTimeout(() => setActiveModal('tutorial'), 300);
+      return;
+    }
     const { shouldShow } = checkDailyReward();
     if (shouldShow) {
       setTimeout(() => setActiveModal('daily'), 400);
+    }
+  }, []);
+
+  const handleTutorialClose = useCallback(() => {
+    setActiveModal('none');
+    const { shouldShow } = checkDailyReward();
+    if (shouldShow) {
+      setTimeout(() => setActiveModal('daily'), 300);
     }
   }, []);
 
@@ -356,6 +369,7 @@ const BrickBreakerGame: React.FC = () => {
           onOpenShop={() => setActiveModal('shop')}
           onOpenWheel={() => setActiveModal('wheel')}
         />
+        {activeModal === 'tutorial' && <TutorialOverlay onClose={handleTutorialClose} />}
         {activeModal === 'daily' && <DailyRewards onClose={handleDailyRewardClose} />}
         {activeModal === 'wheel' && <LuckyWheel onClose={handleWheelClose} />}
         {activeModal === 'shop' && (
