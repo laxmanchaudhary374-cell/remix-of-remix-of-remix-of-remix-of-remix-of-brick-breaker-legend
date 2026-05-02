@@ -78,7 +78,7 @@ export async function showBannerAd(): Promise<void> {
     await admob.showBanner({
       adId: AD_UNIT_IDS.BANNER,
       adSize: 'BANNER',
-      position: 'BOTTOM_CENTER',
+      position: 'TOP_CENTER',
       isTesting: false,
     });
   } catch (err) {

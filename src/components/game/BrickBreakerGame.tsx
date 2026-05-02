@@ -546,9 +546,6 @@ const BrickBreakerGame: React.FC = () => {
         )}
       </div>
 
-      <div className="relative z-10 mt-4 text-center text-muted-foreground font-game text-sm">
-        <p>Move paddle with mouse or touch</p>
-      </div>
     </div>
   );
 };
