@@ -194,6 +194,25 @@ const getBrickDef = (color: BrickColor, params: ReturnType<typeof getDifficultyP
 
 // Generic shape pattern helper with bomb spacing
 // Generic shape pattern helper with bomb spacing
+// Scale a shape vertically (and horizontally if needed) to fill target rows × 8 cols
+const scaleShapeToFill = (shape: number[][], targetRows: number, targetCols: number = 8): number[][] => {
+  if (!shape || shape.length === 0) return shape;
+  const srcRows = shape.length;
+  const srcCols = shape[0].length;
+  const result: number[][] = [];
+  for (let r = 0; r < targetRows; r++) {
+    const srcR = Math.min(srcRows - 1, Math.floor((r * srcRows) / targetRows));
+    const srcRow = shape[srcR];
+    const newRow: number[] = [];
+    for (let c = 0; c < targetCols; c++) {
+      const srcC = Math.min(srcCols - 1, Math.floor((c * srcCols) / targetCols));
+      newRow.push(srcRow[srcC] ?? 0);
+    }
+    result.push(newRow);
+  }
+  return result;
+};
+
 const generateShapePattern = (
   level: number,
   params: ReturnType<typeof getDifficultyParams>,
@@ -202,6 +221,10 @@ const generateShapePattern = (
   const bricks: LevelConfig['bricks'] = [];
   // Track explosive positions to space them apart (min 4-brick distance)
   const explosivePositions: { row: number; col: number }[] = [];
+  
+  // Scale shape up to fill the available rows so patterns look massive
+  const targetRows = Math.max(params.rows, shape.length);
+  shape = scaleShapeToFill(shape, targetRows, 8);
   
   for (let row = 0; row < shape.length; row++) {
     const rowBricks: (BrickDef | BrickColor | null)[] = [];
