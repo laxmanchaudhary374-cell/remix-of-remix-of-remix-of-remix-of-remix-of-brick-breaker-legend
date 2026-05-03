@@ -224,6 +224,11 @@ useEffect(() => {
       levelCompletingRef.current = true;
       setPaddle(prev => ({ ...prev, hasLaser: false }));
       setLasers([]);
+      // Clear destructive effects so they don't carry over to the next level
+      setExplosions([]);
+      setIsShock(false);
+      setIsFireball(false);
+      setPowerUps([]);
       if (laserAutoFireRef.current) {
         clearInterval(laserAutoFireRef.current);
         laserAutoFireRef.current = null;
