@@ -172,17 +172,31 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
                 </div>
                 <button
                   onClick={handleWatchAd}
-                  disabled={adTimer !== null}
+                  disabled={adTimer !== null || adLoading}
                   className={`w-full py-3 rounded-lg font-display text-sm font-bold transition-all ${
                     adWatched
                       ? 'bg-neon-green/20 text-neon-green'
-                      : adTimer !== null
+                      : adLoading || adTimer !== null
                       ? 'bg-muted/30 text-muted-foreground cursor-wait'
                       : 'bg-neon-green/80 text-black hover:bg-neon-green hover:scale-[1.02] active:scale-95'
                   }`}
                 >
-                  {adWatched ? '✓ +50 Coins Added!' : adTimer !== null ? `⏳ Watching ad... ${adTimer}s` : '▶ Watch Ad'}
+                  {adWatched
+                    ? '✓ +50 Coins Added!'
+                    : adLoading
+                    ? (
+                      <span className="inline-flex items-center gap-2 justify-center">
+                        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Loading ad...
+                      </span>
+                    )
+                    : adTimer !== null
+                    ? `⏳ Watching ad... ${adTimer}s`
+                    : '▶ Watch Ad'}
                 </button>
+                {adError && (
+                  <p className="mt-2 text-xs font-game text-red-400 text-center">⚠ {adError}</p>
+                )}
               </div>
 
               {/* Divider */}
