@@ -30,8 +30,10 @@ const getDifficultyParams = (level: number) => {
   const tier = Math.floor((level - 1) / 50);
   const tierProgress = ((level - 1) % 50) / 50;
   
-  const baseRows = 11;
-  const additionalRows = Math.floor(level / 10);
+  // Early levels (1-20) should also feel massive so new players are hooked.
+  // Start with a high base row count immediately and grow with level.
+  const baseRows = 14;
+  const additionalRows = Math.floor(level / 8);
   const maxRows = 18;
   
   return {
@@ -194,15 +196,23 @@ const getBrickDef = (color: BrickColor, params: ReturnType<typeof getDifficultyP
 
 // Generic shape pattern helper with bomb spacing
 // Generic shape pattern helper with bomb spacing
-// Scale a shape vertically (and horizontally if needed) to fill target rows × 8 cols
+// Scale a shape vertically (and horizontally if needed) to fill target rows × 8 cols.
+// Trim leading/trailing fully-empty rows first so the visible pattern fills the area
+// (otherwise empty bottom rows make patterns look small on screen).
 const scaleShapeToFill = (shape: number[][], targetRows: number, targetCols: number = 8): number[][] => {
   if (!shape || shape.length === 0) return shape;
-  const srcRows = shape.length;
-  const srcCols = shape[0].length;
+  // Trim empty rows top/bottom so the actual content fills the target area
+  let start = 0;
+  let end = shape.length - 1;
+  while (start < shape.length && shape[start].every(v => v === 0)) start++;
+  while (end >= 0 && shape[end].every(v => v === 0)) end--;
+  const trimmed = (start > end) ? shape : shape.slice(start, end + 1);
+  const srcRows = trimmed.length;
+  const srcCols = trimmed[0].length;
   const result: number[][] = [];
   for (let r = 0; r < targetRows; r++) {
     const srcR = Math.min(srcRows - 1, Math.floor((r * srcRows) / targetRows));
-    const srcRow = shape[srcR];
+    const srcRow = trimmed[srcR];
     const newRow: number[] = [];
     for (let c = 0; c < targetCols; c++) {
       const srcC = Math.min(srcCols - 1, Math.floor((c * srcCols) / targetCols));
