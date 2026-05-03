@@ -39,9 +39,15 @@ export async function initAdMob(): Promise<boolean> {
   }
 }
 
-export async function showRewardedAd(): Promise<number> {
+export type RewardedAdResult =
+  | { ok: true; reward: number }
+  | { ok: false; error: string };
+
+export async function showRewardedAd(): Promise<RewardedAdResult> {
   const admob = await getAdMobPlugin();
-  if (!admob) return 0;
+  if (!admob) {
+    return { ok: false, error: 'Ads are only available in the installed app.' };
+  }
 
   return new Promise(async (resolve) => {
     try {
@@ -59,13 +65,13 @@ export async function showRewardedAd(): Promise<number> {
       const closeListener = await admob.addListener('onRewardedVideoAdClosed', () => {
         rewardListener.remove();
         closeListener.remove();
-        resolve(rewardGranted ? 50 : 0);
+        resolve({ ok: true, reward: rewardGranted ? 50 : 0 });
       });
 
       await admob.showRewardVideoAd();
-    } catch (err) {
+    } catch (err: any) {
       console.error('[AdMob] Rewarded ad error:', err);
-      resolve(0);
+      resolve({ ok: false, error: err?.message || 'Ad failed to load. Please try again later.' });
     }
   });
 }
