@@ -30,9 +30,9 @@ const getDifficultyParams = (level: number) => {
   const tier = Math.floor((level - 1) / 50);
   const tierProgress = ((level - 1) % 50) / 50;
   
-  const baseRows = 9;
-  const additionalRows = Math.floor(level / 15);
-  const maxRows = 15;
+  const baseRows = 11;
+  const additionalRows = Math.floor(level / 10);
+  const maxRows = 18;
   
   return {
     ballSpeed: Math.min(280 + level * 0.4 + tier * 8, 380),

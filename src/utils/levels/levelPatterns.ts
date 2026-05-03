@@ -1,8 +1,10 @@
 import { BrickColor, BrickType } from '@/types/game';
 
 // Bigger bricks for better visibility and denser patterns
-export const BRICK_WIDTH = 43;  // 48 × 0.9 = 43.2 ≈ 43
-export const BRICK_HEIGHT = 23; // 26 × 0.9 = 23.4 ≈ 23
+// Slightly narrower bricks to leave clear side gutters for ball passage,
+// while keeping vertical density high (more rows, taller patterns).
+export const BRICK_WIDTH = 39;
+export const BRICK_HEIGHT = 22;
 export const BRICK_PADDING = 1;
 
 export const GAME_WIDTH = 400;

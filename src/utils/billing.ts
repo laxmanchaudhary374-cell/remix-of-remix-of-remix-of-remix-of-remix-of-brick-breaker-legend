@@ -4,9 +4,9 @@
 import { Capacitor } from '@capacitor/core';
 
 export const BILLING_PRODUCT_IDS = {
-  COIN_STARTER: 'coin_starter_100',
-  COIN_PRO: 'coin_pro_500',
-  COIN_WHALE: 'coin_whale_1500',
+  COIN_STARTER: 'starter_pack',
+  COIN_PRO: 'pro_pack',
+  COIN_WHALE: 'whale_pack',
 } as const;
 
 const PACKAGE_TO_PRODUCT: Record<string, string> = {

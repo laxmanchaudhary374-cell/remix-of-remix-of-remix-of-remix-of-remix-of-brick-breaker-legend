@@ -1327,8 +1327,7 @@ explosions.forEach(explosion => {
       }
     }
 
-    // Galaxy spiral nebula (center-right of canvas)
-    const galaxyTime = gameTime * 0.015;
+    // Static galaxy (no time-based animation) to prevent brightness flicker
     const galaxyCX = GAME_WIDTH * 0.55;
     const galaxyCY = GAME_HEIGHT * 0.58;
     const galaxyRadius = GAME_WIDTH * 0.55;
@@ -1342,10 +1341,9 @@ explosions.forEach(explosion => {
     ctx.fillStyle = haloGrad;
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Spiral arms
+    // Spiral arms (static)
     ctx.save();
     ctx.translate(galaxyCX, galaxyCY);
-    ctx.rotate(galaxyTime * 0.3);
     const numArms = 2;
     for (let arm = 0; arm < numArms; arm++) {
       const armOffset = (arm / numArms) * Math.PI * 2;
@@ -1354,12 +1352,12 @@ explosions.forEach(explosion => {
         const angle = armOffset + t * Math.PI * 3.5;
         const r = t * galaxyRadius * 0.9;
         const sx = Math.cos(angle) * r;
-        const sy = Math.sin(angle) * r * 0.6; // Flatten for perspective
+        const sy = Math.sin(angle) * r * 0.6;
         const dotSize = (1 - t) * 8 + 1;
-        const hue = 260 + t * 60 + arm * 30; // Purple to blue shift
+        const hue = 260 + t * 60 + arm * 30;
         const lightness = 45 + (1 - t) * 20;
         const alpha = (1 - t * 0.8) * 0.15;
-        
+
         const spiralGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, dotSize);
         spiralGrad.addColorStop(0, `hsla(${hue}, 60%, ${lightness}%, ${alpha * 1.5})`);
         spiralGrad.addColorStop(0.5, `hsla(${hue}, 50%, ${lightness - 10}%, ${alpha * 0.7})`);
@@ -1381,12 +1379,9 @@ explosions.forEach(explosion => {
     ctx.fill();
     ctx.restore();
 
-    // Ambient nebula clouds (top-left and bottom-right atmospheric glow)
-    const cloudTime = gameTime * 0.03;
-    
-    // Top-right cloud
-    const c1X = GAME_WIDTH * 0.8 + Math.sin(cloudTime * 0.5) * 15;
-    const c1Y = GAME_HEIGHT * 0.12 + Math.cos(cloudTime * 0.3) * 10;
+    // Static ambient nebula clouds
+    const c1X = GAME_WIDTH * 0.8;
+    const c1Y = GAME_HEIGHT * 0.12;
     const cGrad1 = ctx.createRadialGradient(c1X, c1Y, 0, c1X, c1Y, 100);
     cGrad1.addColorStop(0, 'hsla(210, 50%, 35%, 0.08)');
     cGrad1.addColorStop(0.5, 'hsla(220, 40%, 25%, 0.04)');
@@ -1394,9 +1389,8 @@ explosions.forEach(explosion => {
     ctx.fillStyle = cGrad1;
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Bottom-left cloud
-    const c2X = GAME_WIDTH * 0.15 + Math.sin(cloudTime * 0.4 + 2) * 12;
-    const c2Y = GAME_HEIGHT * 0.85 + Math.cos(cloudTime * 0.6 + 1) * 8;
+    const c2X = GAME_WIDTH * 0.15;
+    const c2Y = GAME_HEIGHT * 0.85;
     const cGrad2 = ctx.createRadialGradient(c2X, c2Y, 0, c2X, c2Y, 120);
     cGrad2.addColorStop(0, 'hsla(200, 45%, 30%, 0.07)');
     cGrad2.addColorStop(0.5, 'hsla(210, 35%, 20%, 0.03)');
