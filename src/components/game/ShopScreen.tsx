@@ -78,7 +78,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
     const result = await showRewardedAd();
     setAdTimer(null);
     setAdLoading(false);
-    if (!result.ok) {
+    if (result.ok === false) {
       setAdError(result.error);
       setTimeout(() => setAdError(null), 5000);
     } else if (result.reward > 0) {
