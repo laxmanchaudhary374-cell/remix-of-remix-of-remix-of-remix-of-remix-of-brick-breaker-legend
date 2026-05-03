@@ -216,11 +216,13 @@ const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
     if (isSpinning || !can) return;
     if (!adWatched) {
       const result = await showRewardedAd();
-      if (result.ok && result.reward > 0) {
+      if (!result.ok) {
+        alert(result.error);
+      } else if (result.reward > 0) {
         setAdWatched(true);
         handleSpin();
       } else {
-        alert(!result.ok ? result.error : 'Please watch the full ad to spin the wheel!');
+        alert('Please watch the full ad to spin the wheel!');
       }
       return;
     }
