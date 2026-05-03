@@ -154,6 +154,7 @@ useEffect(() => {
       setLastPowerUpTime(0);
       levelCompletingRef.current = false;
       planeThrowAnimRef.current = 0;
+      prevBrickCountRef.current = newBricks.filter(b => !b.destroyed && b.type !== 'indestructible').length;
       setPaddle(prev => ({ 
         ...prev, 
         width: PADDLE_WIDTH,
@@ -224,6 +225,11 @@ useEffect(() => {
       levelCompletingRef.current = true;
       setPaddle(prev => ({ ...prev, hasLaser: false }));
       setLasers([]);
+      // Clear destructive effects so they don't carry over to the next level
+      setExplosions([]);
+      setIsShock(false);
+      setIsFireball(false);
+      setPowerUps([]);
       if (laserAutoFireRef.current) {
         clearInterval(laserAutoFireRef.current);
         laserAutoFireRef.current = null;
