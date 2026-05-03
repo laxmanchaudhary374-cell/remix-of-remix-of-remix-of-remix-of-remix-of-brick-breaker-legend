@@ -154,6 +154,7 @@ useEffect(() => {
       setLastPowerUpTime(0);
       levelCompletingRef.current = false;
       planeThrowAnimRef.current = 0;
+      prevBrickCountRef.current = newBricks.filter(b => !b.destroyed && b.type !== 'indestructible').length;
       setPaddle(prev => ({ 
         ...prev, 
         width: PADDLE_WIDTH,
