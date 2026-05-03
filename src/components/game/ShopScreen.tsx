@@ -49,6 +49,8 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
   const [purchased, setPurchased] = useState<string[]>([]);
   const [adTimer, setAdTimer] = useState<number | null>(null);
   const [adWatched, setAdWatched] = useState(false);
+  const [adLoading, setAdLoading] = useState(false);
+  const [adError, setAdError] = useState<string | null>(null);
 
   const filteredItems = SHOP_ITEMS.filter(item => item.category === activeTab);
 
@@ -69,15 +71,23 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
   };
 
   const handleWatchAd = async () => {
-    if (adTimer !== null) return;
-    // Uses @capacitor-community/admob on native, simulates on web
+    if (adTimer !== null || adLoading) return;
+    setAdError(null);
+    setAdLoading(true);
     setAdTimer(5);
-    const reward = await showRewardedAd();
+    const result = await showRewardedAd();
     setAdTimer(null);
-    if (reward > 0) {
-      onAddCoins(reward);
+    setAdLoading(false);
+    if (result.ok && result.reward > 0) {
+      onAddCoins(result.reward);
       setAdWatched(true);
       setTimeout(() => setAdWatched(false), 3000);
+    } else if (!result.ok) {
+      setAdError(result.error);
+      setTimeout(() => setAdError(null), 5000);
+    } else {
+      setAdError('Ad was closed before finishing. No coins awarded.');
+      setTimeout(() => setAdError(null), 4000);
     }
   };
 

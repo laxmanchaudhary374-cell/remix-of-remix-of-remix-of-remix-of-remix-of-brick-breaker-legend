@@ -220,7 +220,7 @@ const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
         setAdWatched(true);
         handleSpin();
       } else {
-        alert(result.ok ? 'Please watch the full ad to spin the wheel!' : result.error);
+        alert(!result.ok ? result.error : 'Please watch the full ad to spin the wheel!');
       }
       return;
     }
