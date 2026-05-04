@@ -154,7 +154,11 @@ useEffect(() => {
       setLastPowerUpTime(0);
       levelCompletingRef.current = false;
       planeThrowAnimRef.current = 0;
-      prevBrickCountRef.current = newBricks.filter(b => !b.destroyed && b.type !== 'indestructible').length;
+      // Reset to 0 — the completion-check effect will populate this
+      // once the new bricks state is reflected. Setting to the new count
+      // here causes a false "level complete" because the effect runs first
+      // against the OLD (all-destroyed) bricks state.
+      prevBrickCountRef.current = 0;
       setPaddle(prev => ({ 
         ...prev, 
         width: PADDLE_WIDTH,
@@ -162,6 +166,14 @@ useEffect(() => {
         hasMagnet: false,
         hasShield: false,
       }));
+
+      // Free laser gun for first 5 levels — gives new players a fun boost
+      if (gameState.level <= 5) {
+        setTimeout(() => {
+          setPaddle(prev => ({ ...prev, hasLaser: true }));
+          setTimeout(() => setPaddle(prev => ({ ...prev, hasLaser: false })), 8000);
+        }, 6000);
+      }
       
       // Clear laser auto-fire interval explicitly
       if (laserAutoFireRef.current) {
@@ -216,16 +228,20 @@ useEffect(() => {
   // Check for level completion
   useEffect(() => {
     if (gameState.status !== 'playing') return;
-    
+    if (levelCompletingRef.current) return;
+    // Need actual bricks loaded for this level
+    if (bricks.length === 0) return;
+
     const remainingBricks = bricks.filter(b => !b.destroyed && b.type !== 'indestructible');
     const hadBricks = prevBrickCountRef.current > 0;
-    
+
+    // Update tracker FIRST so the next render has the correct baseline
+    prevBrickCountRef.current = remainingBricks.length;
+
     if (remainingBricks.length === 0 && hadBricks) {
-      // Immediately stop laser and mark level as completing
       levelCompletingRef.current = true;
       setPaddle(prev => ({ ...prev, hasLaser: false }));
       setLasers([]);
-      // Clear destructive effects so they don't carry over to the next level
       setExplosions([]);
       setIsShock(false);
       setIsFireball(false);
@@ -236,8 +252,6 @@ useEffect(() => {
       }
       setTimeout(() => onLevelComplete(), 300);
     }
-    
-    prevBrickCountRef.current = remainingBricks.length;
   }, [bricks, gameState.status, onLevelComplete]);
 
   // Create particles
