@@ -228,16 +228,20 @@ useEffect(() => {
   // Check for level completion
   useEffect(() => {
     if (gameState.status !== 'playing') return;
-    
+    if (levelCompletingRef.current) return;
+    // Need actual bricks loaded for this level
+    if (bricks.length === 0) return;
+
     const remainingBricks = bricks.filter(b => !b.destroyed && b.type !== 'indestructible');
     const hadBricks = prevBrickCountRef.current > 0;
-    
+
+    // Update tracker FIRST so the next render has the correct baseline
+    prevBrickCountRef.current = remainingBricks.length;
+
     if (remainingBricks.length === 0 && hadBricks) {
-      // Immediately stop laser and mark level as completing
       levelCompletingRef.current = true;
       setPaddle(prev => ({ ...prev, hasLaser: false }));
       setLasers([]);
-      // Clear destructive effects so they don't carry over to the next level
       setExplosions([]);
       setIsShock(false);
       setIsFireball(false);
@@ -248,8 +252,6 @@ useEffect(() => {
       }
       setTimeout(() => onLevelComplete(), 300);
     }
-    
-    prevBrickCountRef.current = remainingBricks.length;
   }, [bricks, gameState.status, onLevelComplete]);
 
   // Create particles
