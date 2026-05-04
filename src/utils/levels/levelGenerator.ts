@@ -1228,7 +1228,10 @@ case 'ring': bricks = generateRingPattern(level, params); break;
       break;
     }
     case 'grid': {
-      bricks = createGridPattern(0, COLORS);
+      // Use one of 530 grid patterns, indexed by level so each level differs
+      const idx = (level - 11) % GRID_PATTERNS.length;
+      const gridShape = GRID_PATTERNS[idx] || GRID_PATTERNS[0];
+      bricks = generateShapePattern(level, params, gridShape);
       break;
     }
     default: bricks = generateFortressPattern(level, params);
