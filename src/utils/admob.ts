@@ -50,28 +50,43 @@ export async function showRewardedAd(): Promise<RewardedAdResult> {
   }
 
   return new Promise(async (resolve) => {
+    let settled = false;
+    const finish = (r: RewardedAdResult) => { if (!settled) { settled = true; resolve(r); } };
+
+    // Hard timeout — never let the UI spin forever
+    const timeout = setTimeout(() => {
+      finish({ ok: false, error: 'Ad took too long to load. Check your internet and try again.' });
+    }, 15000);
+
     try {
       let rewardGranted = false;
+
+      const rewardListener = await admob.addListener('onRewardedVideoAdRewarded', () => {
+        rewardGranted = true;
+      });
+      const closeListener = await admob.addListener('onRewardedVideoAdClosed', () => {
+        clearTimeout(timeout);
+        rewardListener.remove();
+        closeListener.remove();
+        finish({ ok: true, reward: rewardGranted ? 50 : 0 });
+      });
+      const failListener = await admob.addListener('onRewardedVideoAdFailedToLoad', (err: any) => {
+        clearTimeout(timeout);
+        rewardListener.remove();
+        closeListener.remove();
+        failListener.remove();
+        finish({ ok: false, error: err?.message || 'No ad available right now. Try again in a moment.' });
+      });
 
       await admob.prepareRewardVideoAd({
         adId: AD_UNIT_IDS.REWARDED_COINS,
         isTesting: false,
       });
-
-      const rewardListener = await admob.addListener('onRewardedVideoAdRewarded', () => {
-        rewardGranted = true;
-      });
-
-      const closeListener = await admob.addListener('onRewardedVideoAdClosed', () => {
-        rewardListener.remove();
-        closeListener.remove();
-        resolve({ ok: true, reward: rewardGranted ? 50 : 0 });
-      });
-
       await admob.showRewardVideoAd();
     } catch (err: any) {
+      clearTimeout(timeout);
       console.error('[AdMob] Rewarded ad error:', err);
-      resolve({ ok: false, error: err?.message || 'Ad failed to load. Please try again later.' });
+      finish({ ok: false, error: err?.message || 'Ad failed to load. Please try again later.' });
     }
   });
 }
