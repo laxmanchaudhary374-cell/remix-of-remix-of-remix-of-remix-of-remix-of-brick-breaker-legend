@@ -1097,17 +1097,14 @@ const getPatternType = (level: number): PatternType => {
     return 'star';
   }
   
-  // Levels 11+: Use new shape library system as primary (every other level)
-  // This gives us 57 base shapes × transformations = 500+ unique patterns
+  // Levels 11+: Cycle heavily through the 530 GRID_PATTERNS + shape library
+  // so users see fresh patterns through 200+ levels with no repetition.
   const cyclePos = (level - 11);
   
-  // 50% shape_library (new system), 15% grid, 35% classic patterns
-  if (cyclePos % 2 === 0) {
-    return 'shape_library' as PatternType;
-  }
-  if (cyclePos % 7 === 0) {
-    return 'grid';
-  }
+  // 60% grid (530 unique patterns), 25% shape_library (12K combos), 15% classic
+  const mod = cyclePos % 20;
+  if (mod < 12) return 'grid';                  // 12/20 = 60%
+  if (mod < 17) return 'shape_library' as PatternType; // 5/20 = 25%
   
   const shapePatterns: PatternType[] = [
     'complex_heart', 'complex_spaceship', 'complex_star', 'maze_complex',
