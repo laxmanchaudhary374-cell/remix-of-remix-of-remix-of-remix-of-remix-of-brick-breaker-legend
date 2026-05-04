@@ -167,11 +167,20 @@ useEffect(() => {
         hasShield: false,
       }));
 
-      // Free laser gun for first 5 levels — gives new players a fun boost
+      // Free laser gun POWER-UP drops for first 5 levels — user must catch it!
       if (gameState.level <= 5) {
         setTimeout(() => {
-          setPaddle(prev => ({ ...prev, hasLaser: true }));
-          setTimeout(() => setPaddle(prev => ({ ...prev, hasLaser: false })), 8000);
+          if (levelCompletingRef.current) return;
+          const laserPowerUp: PowerUp = {
+            id: generateId(),
+            type: 'laser',
+            x: GAME_WIDTH / 2 - 25,
+            y: 80,
+            width: 50,
+            height: 26,
+            velocity: 130,
+          };
+          setPowerUps(prev => [...prev, laserPowerUp]);
         }, 6000);
       }
       
