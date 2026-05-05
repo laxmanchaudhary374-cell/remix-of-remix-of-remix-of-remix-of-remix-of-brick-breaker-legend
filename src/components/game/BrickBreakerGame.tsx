@@ -365,6 +365,10 @@ const BrickBreakerGame: React.FC = () => {
     setGameState(prev => ({ ...prev, status: 'playing' }));
   }, []);
 
+  if (showLangSelect) {
+    return <LanguageSelectScreen onDone={() => setShowLangSelect(false)} />;
+  }
+
   if (screenState === 'splash') {
     return <SplashScreen onPlay={handlePlayFromSplash} />;
   }
@@ -400,14 +404,16 @@ const BrickBreakerGame: React.FC = () => {
     );
   }
 
+  const worldBg = getWorldBg(gameState.level);
   return (
     <div 
       className="min-h-screen flex flex-col items-center justify-center p-2 select-none overflow-hidden"
       style={{
-        background: 'hsl(220, 60%, 3%)',
+        background: worldBg.base,
       }}
     >
       <div className="fixed inset-0 bg-black/40 pointer-events-none" />
+      {showRatePopup && <RateUsPopup onClose={() => setShowRatePopup(false)} />}
       
       <AudioControls isPlaying={screenState === 'playing' || screenState === 'paused'} />
       
