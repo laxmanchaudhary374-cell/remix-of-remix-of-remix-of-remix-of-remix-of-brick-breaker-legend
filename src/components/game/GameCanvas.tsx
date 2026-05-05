@@ -28,6 +28,7 @@ import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/br
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
 import spaceBackground from '@/assets/space-background.jpg';
+import { getWorldBg } from '@/utils/worldBackgrounds';
 
 interface GameCanvasProps {
   gameState: GameState;
