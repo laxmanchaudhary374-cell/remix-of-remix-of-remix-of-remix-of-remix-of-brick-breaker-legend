@@ -16,6 +16,10 @@ import { audioManager } from '@/utils/audioManager';
 import { initBilling } from '@/utils/billing';
 import { initAdMob, showBannerAd, showInterstitialAd } from '@/utils/admob';
 import { calculateStars, setLevelStars } from '@/utils/starStorage';
+import { initDailyReminder } from '@/utils/notifications';
+import { getWorldBg } from '@/utils/worldBackgrounds';
+import RateUsPopup, { shouldShowRatePrompt } from './RateUsPopup';
+import LanguageSelectScreen, { hasChosenLanguage } from './LanguageSelectScreen';
 import spaceBackground from '@/assets/space-background.jpg';
 import { Pause, Play } from 'lucide-react';
 
@@ -62,6 +66,8 @@ const getEmergencyCounts = () => {
 };
 
 const BrickBreakerGame: React.FC = () => {
+  const [showLangSelect, setShowLangSelect] = useState(() => !hasChosenLanguage());
+  const [showRatePopup, setShowRatePopup] = useState(false);
   const [screenState, setScreenState] = useState<ScreenState>('splash');
   const [unlockedLevel, setUnlockedLevel] = useState(getStoredUnlockedLevel());
   const [persistentCoins, setPersistentCoins] = useState(getStoredCoins());
@@ -88,6 +94,7 @@ const BrickBreakerGame: React.FC = () => {
   useEffect(() => {
     initBilling().then(ok => ok && console.log('[Billing] Ready'));
     initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
+    initDailyReminder();
   }, []);
 
 
@@ -219,7 +226,12 @@ const BrickBreakerGame: React.FC = () => {
 
   const handleLevelComplete = useCallback(() => {
     const totalLevels = getTotalLevels();
-    showInterstitialAd();
+    // No interstitial ads for first 9 levels — give new players a smooth start.
+    if (gameState.level >= 10) showInterstitialAd();
+    // Rate-us prompt after first level-10 completion
+    if (gameState.level === 10 && shouldShowRatePrompt(10)) {
+      setTimeout(() => setShowRatePopup(true), 600);
+    }
     if (gameState.level >= totalLevels) {
       setScreenState('won');
       setGameState(prev => ({ ...prev, status: 'won' }));
