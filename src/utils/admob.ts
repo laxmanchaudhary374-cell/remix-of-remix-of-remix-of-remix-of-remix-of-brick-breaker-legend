@@ -31,6 +31,16 @@ export async function initAdMob(): Promise<boolean> {
     await admob.initialize({
       initializeForTesting: false,
     });
+    // Global diagnostic listener — surfaces ad load failures to user
+    try {
+      admob.addListener('onRewardedVideoAdFailedToLoad', (err: any) => {
+        const msg = err?.message || err?.errorMessage || JSON.stringify(err);
+        console.error('[AdMob] Rewarded ad failed to load:', err);
+        alert(`Ad failed to load: ${msg}`);
+      });
+    } catch (e) {
+      console.error('[AdMob] Could not attach failure listener:', e);
+    }
     initialized = true;
     return true;
   } catch (err) {

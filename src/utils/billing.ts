@@ -65,23 +65,30 @@ export async function purchaseCoinPackage(packageId: string): Promise<number> {
       return 0;
     }
 
-    const result = await billing.purchaseProduct({
-      productIdentifier: productId,
-      productType: 'CONSUMABLE',
-      quantity: 1,
-    });
+    try {
+      const result = await billing.purchaseProduct({
+        productIdentifier: productId,
+        productType: 'CONSUMABLE',
+        quantity: 1,
+      });
 
-    if (result && result.transactionId) {
-      try {
-        await billing.finishTransaction({
-          transactionId: result.transactionId,
-        });
-      } catch (e) {
-        console.error('[Billing] Consume error:', e);
+      if (result && result.transactionId) {
+        try {
+          await billing.finishTransaction({
+            transactionId: result.transactionId,
+          });
+        } catch (e) {
+          console.error('[Billing] Consume error:', e);
+        }
+        return PRODUCT_TO_COINS[productId] || 0;
       }
-      return PRODUCT_TO_COINS[productId] || 0;
+      return 0;
+    } catch (purchaseErr: any) {
+      const msg = purchaseErr?.message || purchaseErr?.errorMessage || JSON.stringify(purchaseErr);
+      console.error('[Billing] purchaseProduct failed:', purchaseErr);
+      alert(`Purchase failed: ${msg}`);
+      return 0;
     }
-    return 0;
   } catch (err) {
     console.error('[Billing] Purchase error:', err);
     return 0;
