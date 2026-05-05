@@ -36,14 +36,19 @@ const getDifficultyParams = (level: number) => {
   const additionalRows = Math.floor(level / 8);
   const maxRows = 18;
   
+  // Per-world difficulty bonus — gets harder when entering each new planet (Mercury → Venus → ...).
+  // World boundaries: 20, 40, 60, 80, 120, 160, 200, 260, 340 ...
+  const worldBreakpoints = [20, 40, 60, 80, 120, 160, 200, 260, 340, 440];
+  const worldIndex = worldBreakpoints.filter(b => level > b).length;
+
   return {
-    ballSpeed: Math.min(280 + level * 0.4 + tier * 8, 380),
-    maxHits: Math.min(1 + Math.floor(tier / 2), 4),
-    explosiveChance: 0.05 + tier * 0.02,
-    steelChance: Math.min(0.02 + tier * 0.015, 0.12),
-    movingChance: 0.03 + tier * 0.02,
-    chainChance: 0.04 + tier * 0.01,
-    coinChance: 0.12 - tier * 0.005, // More gold bricks (5-8 per level)
+    ballSpeed: Math.min(280 + level * 0.4 + tier * 8 + worldIndex * 6, 400),
+    maxHits: Math.min(1 + Math.floor(tier / 2) + Math.floor(worldIndex / 3), 4),
+    explosiveChance: 0.05 + tier * 0.02 + worldIndex * 0.005,
+    steelChance: Math.min(0.02 + tier * 0.015 + worldIndex * 0.01, 0.15),
+    movingChance: 0.03 + tier * 0.02 + worldIndex * 0.005,
+    chainChance: 0.04 + tier * 0.01 + worldIndex * 0.005,
+    coinChance: 0.12 - tier * 0.005,
     ghostChance: tier >= 2 ? 0.03 + tier * 0.01 : 0,
     rainbowChance: tier >= 1 ? 0.02 + tier * 0.005 : 0,
     rows: Math.min(baseRows + additionalRows, maxRows),

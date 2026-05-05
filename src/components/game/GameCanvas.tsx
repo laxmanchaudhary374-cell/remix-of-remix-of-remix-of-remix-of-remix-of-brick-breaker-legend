@@ -28,6 +28,7 @@ import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/br
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
 import spaceBackground from '@/assets/space-background.jpg';
+import { getWorldBg } from '@/utils/worldBackgrounds';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -1324,14 +1325,20 @@ explosions.forEach(explosion => {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Galaxy space background with spiral nebula, clouds, and stars
-    // Base dark space gradient
-    if (bgImageRef.current) {
-  ctx.drawImage(bgImageRef.current, 0, 0, GAME_WIDTH, GAME_HEIGHT);
-} else {
-  ctx.fillStyle = 'hsl(270, 10%, 2%)';
-  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-}
+    // Per-world tinted base background — keeps night-sky readability for ball/bricks.
+    const wbg = getWorldBg(gameState.level);
+    const baseGrad = ctx.createRadialGradient(GAME_WIDTH / 2, GAME_HEIGHT * 0.3, 0, GAME_WIDTH / 2, GAME_HEIGHT * 0.5, GAME_WIDTH);
+    baseGrad.addColorStop(0, `hsl(${wbg.inner.hue}, ${wbg.inner.sat}%, ${wbg.inner.light + 4}%)`);
+    baseGrad.addColorStop(1, `hsl(${wbg.inner.hue}, ${wbg.inner.sat}%, ${wbg.inner.light}%)`);
+    ctx.fillStyle = baseGrad;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    // World-tinted nebula overlays (subtle)
+    const wg1 = ctx.createRadialGradient(GAME_WIDTH * 0.2, GAME_HEIGHT * 0.2, 0, GAME_WIDTH * 0.2, GAME_HEIGHT * 0.2, GAME_WIDTH * 0.6);
+    wg1.addColorStop(0, wbg.glow1); wg1.addColorStop(1, 'transparent');
+    ctx.fillStyle = wg1; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    const wg2 = ctx.createRadialGradient(GAME_WIDTH * 0.85, GAME_HEIGHT * 0.75, 0, GAME_WIDTH * 0.85, GAME_HEIGHT * 0.75, GAME_WIDTH * 0.6);
+    wg2.addColorStop(0, wbg.glow2); wg2.addColorStop(1, 'transparent');
+    ctx.fillStyle = wg2; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // Distant stars layer (tiny dots)
     for (let i = 0; i < 80; i++) {

@@ -32,15 +32,10 @@ export const getTotalStars = (): number => {
   return Object.values(stored).reduce((sum, s) => sum + s, 0);
 };
 
-// Calculate star rating based on performance
-export const calculateStars = (lives: number, maxCombo: number, score: number, level: number): number => {
-  const baseScore = level * 500;
-  const scoreRatio = Math.min(score / baseScore, 2);
-  const livesBonus = lives === 3 ? 1 : lives === 2 ? 0.5 : 0;
-  const comboBonus = Math.min((maxCombo || 0) / 10, 1);
-  const totalScore = scoreRatio + livesBonus + comboBonus;
-  
-  if (totalScore >= 2.5) return 3;
-  if (totalScore >= 1.5) return 2;
+// Stars based on lives remaining (started with 3):
+// 3 stars: no lives lost • 2 stars: lost 1 life • 1 star: lost 2+ lives
+export const calculateStars = (lives: number, _maxCombo: number, _score: number, _level: number): number => {
+  if (lives >= 3) return 3;
+  if (lives === 2) return 2;
   return 1;
 };
