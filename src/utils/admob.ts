@@ -58,8 +58,12 @@ export async function showRewardedAd(): Promise<RewardedAdResult> {
     return { ok: false, error: 'Ads only work in the installed app.' };
   }
 
+  // Make sure AdMob is initialized
+  await initAdMob();
+
   return new Promise(async (resolve) => {
     let settled = false;
+    let rewardGranted = false;
     const listeners: any[] = [];
 
     const cleanup = () => {
@@ -73,26 +77,19 @@ export async function showRewardedAd(): Promise<RewardedAdResult> {
       resolve(r);
     };
 
-    // 10s loading timeout
+    // 15s loading timeout
     const timeout = setTimeout(() => {
       finish({ ok: false, error: 'Ad not available - Try later' });
-    }, 10000);
+    }, 15000);
 
     try {
-      let rewardGranted = false;
-      let rewardAmount = 50;
-
       listeners.push(await admob.addListener(EVT.Rewarded, (reward: any) => {
         rewardGranted = true;
-        if (reward && typeof reward.amount === 'number' && reward.amount > 0) {
-          // Use AdMob configured reward if available, else our 50
-          rewardAmount = reward.amount >= 1 ? 50 : 50;
-        }
-        console.log('[AdMob] Rewarded:', reward);
+        console.log('[AdMob] Rewarded event:', reward);
       }));
       listeners.push(await admob.addListener(EVT.Dismissed, () => {
         console.log('[AdMob] Dismissed, rewardGranted=', rewardGranted);
-        finish({ ok: true, reward: rewardGranted ? rewardAmount : 0 });
+        finish({ ok: true, reward: rewardGranted ? 50 : 0 });
       }));
       listeners.push(await admob.addListener(EVT.FailedToLoad, (err: any) => {
         console.error('[AdMob] FailedToLoad:', err);
@@ -107,7 +104,11 @@ export async function showRewardedAd(): Promise<RewardedAdResult> {
         adId: AD_UNIT_IDS.REWARDED_COINS,
         isTesting: false,
       });
-      await admob.showRewardVideoAd();
+      // showRewardVideoAd resolves with the reward item when the user earns it
+      const rewardItem = await admob.showRewardVideoAd();
+      if (rewardItem && (rewardItem.amount > 0 || rewardItem.type)) {
+        rewardGranted = true;
+      }
     } catch (err: any) {
       console.error('[AdMob] Rewarded ad error:', err);
       finish({ ok: false, error: err?.message || 'Ad not available - Try later' });
