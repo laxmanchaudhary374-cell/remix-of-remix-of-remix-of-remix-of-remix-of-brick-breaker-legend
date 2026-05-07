@@ -11,6 +11,16 @@ export const AD_UNIT_IDS = {
 
 export const ADMOB_APP_ID = 'ca-app-pub-6637721495380199~8632290443';
 
+// Correct event names from @capacitor-community/admob v8 RewardAdPluginEvents enum
+const EVT = {
+  Loaded: 'onRewardedVideoAdLoaded',
+  FailedToLoad: 'onRewardedVideoAdFailedToLoad',
+  Showed: 'onRewardedVideoAdShowed',
+  FailedToShow: 'onRewardedVideoAdFailedToShow',
+  Dismissed: 'onRewardedVideoAdDismissed',
+  Rewarded: 'onRewardedVideoAdReward',
+} as const;
+
 let AdMob: any = null;
 let initialized = false;
 
@@ -28,20 +38,9 @@ export async function initAdMob(): Promise<boolean> {
   if (!admob || initialized) return initialized;
 
   try {
-    await admob.initialize({
-      initializeForTesting: false,
-    });
-    // Global diagnostic listener — surfaces ad load failures to user
-    try {
-      admob.addListener('onRewardedVideoAdFailedToLoad', (err: any) => {
-        const msg = err?.message || err?.errorMessage || JSON.stringify(err);
-        console.error('[AdMob] Rewarded ad failed to load:', err);
-        alert(`Ad failed to load: ${msg}`);
-      });
-    } catch (e) {
-      console.error('[AdMob] Could not attach failure listener:', e);
-    }
+    await admob.initialize({ initializeForTesting: false });
     initialized = true;
+    console.log('[AdMob] Initialized');
     return true;
   } catch (err) {
     console.error('[AdMob] Failed to init:', err);
@@ -56,37 +55,53 @@ export type RewardedAdResult =
 export async function showRewardedAd(): Promise<RewardedAdResult> {
   const admob = await getAdMobPlugin();
   if (!admob) {
-    return { ok: false, error: 'Ads are only available in the installed app.' };
+    return { ok: false, error: 'Ads only work in the installed app.' };
   }
 
   return new Promise(async (resolve) => {
     let settled = false;
-    const finish = (r: RewardedAdResult) => { if (!settled) { settled = true; resolve(r); } };
+    const listeners: any[] = [];
 
-    // Hard timeout — never let the UI spin forever
+    const cleanup = () => {
+      listeners.forEach(l => { try { l.remove(); } catch {} });
+    };
+    const finish = (r: RewardedAdResult) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      cleanup();
+      resolve(r);
+    };
+
+    // 10s loading timeout
     const timeout = setTimeout(() => {
-      finish({ ok: false, error: 'Ad took too long to load. Check your internet and try again.' });
-    }, 15000);
+      finish({ ok: false, error: 'Ad not available - Try later' });
+    }, 10000);
 
     try {
       let rewardGranted = false;
+      let rewardAmount = 50;
 
-      const rewardListener = await admob.addListener('onRewardedVideoAdRewarded', () => {
+      listeners.push(await admob.addListener(EVT.Rewarded, (reward: any) => {
         rewardGranted = true;
-      });
-      const closeListener = await admob.addListener('onRewardedVideoAdClosed', () => {
-        clearTimeout(timeout);
-        rewardListener.remove();
-        closeListener.remove();
-        finish({ ok: true, reward: rewardGranted ? 50 : 0 });
-      });
-      const failListener = await admob.addListener('onRewardedVideoAdFailedToLoad', (err: any) => {
-        clearTimeout(timeout);
-        rewardListener.remove();
-        closeListener.remove();
-        failListener.remove();
-        finish({ ok: false, error: err?.message || 'No ad available right now. Try again in a moment.' });
-      });
+        if (reward && typeof reward.amount === 'number' && reward.amount > 0) {
+          // Use AdMob configured reward if available, else our 50
+          rewardAmount = reward.amount >= 1 ? 50 : 50;
+        }
+        console.log('[AdMob] Rewarded:', reward);
+      }));
+      listeners.push(await admob.addListener(EVT.Dismissed, () => {
+        console.log('[AdMob] Dismissed, rewardGranted=', rewardGranted);
+        finish({ ok: true, reward: rewardGranted ? rewardAmount : 0 });
+      }));
+      listeners.push(await admob.addListener(EVT.FailedToLoad, (err: any) => {
+        console.error('[AdMob] FailedToLoad:', err);
+        finish({ ok: false, error: err?.message || err?.errorMessage || 'Ad not available - Try later' });
+      }));
+      listeners.push(await admob.addListener(EVT.FailedToShow, (err: any) => {
+        console.error('[AdMob] FailedToShow:', err);
+        finish({ ok: false, error: err?.message || err?.errorMessage || 'Ad failed to show. Try again.' });
+      }));
 
       await admob.prepareRewardVideoAd({
         adId: AD_UNIT_IDS.REWARDED_COINS,
@@ -94,9 +109,8 @@ export async function showRewardedAd(): Promise<RewardedAdResult> {
       });
       await admob.showRewardVideoAd();
     } catch (err: any) {
-      clearTimeout(timeout);
       console.error('[AdMob] Rewarded ad error:', err);
-      finish({ ok: false, error: err?.message || 'Ad failed to load. Please try again later.' });
+      finish({ ok: false, error: err?.message || 'Ad not available - Try later' });
     }
   });
 }
@@ -104,7 +118,6 @@ export async function showRewardedAd(): Promise<RewardedAdResult> {
 export async function showBannerAd(): Promise<void> {
   const admob = await getAdMobPlugin();
   if (!admob) return;
-
   try {
     await admob.showBanner({
       adId: AD_UNIT_IDS.BANNER,
@@ -123,10 +136,8 @@ const INTERSTITIAL_COOLDOWN = 60000;
 export async function showInterstitialAd(): Promise<void> {
   const admob = await getAdMobPlugin();
   if (!admob) return;
-
   const now = Date.now();
   if (now - lastInterstitialTime < INTERSTITIAL_COOLDOWN) return;
-
   try {
     await admob.prepareInterstitial({
       adId: AD_UNIT_IDS.INTERSTITIAL,
