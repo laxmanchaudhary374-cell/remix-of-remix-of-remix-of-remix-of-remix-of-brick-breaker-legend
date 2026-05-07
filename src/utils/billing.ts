@@ -83,7 +83,8 @@ export async function purchaseCoinPackage(packageId: string): Promise<number> {
 
       console.log('[Billing] Purchase result:', result);
 
-      if (result && (result.transactionId || result.purchaseToken)) {
+      // On Android the result includes purchaseToken, on iOS transactionId. Either means success.
+      if (result && (result.transactionId || result.purchaseToken || result.productIdentifier)) {
         return PRODUCT_TO_COINS[productId] || 0;
       }
       alert('Purchase did not complete. No coins added.');
