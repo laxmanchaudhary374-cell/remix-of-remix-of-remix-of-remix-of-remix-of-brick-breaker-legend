@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ShoppingBag, Tv } from 'lucide-react';
 import { purchaseCoinPackage } from '@/utils/billing';
 import { showRewardedAd } from '@/utils/admob';
+import { toast } from 'sonner';
 
 interface ShopScreenProps {
   coins: number;
@@ -63,10 +64,10 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
   };
 
   const handleBuyCoins = async (pkg: typeof COIN_PACKAGES[0]) => {
-    // Uses @capgo/native-purchases on native, simulates on web
     const coins = await purchaseCoinPackage(pkg.id);
     if (coins > 0) {
       onAddCoins(coins);
+      toast.success(`+${coins} coins added! 🪙`);
     }
   };
 
