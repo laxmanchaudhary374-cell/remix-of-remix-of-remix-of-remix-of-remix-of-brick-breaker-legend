@@ -85,6 +85,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
     } else if (result.reward > 0) {
       onAddCoins(result.reward);
       setAdWatched(true);
+      toast.success(`+${result.reward} coins added! 🪙`);
       setTimeout(() => setAdWatched(false), 3000);
     } else {
       setAdError('Ad was closed before finishing. No coins awarded.');
