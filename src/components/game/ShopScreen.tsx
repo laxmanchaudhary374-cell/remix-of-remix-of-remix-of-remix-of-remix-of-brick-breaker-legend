@@ -75,9 +75,12 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
     if (adTimer !== null || adLoading) return;
     setAdError(null);
     setAdLoading(true);
-    setAdTimer(5);
+    
+    // We don't set the timer here anymore. 
+    // The timer should only start when the ad is actually playing.
+    
     const result = await showRewardedAd();
-    setAdTimer(null);
+    
     setAdLoading(false);
     if (result.ok === false) {
       setAdError(result.error);
@@ -88,6 +91,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
       toast.success(`+${result.reward} coins added! 🪙`);
       setTimeout(() => setAdWatched(false), 3000);
     } else {
+      // If result.ok is true but reward is 0, it means they closed it early
       setAdError('Ad was closed before finishing. No coins awarded.');
       setTimeout(() => setAdError(null), 4000);
     }
