@@ -1,5 +1,5 @@
 /**
- * Google Play Billing (and iOS) via @capgo/native-purchases
+ * Google Play Billing integration via @capgo/native-purchases
  */
 import { Capacitor } from '@capacitor/core';
 
@@ -22,27 +22,38 @@ const PRODUCT_TO_COINS: Record<string, number> = {
 };
 
 let NativePurchases: any = null;
-let PURCHASE_TYPE: any = null;
+let isInitialized = false;
 
 async function getBillingPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
   if (!NativePurchases) {
-    const mod = await import('@capgo/native-purchases');
-    NativePurchases = mod.NativePurchases;
-    PURCHASE_TYPE = mod.PURCHASE_TYPE;
+    try {
+      const mod = await import('@capgo/native-purchases');
+      NativePurchases = mod.NativePurchases;
+    } catch (e) {
+      console.error('[Billing] Plugin import error:', e);
+    }
   }
   return NativePurchases;
 }
 
 export async function initBilling(): Promise<boolean> {
   const billing = await getBillingPlugin();
-  if (!billing) return false;
+  if (!billing || isInitialized) return isInitialized;
+
   try {
-    // Some versions don't require initialize(); call defensively
-    if (typeof billing.initialize === 'function') {
-      await billing.initialize();
-    }
-    console.log('[Billing] Initialized');
+    await billing.initialize();
+    
+    // Add a listener to catch successful purchases even if the app was closed/reopened
+    await billing.addListener('purchaseSuccess', async (data: any) => {
+      console.log('[Billing] Purchase Success Listener:', data);
+      if (data.transactionId) {
+        await billing.finishTransaction({ transactionId: data.transactionId });
+      }
+    });
+
+    isInitialized = true;
+    console.log('[Billing] Initialized with listener');
     return true;
   } catch (err) {
     console.error('[Billing] Failed to init:', err);
@@ -50,61 +61,38 @@ export async function initBilling(): Promise<boolean> {
   }
 }
 
-const pendingPurchases = new Set<string>();
-
 export async function purchaseCoinPackage(packageId: string): Promise<number> {
-  if (pendingPurchases.has(packageId)) return 0;
-  pendingPurchases.add(packageId);
+  const productId = PACKAGE_TO_PRODUCT[packageId];
+  if (!productId) return 0;
+
+  const billing = await getBillingPlugin();
+  if (!billing) {
+    console.warn('[Billing] Not on a native device');
+    return 0;
+  }
+
+  if (!isInitialized) {
+    await initBilling();
+    await new Promise(r => setTimeout(r, 1500));
+  }
 
   try {
-    const productId = PACKAGE_TO_PRODUCT[packageId];
-    if (!productId) {
-      console.error('[Billing] Unknown package:', packageId);
-      alert('Unknown product. Please try again.');
-      return 0;
+    const result = await billing.purchaseProduct({
+      productIdentifier: productId,
+      productType: 'CONSUMABLE',
+      quantity: 1,
+    });
+
+    if (result && result.transactionId) {
+      await billing.finishTransaction({ transactionId: result.transactionId });
+      return PRODUCT_TO_COINS[productId] || 0;
     }
-
-    const billing = await getBillingPlugin();
-    if (!billing) {
-      alert('In-app purchases only work in the installed app from Google Play.');
-      return 0;
-    }
-
-    console.log('[Billing] Starting purchase for', productId);
-
-    try {
-      const result = await billing.purchaseProduct({
-        productIdentifier: productId,
-        productType: PURCHASE_TYPE?.INAPP ?? 'inapp',
-        quantity: 1,
-        isConsumable: true,
-        autoAcknowledgePurchases: true,
-      });
-
-      console.log('[Billing] Purchase result:', result);
-
-      // On Android the result includes purchaseToken, on iOS transactionId. Either means success.
-      if (result && (result.transactionId || result.purchaseToken || result.productIdentifier)) {
-        return PRODUCT_TO_COINS[productId] || 0;
-      }
-      alert('Purchase did not complete. No coins added.');
-      return 0;
-    } catch (purchaseErr: any) {
-      const msg = purchaseErr?.message || purchaseErr?.errorMessage || JSON.stringify(purchaseErr);
-      console.error('[Billing] purchaseProduct failed:', purchaseErr);
-      // User-cancelled is common — don't alarm
-      if (/cancel/i.test(msg)) {
-        console.log('[Billing] User cancelled');
-        return 0;
-      }
-      alert(`Purchase failed: ${msg}`);
-      return 0;
-    }
+    return 0;
   } catch (err: any) {
     console.error('[Billing] Purchase error:', err);
-    alert(`Purchase error: ${err?.message || err}`);
+    if (Capacitor.isNativePlatform()) {
+      alert('Purchase Error: ' + (err.message || 'Could not connect to Google Play.'));
+    }
     return 0;
-  } finally {
-    pendingPurchases.delete(packageId);
   }
 }
