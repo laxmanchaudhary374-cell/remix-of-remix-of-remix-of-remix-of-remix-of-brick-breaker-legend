@@ -43,11 +43,13 @@ export async function initBilling(): Promise<boolean> {
   if (!billing || isInitialized) return isInitialized;
 
   try {
+    console.log("[Billing] Initializing...");
     await billing.initialize();
+    console.log("[Billing] Initialized successfully.");
     
     // Global Purchase Listener
-    await billing.addListener('purchaseSuccess', async (data: any) => {
-      console.log('[Billing] Purchase Success:', data);
+    await billing.addListener("purchaseSuccess", async (data: any) => {
+      console.log("[Billing] Purchase Success event received:", data);
       if (data.transactionId) {
         // Acknowledge and Consume the purchase so it can be bought again
         await billing.finishTransaction({ transactionId: data.transactionId });
@@ -75,14 +77,21 @@ export function setPurchaseCallback(callback: (coins: number) => void) {
 
 export async function purchaseCoinPackage(packageId: string): Promise<void> {
   const productId = PACKAGE_TO_PRODUCT[packageId];
-  if (!productId) return;
+    if (!productId) {
+      console.warn(`[Billing] Product ID not found for package: ${packageId}`);
+      return;
+    }
 
   const billing = await getBillingPlugin();
   if (!billing) return;
 
-  if (!isInitialized) await initBilling();
+    if (!isInitialized) {
+      console.log("[Billing] Billing not initialized, attempting to initialize...");
+      await initBilling();
+    }
 
   try {
+    console.log(`[Billing] Attempting to purchase product: ${productId}`);
     await billing.purchaseProduct({
       productIdentifier: productId,
       productType: 'CONSUMABLE',
