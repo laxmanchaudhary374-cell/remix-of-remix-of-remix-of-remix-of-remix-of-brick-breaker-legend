@@ -65,6 +65,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const shieldTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const [balls, setBalls] = useState<Ball[]>([]);
+  const [isBallReleased, setIsBallReleased] = useState(false);
   const [bricks, setBricks] = useState<Brick[]>([]);
   const [powerUps, setPowerUps] = useState<PowerUp[]>([]);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -122,6 +123,7 @@ useEffect(() => {
     prevStatusRef.current = gameState.status;
     
     if (gameState.status === 'playing' && (levelChanged || justStartedPlaying)) {
+      setIsBallReleased(false);
       const levelIndex = Math.min(gameState.level - 1, levels.length - 1);
       const level = levels[levelIndex];
       
@@ -210,13 +212,90 @@ useEffect(() => {
         velocity: { dx: 0, dy: 0 },
         radius: BALL_RADIUS,
       };
-      setBalls([magnetBallRef.current]);
+      setBalls([
+        {
+          ...magnetBallRef.current,
+          velocity: { dx: 0, dy: 0 },
+        },
+      ]);
+      setIsBallReleased(false);
     }
-  }, [gameState.status, gameState.level]);
+  }, [gameState.status, gameState.level, isBallReleased]);
+
+  // Handle emergency power-ups
+  useEffect(() => {
+    if (emergencyRef?.current) {
+      switch (emergencyRef.current) {
+        case 'auto':
+          setIsAutoPaddle(true);
+          setAutoPaddleEndTime(gameTime + 10);
+          audioManager.playPowerUp();
+          break;
+        case 'shock':
+          // Implement shockwave effect: destroy bricks in a radius
+          const shockX = paddle.x + paddle.width / 2;
+          const shockY = paddle.y - 50;
+          const shockRadius = 150;
+          const bricksToDestroy = getBricksInExplosionRadius(bricks, shockX, shockY, shockRadius);
+          bricksToDestroy.forEach(brick => destroyBrick(brick, true));
+          createExplosion(shockX, shockY, shockRadius);
+          audioManager.playExplosion();
+          break;
+        case 'multi':
+          setBalls(prev => {
+            const newBalls: Ball[] = [];
+            prev.forEach(ball => {
+              const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2) || ballSpeed;
+              newBalls.push(ball);
+              newBalls.push({
+                ...ball,
+                id: generateId(),
+                velocity: {
+                  dx: (Math.random() - 0.5) * speed * 0.4,
+                  dy: -Math.abs(speed),
+                },
+              });
+              newBalls.push({
+                ...ball,
+                id: generateId(),
+                velocity: {
+                  dx: (Math.random() - 0.5) * speed * 0.4,
+                  dy: -Math.abs(speed),
+                },
+              });
+            });
+            return newBalls.length > 0 ? newBalls : [
+              {
+                id: generateId(),
+                position: { x: paddle.x + paddle.width / 2, y: paddle.y - BALL_RADIUS },
+                velocity: { dx: (Math.random() - 0.5) * ballSpeed, dy: -ballSpeed },
+                radius: BALL_RADIUS,
+              },
+              {
+                id: generateId(),
+                position: { x: paddle.x + paddle.width / 2, y: paddle.y - BALL_RADIUS },
+                velocity: { dx: (Math.random() - 0.5) * ballSpeed, dy: -ballSpeed },
+                radius: BALL_RADIUS,
+              },
+              {
+                id: generateId(),
+                position: { x: paddle.x + paddle.width / 2, y: paddle.y - BALL_RADIUS },
+                velocity: { dx: (Math.random() - 0.5) * ballSpeed, dy: -ballSpeed },
+                radius: BALL_RADIUS,
+              },
+            ];
+          });
+          audioManager.playPowerUp();
+          break;
+      }
+      emergencyRef.current = null;
+    }
+  }, [emergencyRef, gameTime, paddle, bricks, ballSpeed, destroyBrick, createExplosion, getBricksInExplosionRadius, generateId, setBalls, setIsAutoPaddle, setAutoPaddleEndTime]);
 
   // Reset on game over
   useEffect(() => {
     if (gameState.status === 'menu' || gameState.status === 'gameover') {
+      setIsBallReleased(false);
       setBricks([]);
       setBalls([]);
       setPowerUps([]);
@@ -400,6 +479,13 @@ useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (gameState.status === 'playing') {
         handlePointerMove(e.clientX, e.clientY);
+        if (!isBallReleased && balls.length > 0) {
+          const newPaddleX = e.clientX - (containerRef.current?.getBoundingClientRect().left || 0) - paddle.width / 2;
+          setBalls(prevBalls => prevBalls.map(ball => ({
+            ...ball,
+            position: { x: newPaddleX + paddle.width / 2, y: paddle.y - BALL_RADIUS }
+          })));
+        }
       }
     };
 
@@ -408,6 +494,13 @@ useEffect(() => {
         if ((e.target as HTMLElement).closest('button')) return;
         e.preventDefault();
         handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        if (!isBallReleased && balls.length > 0) {
+          const newPaddleX = e.touches[0].clientX - (containerRef.current?.getBoundingClientRect().left || 0) - paddle.width / 2;
+          setBalls(prevBalls => prevBalls.map(ball => ({
+            ...ball,
+            position: { x: newPaddleX + paddle.width / 2, y: paddle.y - BALL_RADIUS }
+          })));
+        }
       }
     };
 
@@ -451,8 +544,14 @@ useEffect(() => {
       }
     };
 
-    const handleClick = () => {
-      // Ball release handled by pointerUp
+    const handleCanvasClick = () => {
+      if (!isBallReleased && gameState.status === 'playing') {
+        setIsBallReleased(true);
+        setBalls(prevBalls => prevBalls.map(ball => ({
+          ...ball,
+          velocity: { dx: (Math.random() - 0.5) * ballSpeed, dy: -ballSpeed }
+        })));
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -460,7 +559,7 @@ useEffect(() => {
     window.addEventListener('touchstart', handleTouchStart, { passive: false });
     window.addEventListener('touchend', handlePointerUp);
     window.addEventListener('mouseup', handlePointerUp);
-    window.addEventListener('click', handleClick);
+    window.addEventListener('click', handleCanvasClick);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
@@ -468,9 +567,9 @@ useEffect(() => {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handlePointerUp);
       window.removeEventListener('mouseup', handlePointerUp);
-      window.removeEventListener('click', handleClick);
+      window.removeEventListener('click', handleCanvasClick);
     };
-  }, [gameState.status, handlePointerMove, ballSpeed, isAutoPaddle]);
+  }, [gameState.status, handlePointerMove, ballSpeed, isAutoPaddle, isBallReleased, balls, paddle.width, paddle.y]);
   
   // Auto-fire laser when paddle has laser power-up
   useEffect(() => {
@@ -798,8 +897,13 @@ useEffect(() => {
           position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 60 },
           velocity: { dx: 0, dy: 0 },
           radius: BALL_RADIUS,
-        };
-        return [magnetBallRef.current];
+        };      setBalls([
+        {
+          ...magnetBallRef.current,
+          velocity: { dx: 0, dy: 0 },
+        },
+      ]);
+      setIsBallReleased(false);
       }
 
       return aliveBalls;
