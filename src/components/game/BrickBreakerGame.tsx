@@ -1,5 +1,4 @@
-
-    import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameState } from '@/types/game';
 import { getTotalLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
@@ -220,9 +219,7 @@ const BrickBreakerGame: React.FC = () => {
     }));
   }, []);
 
-  const handleTogglePause = useCallback(() => {
-    setScreenState(prev => prev === 'playing' ? 'paused' : 'playing');
-  }, []);
+
 
   const handleBuyEmergency = useCallback(() => {
     if (!buyPrompt) return;
@@ -346,12 +343,97 @@ const BrickBreakerGame: React.FC = () => {
         {(screenState === 'playing' || screenState === 'paused') && (
           <div className="relative w-full h-full flex flex-col">
             {/* HUD at the top */}
-            <div className="z-30 w-full pt-4 pb-2">
-              <GameUI
+            <div className="relative z-30 w-full pt-4 pb-2 flex items-center justify-between px-4">
+              <h1 className="font-display text-2xl font-bold text-neon-cyan text-glow-cyan">NEON BREAKER</h1>
+              <div className="flex items-center gap-2">
+                <AudioControls isPlaying={screenState === 'playing'} />
+                <button
+                  onClick={() => setScreenState(prev => prev === 'playing' ? 'paused' : 'playing')}
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-colors"
+                >
+                  {screenState === 'playing' ? (
+                    <Pause className="w-5 h-5 text-neon-cyan" />
+                  ) : (
+                    <Play className="w-5 h-5 text-neon-cyan" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <GameUI
                 gameState={gameState}
                 persistentCoins={persistentCoins}
               />
+
+            {/* Emergency Power-ups */}
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-40">
+              {[ { type: 'auto', label: 'AUTO', icon: null, color: 'hsl(50,100%,55%)' },
+                { type: 'shock', label: '⚡', icon: null, color: 'white' },
+                { type: 'multi', label: '●●●', icon: null, color: 'white' },
+              ].map((item) => {
+                const count = emergencyCounts[item.type as keyof typeof emergencyCounts];
+                const price = EMERGENCY_PRICES[item.type].cost;
+                const canAfford = persistentCoins >= price;
+
+                return (
+                  <button
+                    key={item.type}
+                    onClick={() => handleUseEmergency(item.type as 'auto' | 'shock' | 'multi')}
+                    className={`relative w-14 h-14 rounded-full flex items-center justify-center font-bold text-white transition-all duration-200
+                      ${count > 0 ? 'opacity-100' : 'opacity-50'}
+                      ${buyPrompt === item.type ? 'scale-110 ring-4 ring-neon-cyan' : ''}
+                    `}
+                    style={{
+                      background: 'radial-gradient(circle at 40% 35%, hsl(200, 100%, 72%), hsl(210, 85%, 50%))',
+                      boxShadow: '0 0 15px hsla(200,100%,60%,0.6), inset 0 -3px 8px hsla(210,100%,25%,0.5)',
+                      border: '2px solid hsla(195,100%,75%,0.6)',
+                      fontSize: item.type === 'shock' ? '22px' : '12px',
+                      color: item.color,
+                    }}
+                  >
+                    {item.label}
+                    {count > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-neon-magenta rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-black">
+                        {count}
+                      </span>
+                    )}
+                    {count === 0 && (
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white bg-black/70 rounded-full">
+                        <span className="flex flex-col items-center">
+                          <span className="text-[10px]">BUY</span>
+                          <span className="text-yellow-300">🪙 {price}</span>
+                        </span>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+            </div>
+
+            {/* Buy Prompt Modal */}
+            {buyPrompt && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-neon-cyan/40 text-center">
+                  <h3 className="text-xl font-bold text-neon-cyan mb-2">Buy {EMERGENCY_PRICES[buyPrompt].label}?</h3>
+                  <p className="text-yellow-300 text-lg mb-4">Cost: 🪙 {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
+                  <div className="flex justify-center gap-4">
+                    <button
+                      onClick={handleBuyEmergency}
+                      disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost}
+                      className="px-6 py-2 rounded-lg bg-neon-green/80 hover:bg-neon-green disabled:opacity-50 font-bold text-black"
+                    >
+                      Buy
+                    </button>
+                    <button
+                      onClick={handleCancelBuy}
+                      className="px-6 py-2 rounded-lg bg-red-500/80 hover:bg-red-600 font-bold text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Game Area */}
             <div className="flex-1 relative overflow-hidden">
@@ -383,7 +465,7 @@ const BrickBreakerGame: React.FC = () => {
               <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={handleTogglePause}
+                  onClick={() => setScreenState(prev => prev === 'playing' ? 'paused' : 'playing')}
                   className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
                 >
                   RESUME
