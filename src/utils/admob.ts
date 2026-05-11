@@ -39,7 +39,7 @@ export async function initAdMob(): Promise<boolean> {
     await admob.addListener('onRewardedVideoAdReward', (reward: any) => {
       console.log('[AdMob] Reward earned:', reward);
       if (rewardCallback) {
-        rewardCallback(50); // Give 50 coins
+        rewardCallback(reward.amount || 50); // Use actual reward amount, default to 50
       }
     });
 
