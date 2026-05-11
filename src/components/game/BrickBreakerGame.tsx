@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GameState } from '@/types/game';
 import { getTotalLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
@@ -13,8 +13,8 @@ import LuckyWheel from './LuckyWheel';
 import ShopScreen, { ShopItem } from './ShopScreen';
 import TutorialOverlay, { hasSeenTutorial } from './TutorialOverlay';
 import { audioManager } from '@/utils/audioManager';
-import { initBilling, setPurchaseCallback } from '@/utils/billing';
-import { initAdMob, showBannerAd, showInterstitialAd, setAdRewardCallback } from '@/utils/admob';
+import { initBilling } from '@/utils/billing';
+import { initAdMob, showBannerAd, showInterstitialAd } from '@/utils/admob';
 import { calculateStars, setLevelStars } from '@/utils/starStorage';
 import { initDailyReminder } from '@/utils/notifications';
 import { getWorldBg } from '@/utils/worldBackgrounds';
@@ -92,100 +92,167 @@ const BrickBreakerGame: React.FC = () => {
 
   // Initialize native monetization SDKs on mount
   useEffect(() => {
-    // 1. Register monetization callbacks FIRST
-    setAdRewardCallback((amount: number) => {
-      setPersistentCoins(prev => {
-        const newTotal = prev + amount;
-        setStoredCoins(newTotal);
-        return newTotal;
-      });
-    });
+    initBilling().then(ok => ok && console.log('[Billing] Ready'));
+    initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
+    initDailyReminder();
+  }, []);
 
-    setPurchaseCallback((coins: number) => {
-      setPersistentCoins(prev => {
-        const newTotal = prev + coins;
-        setStoredCoins(newTotal);
-        return newTotal;
-      });
-    });
 
-    // 2. Initialize SDKs
-    const initMonetization = async () => {
-      try {
-        await initAdMob();
-        await initBilling();
-        initDailyReminder();
-      } catch (err) {
-        console.error('Monetization init failed:', err);
+  // Update high score and unlocked level when game ends
+  useEffect(() => {
+    if (screenState === 'gameover' || screenState === 'won' || screenState === 'levelcomplete') {
+      if (gameState.score > gameState.highScore) {
+        setStoredHighScore(gameState.score);
+        setGameState(prev => ({ ...prev, highScore: gameState.score }));
+        setIsNewHighScore(true);
       }
-    };
-    initMonetization();
-  }, []);
-
-  useEffect(() => {
-    if (gameState.score > gameState.highScore) {
-      setGameState(prev => ({ ...prev, highScore: prev.score }));
-      setStoredHighScore(gameState.score);
-      setIsNewHighScore(true);
+      if (screenState === 'levelcomplete' || screenState === 'won') {
+        const nextLevel = gameState.level + 1;
+        if (nextLevel > unlockedLevel) {
+          setUnlockedLevel(nextLevel);
+          setStoredUnlockedLevel(nextLevel);
+        }
+        // Save star rating for this level
+        const stars = calculateStars(gameState.lives, gameState.maxCombo, gameState.score, gameState.level);
+        setLevelStars(gameState.level, stars);
+        
+        const coinReward = gameState.level <= 10 ? 2 :
+  gameState.level <= 20 ? 3 :
+  gameState.level <= 30 ? 4 :
+  gameState.level <= 50 ? 5 : 6;
+        const newTotal = persistentCoins + gameState.coins + coinReward;
+        setPersistentCoins(newTotal);
+        setStoredCoins(newTotal);
+      }
     }
-  }, [gameState.score, gameState.highScore]);
-
-  useEffect(() => {
-    if (gameState.level > unlockedLevel) {
-      setUnlockedLevel(gameState.level);
-      setStoredUnlockedLevel(gameState.level);
-    }
-  }, [gameState.level, unlockedLevel]);
-
-  const handleStartGame = useCallback((level: number) => {
-    setGameState(prev => ({
-      ...prev,
-      status: 'playing',
-      score: 0,
-      lives: 3,
-      level: level,
-      coins: 0,
-      combo: 0,
-      maxCombo: 0,
-    }));
-    setScreenState('playing');
-    setIsNewHighScore(false);
-    
-    if (!hasSeenTutorial()) {
-      setActiveModal('tutorial');
-    }
-  }, []);
+  }, [screenState, gameState.score, gameState.highScore, gameState.level, unlockedLevel]);
 
   const handlePlayFromSplash = useCallback(() => {
     setScreenState('menu');
-    if (checkDailyReward()) {
-      setActiveModal('daily');
+    if (!hasSeenTutorial()) {
+      setTimeout(() => setActiveModal('tutorial'), 300);
+      return;
+    }
+    const { shouldShow } = checkDailyReward();
+    if (shouldShow) {
+      setTimeout(() => setActiveModal('daily'), 400);
     }
   }, []);
+
+  const handleTutorialClose = useCallback(() => {
+    setActiveModal('none');
+    const { shouldShow } = checkDailyReward();
+    if (shouldShow) {
+      setTimeout(() => setActiveModal('daily'), 300);
+    }
+  }, []);
+
+  const handleDailyRewardClose = useCallback((reward?: { type: string; amount: number }) => {
+    setActiveModal('none');
+    if (reward) {
+      if (reward.type === 'coins') {
+        const newTotal = persistentCoins + reward.amount;
+        setPersistentCoins(newTotal);
+        setStoredCoins(newTotal);
+      } else {
+        setPendingPowerUps(prev => [...prev, reward.type]);
+      }
+    }
+  }, [persistentCoins]);
+
+  const handleWheelClose = useCallback((reward?: { type: string; amount: number; label: string }) => {
+    setActiveModal('none');
+    if (reward) {
+      if (reward.type === 'coins') {
+        const newTotal = persistentCoins + reward.amount;
+        setPersistentCoins(newTotal);
+        setStoredCoins(newTotal);
+      } else if (['auto', 'shock', 'multi'].includes(reward.type)) {
+        setEmergencyCounts(prev => {
+          const key = reward.type as 'auto' | 'shock' | 'multi';
+          const newVal = prev[key] + reward.amount;
+          const updated = { ...prev, [key]: newVal };
+          try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+          return updated;
+        });
+      } else {
+        setPendingPowerUps(prev => [...prev, reward.type]);
+      }
+    }
+  }, [persistentCoins]);
+
+  const handleShopPurchase = useCallback((item: ShopItem) => {
+    if (persistentCoins < item.cost) return;
+    const newTotal = persistentCoins - item.cost;
+    setPersistentCoins(newTotal);
+    setStoredCoins(newTotal);
+    if (item.category === 'emergency') {
+      // Increment emergency power-up counts (auto, shock, multi)
+      const key = item.type as 'auto' | 'shock' | 'multi';
+      setEmergencyCounts(prev => {
+        const newVal = prev[key] + 1;
+        const updated = { ...prev, [key]: newVal };
+        try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+        return updated;
+      });
+    } else if (item.category === 'powerup') {
+      setPendingPowerUps(prev => [...prev, item.type]);
+    }
+  }, [persistentCoins]);
 
   const handleBackToSplash = useCallback(() => {
     setScreenState('splash');
   }, []);
 
-  const handleDailyRewardClose = useCallback((rewardCoins: number) => {
-    if (rewardCoins > 0) {
-      const newTotal = persistentCoins + rewardCoins;
-      setPersistentCoins(newTotal);
-      setStoredCoins(newTotal);
+  const handleStartGame = useCallback((level: number = 1) => {
+    setIsNewHighScore(false);
+    setGameState({
+      status: 'playing',
+      score: 0,
+      lives: 3,
+      level: level,
+      highScore: getStoredHighScore(),
+      coins: 0,
+      combo: 0,
+      maxCombo: 0,
+    });
+    setScreenState('playing');
+  }, []);
+
+  const handleGameOver = useCallback(() => {
+    setScreenState('gameover');
+    setGameState(prev => ({ ...prev, status: 'gameover' }));
+  }, []);
+
+  const handleLevelComplete = useCallback(() => {
+    const totalLevels = getTotalLevels();
+    // No interstitial ads for first 9 levels — give new players a smooth start.
+    if (gameState.level >= 10) showInterstitialAd();
+    // Rate-us prompt after first level-10 completion
+    if (gameState.level === 10 && shouldShowRatePrompt(10)) {
+      setTimeout(() => setShowRatePopup(true), 600);
     }
-    setActiveModal('none');
-  }, [persistentCoins]);
+    if (gameState.level >= totalLevels) {
+      setScreenState('won');
+      setGameState(prev => ({ ...prev, status: 'won' }));
+    } else {
+      setScreenState('levelcomplete');
+      setGameState(prev => ({ ...prev, status: 'levelcomplete' }));
+    }
+  }, [gameState.level]);
 
-  const handleWheelClose = useCallback(() => {
-    setActiveModal('none');
-    setStoredCoins(persistentCoins);
-  }, [persistentCoins]);
-
-  const handleTutorialClose = useCallback(() => {
-    setActiveModal('none');
+  const handleNextLevel = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      status: 'playing',
+      level: prev.level + 1,
+      lives: 3,
+    }));
+    setScreenState('playing');
   }, []);
 
   const handleReplayLevel = useCallback(() => {
+    setIsNewHighScore(false);
     const currentLevel = gameState.level;
     const currentHighScore = gameState.highScore;
     setScreenState('menu');
@@ -213,277 +280,228 @@ const BrickBreakerGame: React.FC = () => {
       status: 'menu',
       score: 0,
       lives: 3,
+      level: 1,
+    }));
+  }, []);
+
+  const handleScoreChange = useCallback((newScore: number) => {
+    setGameState(prev => ({ ...prev, score: newScore }));
+  }, []);
+
+  const handleRestart = useCallback(() => {
+    setIsNewHighScore(false);
+    setGameState(prev => ({
+      ...prev,
+      status: 'playing',
+      score: 0,
+      lives: 3,
+      level: 1,
       coins: 0,
       combo: 0,
       maxCombo: 0,
     }));
+    setScreenState('playing');
   }, []);
 
+  useEffect(() => {
+    if (screenState === 'levelcomplete' || screenState === 'won') {
+      audioManager.playLevelComplete();
+    } else if (screenState === 'gameover') {
+      audioManager.playGameOver();
+    }
+  }, [screenState]);
 
+  const handleTogglePause = useCallback(() => {
+    if (screenState === 'playing') {
+      setScreenState('paused');
+      setGameState(prev => ({ ...prev, status: 'paused' }));
+    } else if (screenState === 'paused') {
+      setScreenState('playing');
+      setGameState(prev => ({ ...prev, status: 'playing' }));
+    }
+  }, [screenState]);
+
+  const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi') => {
+    if (screenState !== 'playing') return;
+    if (emergencyCounts[type] <= 0) {
+      // Show buy prompt and pause game
+      setBuyPrompt(type);
+      setScreenState('paused');
+      setGameState(prev => ({ ...prev, status: 'paused' }));
+      return;
+    }
+    emergencyRef.current = type;
+    setEmergencyCounts(prev => {
+      const newVal = prev[type] - 1;
+      const updated = { ...prev, [type]: newVal };
+      try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch {}
+      return updated;
+    });
+  }, [emergencyCounts, screenState]);
 
   const handleBuyEmergency = useCallback(() => {
     if (!buyPrompt) return;
-    const cost = EMERGENCY_PRICES[buyPrompt].cost;
-    if (persistentCoins >= cost) {
-      const newTotal = persistentCoins - cost;
-      setPersistentCoins(newTotal);
-      setStoredCoins(newTotal);
-      setEmergencyCounts(prev => {
-        const newVal = prev[buyPrompt] + 1;
-        const updated = { ...prev, [buyPrompt]: newVal };
-        try { localStorage.setItem(`neon_breaker_em_${buyPrompt}`, newVal.toString()); } catch {}
-        return updated;
-      });
-      setBuyPrompt(null);
-      setScreenState('playing');
-    }
+    const price = EMERGENCY_PRICES[buyPrompt].cost;
+    if (persistentCoins < price) { setBuyPrompt(null); return; }
+    const newCoins = persistentCoins - price;
+    setPersistentCoins(newCoins);
+    setStoredCoins(newCoins);
+    // Add to inventory only - don't use immediately
+    const key = buyPrompt as 'auto' | 'shock' | 'multi';
+    setEmergencyCounts(prev => {
+      const newVal = prev[key] + 1;
+      const updated = { ...prev, [key]: newVal };
+      try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+      return updated;
+    });
+    setBuyPrompt(null);
+    setScreenState('playing');
+    setGameState(prev => ({ ...prev, status: 'playing' }));
   }, [buyPrompt, persistentCoins]);
 
   const handleCancelBuy = useCallback(() => {
     setBuyPrompt(null);
     setScreenState('playing');
+    setGameState(prev => ({ ...prev, status: 'playing' }));
   }, []);
 
-  const handleUseEmergency = useCallback((type: 'auto' | 'shock' | 'multi') => {
-    if (emergencyCounts[type] > 0) {
-      setEmergencyCounts(prev => {
-        const newVal = prev[type] - 1;
-        const updated = { ...prev, [type]: newVal };
-        try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch {}
-        return updated;
-      });
-      emergencyRef.current = type;
-      setScreenState('playing');
-    } else {
-      setBuyPrompt(type);
-      setScreenState('paused');
-    }
-  }, [emergencyCounts]);
+  if (showLangSelect) {
+    return <LanguageSelectScreen onDone={() => setShowLangSelect(false)} />;
+  }
 
-  const handleEmergencyUsed = useCallback(() => {
-    emergencyRef.current = null;
-  }, []);
+  if (screenState === 'splash') {
+    return <SplashScreen onPlay={handlePlayFromSplash} />;
+  }
 
-  const handleAddCoins = useCallback((amount: number) => {
-    const newTotal = persistentCoins + amount;
-    setPersistentCoins(newTotal);
-    setStoredCoins(newTotal);
-  }, [persistentCoins]);
-
-  const handleScoreChange = useCallback((score: number) => {
-    setGameState(prev => ({ ...prev, score }));
-  }, []);
-
-  const handleGameOver = useCallback(() => {
-    setScreenState('gameover');
-    setGameState(prev => ({ ...prev, status: 'gameover' }));
-  }, []);
-
-  const handleLevelComplete = useCallback(() => {
-    setGameState(prev => {
-      if (prev.level >= 500) {
-        setScreenState('won');
-        return { ...prev, status: 'won' };
-      }
-      return { ...prev, level: prev.level + 1 };
-    });
-  }, []);
-
-  const handleShopPurchase = useCallback((coins: number) => {
-    handleAddCoins(coins);
-  }, [handleAddCoins]);
-
-  return (
-    <div className="min-h-screen bg-black text-white overflow-hidden font-sans select-none">
-      <div className="relative mx-auto max-w-md h-screen shadow-2xl shadow-neon-cyan/20">
-        {showLangSelect && (
-          <LanguageSelectScreen onComplete={() => setShowLangSelect(false)} />
-        )}
-        
-        {screenState === 'splash' && (
-          <SplashScreen onPlay={handlePlayFromSplash} />
-        )}
-        
-        {screenState === 'menu' && (
-          <MainMenuScreen
-            unlockedLevel={unlockedLevel}
-            onStartGame={handleStartGame}
-            onOpenWheel={() => setActiveModal('wheel')}
-            onOpenShop={() => setActiveModal('shop')}
-            onBack={handleBackToSplash}
-            coins={persistentCoins}
-          />
-        )}
-        
-        {activeModal === 'daily' && (
-          <DailyRewards onClose={handleDailyRewardClose} />
-        )}
-        
-        {activeModal === 'wheel' && (
-          <LuckyWheel onClose={handleWheelClose} coins={persistentCoins} onUpdateCoins={setPersistentCoins} />
-        )}
-        
+  if (screenState === 'menu') {
+    return (
+      <>
+        <MainMenuScreen
+          highScore={gameState.highScore}
+          unlockedLevel={unlockedLevel}
+          persistentCoins={persistentCoins}
+          onStartGame={handleStartGame}
+          onBack={handleBackToSplash}
+          onOpenShop={() => setActiveModal('shop')}
+          onOpenWheel={() => setActiveModal('wheel')}
+        />
+        {activeModal === 'tutorial' && <TutorialOverlay onClose={handleTutorialClose} />}
+        {activeModal === 'daily' && <DailyRewards onClose={handleDailyRewardClose} />}
+        {activeModal === 'wheel' && <LuckyWheel onClose={handleWheelClose} />}
         {activeModal === 'shop' && (
           <ShopScreen
-            onClose={() => setActiveModal('none')}
             coins={persistentCoins}
-            onAddCoins={handleAddCoins}
             onPurchase={handleShopPurchase}
+            onAddCoins={(amount: number) => {
+              const newTotal = persistentCoins + amount;
+              setPersistentCoins(newTotal);
+              setStoredCoins(newTotal);
+            }}
+            onClose={() => setActiveModal('none')}
           />
         )}
-        
-        {activeModal === 'tutorial' && (
-          <TutorialOverlay onClose={handleTutorialClose} />
-        )}
+      </>
+    );
+  }
 
-        {showRatePopup && (
-          <RateUsPopup onClose={() => setShowRatePopup(false)} />
-        )}
-        
-        {(screenState === 'playing' || screenState === 'paused') && (
-          <div className="relative w-full h-full flex flex-col">
-            {/* HUD at the top */}
-            <div className="relative z-30 w-full pt-4 pb-2 flex items-center justify-between px-4">
-              <h1 className="font-display text-2xl font-bold text-neon-cyan text-glow-cyan">NEON BREAKER</h1>
-              <div className="flex items-center gap-2">
-                <AudioControls isPlaying={screenState === 'playing'} />
-                <button
-                  onClick={() => setScreenState(prev => prev === 'playing' ? 'paused' : 'playing')}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-colors"
-                >
-                  {screenState === 'playing' ? (
-                    <Pause className="w-5 h-5 text-neon-cyan" />
-                  ) : (
-                    <Play className="w-5 h-5 text-neon-cyan" />
-                  )}
-                </button>
-              </div>
-            </div>
-            <GameUI
-                gameState={gameState}
-                persistentCoins={persistentCoins}
-              />
+  const worldBg = getWorldBg(gameState.level);
+  return (
+    <div 
+      className="min-h-screen flex flex-col items-center justify-center p-2 select-none overflow-hidden"
+      style={{
+        background: worldBg.base,
+      }}
+    >
+      <div className="fixed inset-0 bg-black/40 pointer-events-none" />
+      {showRatePopup && <RateUsPopup onClose={() => setShowRatePopup(false)} />}
+      
+      <AudioControls isPlaying={screenState === 'playing' || screenState === 'paused'} />
+      
+      {(screenState === 'playing' || screenState === 'paused') && (
+        <button
+          onClick={handleTogglePause}
+          className="fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-colors"
+        >
+          {screenState === 'paused' ? (
+            <Play className="w-5 h-5 text-neon-cyan" />
+          ) : (
+            <Pause className="w-5 h-5 text-neon-cyan" />
+          )}
+        </button>
+      )}
+      
+      <div className="relative z-10 mb-4 text-center">
+        <h1 className="font-display text-2xl font-bold text-glow-cyan text-foreground">
+          NEON BREAKER
+        </h1>
+      </div>
 
-            {/* Emergency Power-ups */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-40">
-              {[ { type: 'auto', label: 'AUTO', icon: null, color: 'hsl(50,100%,55%)' },
-                { type: 'shock', label: '⚡', icon: null, color: 'white' },
-                { type: 'multi', label: '●●●', icon: null, color: 'white' },
-              ].map((item) => {
-                const count = emergencyCounts[item.type as keyof typeof emergencyCounts];
-                const price = EMERGENCY_PRICES[item.type].cost;
-                const canAfford = persistentCoins >= price;
+      <div className="relative z-10">
+        <GameUI gameState={gameState} persistentCoins={persistentCoins} />
+      </div>
 
-                return (
-                  <button
-                    key={item.type}
-                    onClick={() => handleUseEmergency(item.type as 'auto' | 'shock' | 'multi')}
-                    className={`relative w-14 h-14 rounded-full flex items-center justify-center font-bold text-white transition-all duration-200
-                      ${count > 0 ? 'opacity-100' : 'opacity-50'}
-                      ${buyPrompt === item.type ? 'scale-110 ring-4 ring-neon-cyan' : ''}
-                    `}
-                    style={{
-                      background: 'radial-gradient(circle at 40% 35%, hsl(200, 100%, 72%), hsl(210, 85%, 50%))',
-                      boxShadow: '0 0 15px hsla(200,100%,60%,0.6), inset 0 -3px 8px hsla(210,100%,25%,0.5)',
-                      border: '2px solid hsla(195,100%,75%,0.6)',
-                      fontSize: item.type === 'shock' ? '22px' : '12px',
-                      color: item.color,
-                    }}
-                  >
-                    {item.label}
-                    {count > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-neon-magenta rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-black">
-                        {count}
-                      </span>
-                    )}
-                    {count === 0 && (
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white bg-black/70 rounded-full">
-                        <span className="flex flex-col items-center">
-                          <span className="text-[10px]">BUY</span>
-                          <span className="text-yellow-300">🪙 {price}</span>
-                        </span>
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            </div>
+      <div className="relative z-10">
+        <GameCanvas
+          gameState={gameState}
+          setGameState={setGameState}
+          onGameOver={handleGameOver}
+          onLevelComplete={handleLevelComplete}
+          // Award level completion bonus
+          onScoreChange={handleScoreChange}
+          emergencyRef={emergencyRef}
+        />
 
-            {/* Buy Prompt Modal */}
-            {buyPrompt && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                <div className="bg-gray-800 p-6 rounded-lg shadow-xl border border-neon-cyan/40 text-center">
-                  <h3 className="text-xl font-bold text-neon-cyan mb-2">Buy {EMERGENCY_PRICES[buyPrompt].label}?</h3>
-                  <p className="text-yellow-300 text-lg mb-4">Cost: 🪙 {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
-                  <div className="flex justify-center gap-4">
-                    <button
-                      onClick={handleBuyEmergency}
-                      disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost}
-                      className="px-6 py-2 rounded-lg bg-neon-green/80 hover:bg-neon-green disabled:opacity-50 font-bold text-black"
-                    >
-                      Buy
-                    </button>
-                    <button
-                      onClick={handleCancelBuy}
-                      className="px-6 py-2 rounded-lg bg-red-500/80 hover:bg-red-600 font-bold text-white"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Game Area */}
-            <div className="flex-1 relative overflow-hidden">
-              <GameCanvas
-                gameState={gameState}
-                setGameState={setGameState}
-                onGameOver={handleGameOver}
-                onLevelComplete={handleLevelComplete}
-                onScoreChange={handleScoreChange}
-                emergencyRef={emergencyRef}
-              />
-            </div>
-
-            {/* Pause Button Overlay */}
-            <div className="absolute top-4 right-4 z-40">
+        {/* Emergency Powerup Buttons - bottom right, matching reference image */}
+        {screenState === 'playing' && (
+          <div className="absolute flex flex-col items-center z-30" style={{ right: '8px', bottom: '80px', gap: '10px' }}>
+            {([
+              { key: 'auto' as const, label: 'AUTO', isText: true },
+              { key: 'shock' as const, label: '⚡', isText: false },
+              { key: 'multi' as const, label: null, isText: false },
+            ]).map((btn) => (
               <button
-                onClick={handleTogglePause}
-                className="p-2 bg-black/40 backdrop-blur-md border border-neon-cyan/30 rounded-full text-neon-cyan hover:bg-neon-cyan/20 transition-all"
+                key={btn.key}
+                onPointerDown={(e) => { e.stopPropagation(); handleEmergencyPowerUp(btn.key); }}
+                disabled={emergencyCounts[btn.key] <= 0}
+                className="relative flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
+                style={{
+                  width: '55px',
+                  height: '55px',
+                  borderRadius: '50%',
+                  background: emergencyCounts[btn.key] > 0
+                    ? 'radial-gradient(circle at 40% 35%, hsl(200, 100%, 72%), hsl(210, 85%, 50%))'
+                    : 'radial-gradient(circle at 40% 35%, hsl(200, 15%, 35%), hsl(210, 15%, 25%))',
+                  boxShadow: emergencyCounts[btn.key] > 0
+                    ? '0 0 20px hsla(200, 100%, 60%, 0.6), 0 0 40px hsla(200, 100%, 50%, 0.2), inset 0 -4px 10px hsla(210, 100%, 25%, 0.5), inset 0 3px 6px hsla(200, 100%, 85%, 0.4)'
+                    : 'none',
+                  border: '3px solid hsla(195, 100%, 75%, 0.6)',
+                }}
               >
-                {screenState === 'paused' ? <Play size={24} /> : <Pause size={24} />}
+                {btn.label === null ? (
+                  /* Three balls icon */
+                  <svg width="28" height="28" viewBox="0 0 28 28">
+                    <circle cx="14" cy="8" r="5" fill="white" />
+                    <circle cx="7" cy="20" r="5" fill="white" />
+                    <circle cx="21" cy="20" r="5" fill="white" />
+                  </svg>
+                ) : btn.isText ? (
+                  <span className="font-bold text-base leading-none"
+                    style={{ color: 'hsl(50, 100%, 55%)', textShadow: '0 0 10px hsla(50, 100%, 50%, 0.8), 0 1px 2px rgba(0,0,0,0.5)', fontFamily: 'Orbitron, sans-serif' }}
+                  >
+                    {btn.label}
+                  </span>
+                ) : (
+                  <span className="text-white font-bold text-2xl leading-none"
+                    style={{ textShadow: '0 0 10px hsla(200, 100%, 70%, 0.9), 0 1px 2px rgba(0,0,0,0.5)' }}
+                  >
+                    {btn.label}
+                  </span>
+                )}
+                <span className="absolute flex items-center justify-center" style={{ bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.75)', border: '1.5px solid hsla(200, 100%, 70%, 0.4)' }}>
+                  <span className="text-white font-bold" style={{ fontSize: '11px' }}>{emergencyCounts[btn.key]}</span>
+                </span>
               </button>
-            </div>
-          </div>
-        )}
-        
-        {screenState === 'paused' && !buyPrompt && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg z-50">
-            <div className="text-center p-6">
-              <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => setScreenState(prev => prev === 'playing' ? 'paused' : 'playing')}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  RESUME
-                </button>
-                <button
-                  onClick={handleReplayLevel}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-yellow to-neon-yellow/70 hover:from-neon-yellow/90 hover:to-neon-yellow/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  RETRY
-                </button>
-                <button
-                  onClick={handleMainMenu}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-muted-foreground to-muted-foreground/70 hover:from-muted-foreground/90 hover:to-muted-foreground/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  MAIN MENU
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
@@ -512,40 +530,54 @@ const BrickBreakerGame: React.FC = () => {
             </div>
           </div>
         )}
+
+        {screenState === 'paused' && !buyPrompt && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg">
+            <div className="text-center p-6">
+              <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleTogglePause}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  RESUME
+                </button>
+                <button
+                  onClick={handleReplayLevel}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-yellow to-neon-yellow/70 hover:from-neon-yellow/90 hover:to-neon-yellow/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  RETRY
+                </button>
+                <button
+                  onClick={handleMainMenu}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-muted-foreground to-muted-foreground/70 hover:from-muted-foreground/90 hover:to-muted-foreground/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  MAIN MENU
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         {screenState === 'gameover' && (
           <GameOverScreen
             gameState={gameState}
-            onReplay={handleReplayLevel}
-            onMainMenu={handleMainMenu}
             isNewHighScore={isNewHighScore}
+            onRestart={handleRestart}
+            onMainMenu={handleMainMenu}
           />
         )}
-        
-        {screenState === 'levelcomplete' && (
+
+        {(screenState === 'levelcomplete' || screenState === 'won') && (
           <LevelCompleteScreen
             gameState={gameState}
-            onNextLevel={handleLevelComplete}
+            onNextLevel={handleNextLevel}
             onReplay={handleReplayLevel}
             onMainMenu={handleMainMenu}
           />
         )}
-        
-        {screenState === 'won' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-50">
-            <div className="text-center p-8">
-              <h1 className="font-display text-5xl text-neon-yellow text-glow-yellow mb-4">VICTORY!</h1>
-              <p className="text-xl mb-8">You have conquered all 500 levels!</p>
-              <button
-                onClick={handleMainMenu}
-                className="py-3 px-8 bg-neon-cyan text-black font-display text-xl rounded-lg"
-              >
-                MAIN MENU
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+
     </div>
   );
 };
