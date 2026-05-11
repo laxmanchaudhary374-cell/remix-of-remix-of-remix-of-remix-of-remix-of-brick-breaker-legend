@@ -13,6 +13,7 @@ export const ADMOB_APP_ID = 'ca-app-pub-6637721495380199~8632290443';
 
 let AdMob: any = null;
 let initialized = false;
+let rewardCallback: ((amount: number) => void) | null = null;
 
 async function getAdMobPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
@@ -32,11 +33,18 @@ export async function initAdMob(): Promise<boolean> {
   if (!admob || initialized) return initialized;
 
   try {
-    await admob.initialize({
-      initializeForTesting: true,
+    await admob.initialize({ initializeForTesting: false });
+    
+    // Global Reward Listener - This is the "Missing Callback" Copilot mentioned
+    await admob.addListener('onRewardedVideoAdReward', (reward: any) => {
+      console.log('[AdMob] Reward earned:', reward);
+      if (rewardCallback) {
+        rewardCallback(50); // Give 50 coins
+      }
     });
+
     initialized = true;
-    console.log('[AdMob] Initialized successfully');
+    console.log('[AdMob] Initialized with global listener');
     return true;
   } catch (err) {
     console.error('[AdMob] Failed to init:', err);
@@ -44,58 +52,27 @@ export async function initAdMob(): Promise<boolean> {
   }
 }
 
-export type RewardedAdResult = { ok: boolean; reward: number; error?: string };
+export function setAdRewardCallback(callback: (amount: number) => void) {
+  rewardCallback = callback;
+}
 
-export async function showRewardedAd(): Promise<RewardedAdResult> {
+export async function showRewardedAd(): Promise<boolean> {
   const admob = await getAdMobPlugin();
-  if (!admob) {
-    return { ok: false, reward: 0, error: 'Ads only work on real devices.' };
-  }
+  if (!admob) return false;
 
   await initAdMob();
 
-  return new Promise(async (resolve) => {
-    let settled = false;
-    let rewardGranted = false;
-    const listeners: any[] = [];
-
-    const finish = (res: RewardedAdResult) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      listeners.forEach(l => l.remove());
-      resolve(res);
-    };
-
-    // 20s timeout
-    const timeout = setTimeout(() => {
-      finish({ ok: false, reward: 0, error: 'Ad timed out. Check your internet.' });
-    }, 20000);
-
-    try {
-      // Listen for ALL possible reward event names to be safe
-      listeners.push(await admob.addListener('onRewardedVideoAdReward', () => { rewardGranted = true; }));
-      listeners.push(await admob.addListener('onRewardedVideoAdRewarded', () => { rewardGranted = true; }));
-      listeners.push(await admob.addListener('rewarded', () => { rewardGranted = true; }));
-
-      listeners.push(await admob.addListener('onRewardedVideoAdDismissed', () => {
-        finish({ ok: true, reward: rewardGranted ? 50 : 0 });
-      }));
-
-      listeners.push(await admob.addListener('onRewardedVideoAdFailedToLoad', (err: any) => {
-        finish({ ok: false, reward: 0, error: err.message || 'No ad available right now.' });
-      }));
-
-      await admob.prepareRewardVideoAd({
-        adId: AD_UNIT_IDS.REWARDED_COINS,
-        isTesting: true,
-      });
-
-      await admob.showRewardVideoAd();
-    } catch (err: any) {
-      finish({ ok: false, reward: 0, error: err.message || 'Ad failed to start.' });
-    }
-  });
+  try {
+    await admob.prepareRewardVideoAd({
+      adId: AD_UNIT_IDS.REWARDED_COINS,
+      isTesting: false,
+    });
+    await admob.showRewardVideoAd();
+    return true;
+  } catch (err) {
+    console.error('[AdMob] Rewarded ad error:', err);
+    return false;
+  }
 }
 
 export async function showBannerAd(): Promise<void> {
@@ -106,7 +83,7 @@ export async function showBannerAd(): Promise<void> {
       adId: AD_UNIT_IDS.BANNER,
       adSize: 'BANNER',
       position: 'TOP_CENTER',
-      isTesting: true,
+      isTesting: false,
     });
   } catch (err) {
     console.error('[AdMob] Banner error:', err);
