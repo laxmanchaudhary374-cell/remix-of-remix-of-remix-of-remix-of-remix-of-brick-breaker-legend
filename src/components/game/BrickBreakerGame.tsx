@@ -95,6 +95,26 @@ const BrickBreakerGame: React.FC = () => {
     initBilling().then(ok => ok && console.log('[Billing] Ready'));
     initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
     initDailyReminder();
+
+    // Register monetization callbacks to update coin balance
+    const { setAdRewardCallback } = require('@/utils/admob');
+    const { setPurchaseCallback } = require('@/utils/billing');
+
+    setAdRewardCallback((amount: number) => {
+      setPersistentCoins(prev => {
+        const newTotal = prev + amount;
+        setStoredCoins(newTotal);
+        return newTotal;
+      });
+    });
+
+    setPurchaseCallback((coins: number) => {
+      setPersistentCoins(prev => {
+        const newTotal = prev + coins;
+        setStoredCoins(newTotal);
+        return newTotal;
+      });
+    });
   }, []);
 
 
