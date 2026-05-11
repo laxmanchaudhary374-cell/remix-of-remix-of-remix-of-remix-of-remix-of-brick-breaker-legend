@@ -13,8 +13,8 @@ import LuckyWheel from './LuckyWheel';
 import ShopScreen, { ShopItem } from './ShopScreen';
 import TutorialOverlay, { hasSeenTutorial } from './TutorialOverlay';
 import { audioManager } from '@/utils/audioManager';
-import { initBilling } from '@/utils/billing';
-import { initAdMob, showBannerAd, showInterstitialAd } from '@/utils/admob';
+import { initBilling, setPurchaseCallback } from '@/utils/billing';
+import { initAdMob, showBannerAd, showInterstitialAd, setAdRewardCallback } from '@/utils/admob';
 import { calculateStars, setLevelStars } from '@/utils/starStorage';
 import { initDailyReminder } from '@/utils/notifications';
 import { getWorldBg } from '@/utils/worldBackgrounds';
@@ -92,14 +92,7 @@ const BrickBreakerGame: React.FC = () => {
 
   // Initialize native monetization SDKs on mount
   useEffect(() => {
-    initBilling().then(ok => ok && console.log('[Billing] Ready'));
-    initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
-    initDailyReminder();
-
-    // Register monetization callbacks to update coin balance
-    const { setAdRewardCallback } = require('@/utils/admob');
-    const { setPurchaseCallback } = require('@/utils/billing');
-
+    // 1. Register monetization callbacks FIRST
     setAdRewardCallback((amount: number) => {
       setPersistentCoins(prev => {
         const newTotal = prev + amount;
@@ -115,6 +108,17 @@ const BrickBreakerGame: React.FC = () => {
         return newTotal;
       });
     });
+
+    // 2. Then initialize plugins in the background
+    initBilling().then(ok => ok && console.log('[Billing] Ready'));
+    initAdMob().then(ok => { 
+      if (ok) { 
+        console.log('[AdMob] Ready'); 
+        showBannerAd(); 
+      } 
+    });
+    
+    initDailyReminder();
   }, []);
 
 
@@ -300,228 +304,169 @@ const BrickBreakerGame: React.FC = () => {
       status: 'menu',
       score: 0,
       lives: 3,
-      level: 1,
-    }));
-  }, []);
-
-  const handleScoreChange = useCallback((newScore: number) => {
-    setGameState(prev => ({ ...prev, score: newScore }));
-  }, []);
-
-  const handleRestart = useCallback(() => {
-    setIsNewHighScore(false);
-    setGameState(prev => ({
-      ...prev,
-      status: 'playing',
-      score: 0,
-      lives: 3,
-      level: 1,
       coins: 0,
       combo: 0,
       maxCombo: 0,
     }));
-    setScreenState('playing');
   }, []);
 
-  useEffect(() => {
-    if (screenState === 'levelcomplete' || screenState === 'won') {
-      audioManager.playLevelComplete();
-    } else if (screenState === 'gameover') {
-      audioManager.playGameOver();
-    }
-  }, [screenState]);
-
   const handleTogglePause = useCallback(() => {
-    if (screenState === 'playing') {
-      setScreenState('paused');
-      setGameState(prev => ({ ...prev, status: 'paused' }));
-    } else if (screenState === 'paused') {
-      setScreenState('playing');
-      setGameState(prev => ({ ...prev, status: 'playing' }));
-    }
-  }, [screenState]);
-
-  const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi') => {
-    if (screenState !== 'playing') return;
-    if (emergencyCounts[type] <= 0) {
-      // Show buy prompt and pause game
-      setBuyPrompt(type);
-      setScreenState('paused');
-      setGameState(prev => ({ ...prev, status: 'paused' }));
-      return;
-    }
-    emergencyRef.current = type;
-    setEmergencyCounts(prev => {
-      const newVal = prev[type] - 1;
-      const updated = { ...prev, [type]: newVal };
-      try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch {}
-      return updated;
-    });
-  }, [emergencyCounts, screenState]);
+    setScreenState(prev => prev === 'playing' ? 'paused' : 'playing');
+  }, []);
 
   const handleBuyEmergency = useCallback(() => {
     if (!buyPrompt) return;
-    const price = EMERGENCY_PRICES[buyPrompt].cost;
-    if (persistentCoins < price) { setBuyPrompt(null); return; }
-    const newCoins = persistentCoins - price;
-    setPersistentCoins(newCoins);
-    setStoredCoins(newCoins);
-    // Add to inventory only - don't use immediately
-    const key = buyPrompt as 'auto' | 'shock' | 'multi';
-    setEmergencyCounts(prev => {
-      const newVal = prev[key] + 1;
-      const updated = { ...prev, [key]: newVal };
-      try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
-      return updated;
-    });
-    setBuyPrompt(null);
-    setScreenState('playing');
-    setGameState(prev => ({ ...prev, status: 'playing' }));
+    const cost = EMERGENCY_PRICES[buyPrompt].cost;
+    if (persistentCoins >= cost) {
+      const newTotal = persistentCoins - cost;
+      setPersistentCoins(newTotal);
+      setStoredCoins(newTotal);
+      setEmergencyCounts(prev => {
+        const newVal = prev[buyPrompt] + 1;
+        const updated = { ...prev, [buyPrompt]: newVal };
+        try { localStorage.setItem(`neon_breaker_em_${buyPrompt}`, newVal.toString()); } catch {}
+        return updated;
+      });
+      setBuyPrompt(null);
+      setScreenState('playing');
+    }
   }, [buyPrompt, persistentCoins]);
 
   const handleCancelBuy = useCallback(() => {
     setBuyPrompt(null);
     setScreenState('playing');
-    setGameState(prev => ({ ...prev, status: 'playing' }));
   }, []);
 
-  if (showLangSelect) {
-    return <LanguageSelectScreen onDone={() => setShowLangSelect(false)} />;
-  }
+  const handleUseEmergency = useCallback((type: 'auto' | 'shock' | 'multi') => {
+    if (emergencyCounts[type] > 0) {
+      setEmergencyCounts(prev => {
+        const newVal = prev[type] - 1;
+        const updated = { ...prev, [type]: newVal };
+        try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch {}
+        return updated;
+      });
+      emergencyRef.current = type;
+      setScreenState('playing');
+    } else {
+      setBuyPrompt(type);
+      setScreenState('paused');
+    }
+  }, [emergencyCounts]);
 
-  if (screenState === 'splash') {
-    return <SplashScreen onPlay={handlePlayFromSplash} />;
-  }
+  const handleEmergencyUsed = useCallback(() => {
+    emergencyRef.current = null;
+  }, []);
 
-  if (screenState === 'menu') {
-    return (
-      <>
-        <MainMenuScreen
-          highScore={gameState.highScore}
-          unlockedLevel={unlockedLevel}
-          persistentCoins={persistentCoins}
-          onStartGame={handleStartGame}
-          onBack={handleBackToSplash}
-          onOpenShop={() => setActiveModal('shop')}
-          onOpenWheel={() => setActiveModal('wheel')}
-        />
-        {activeModal === 'tutorial' && <TutorialOverlay onClose={handleTutorialClose} />}
-        {activeModal === 'daily' && <DailyRewards onClose={handleDailyRewardClose} />}
-        {activeModal === 'wheel' && <LuckyWheel onClose={handleWheelClose} />}
-        {activeModal === 'shop' && (
-          <ShopScreen
+  const handleAddCoins = useCallback((amount: number) => {
+    const newTotal = persistentCoins + amount;
+    setPersistentCoins(newTotal);
+    setStoredCoins(newTotal);
+  }, [persistentCoins]);
+
+  return (
+    <div className="min-h-screen bg-black text-white overflow-hidden font-sans select-none">
+      <div className="relative mx-auto max-w-md h-screen shadow-2xl shadow-neon-cyan/20">
+        {showLangSelect && (
+          <LanguageSelectScreen onComplete={() => setShowLangSelect(false)} />
+        )}
+        
+        {screenState === 'splash' && (
+          <SplashScreen onPlay={handlePlayFromSplash} />
+        )}
+        
+        {screenState === 'menu' && (
+          <MainMenuScreen
+            unlockedLevel={unlockedLevel}
+            onStartGame={handleStartGame}
+            onOpenWheel={() => setActiveModal('wheel')}
+            onOpenShop={() => setActiveModal('shop')}
+            onBack={handleBackToSplash}
             coins={persistentCoins}
-            onPurchase={handleShopPurchase}
-            onAddCoins={(amount: number) => {
-              const newTotal = persistentCoins + amount;
-              setPersistentCoins(newTotal);
-              setStoredCoins(newTotal);
-            }}
-            onClose={() => setActiveModal('none')}
           />
         )}
-      </>
-    );
-  }
+        
+        {activeModal === 'daily' && (
+          <DailyRewards onClose={handleDailyRewardClose} />
+        )}
+        
+        {activeModal === 'wheel' && (
+          <LuckyWheel onClose={handleWheelClose} coins={persistentCoins} onUpdateCoins={setPersistentCoins} />
+        )}
+        
+        {activeModal === 'shop' && (
+          <ShopScreen
+            onClose={() => setActiveModal('none')}
+            coins={persistentCoins}
+            onAddCoins={handleAddCoins}
+            onPurchase={handleShopPurchase}
+          />
+        )}
+        
+        {activeModal === 'tutorial' && (
+          <TutorialOverlay onClose={handleTutorialClose} />
+        )}
 
-  const worldBg = getWorldBg(gameState.level);
-  return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center p-2 select-none overflow-hidden"
-      style={{
-        background: worldBg.base,
-      }}
-    >
-      <div className="fixed inset-0 bg-black/40 pointer-events-none" />
-      {showRatePopup && <RateUsPopup onClose={() => setShowRatePopup(false)} />}
-      
-      <AudioControls isPlaying={screenState === 'playing' || screenState === 'paused'} />
-      
-      {(screenState === 'playing' || screenState === 'paused') && (
-        <button
-          onClick={handleTogglePause}
-          className="fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-colors"
-        >
-          {screenState === 'paused' ? (
-            <Play className="w-5 h-5 text-neon-cyan" />
-          ) : (
-            <Pause className="w-5 h-5 text-neon-cyan" />
-          )}
-        </button>
-      )}
-      
-      <div className="relative z-10 mb-4 text-center">
-        <h1 className="font-display text-2xl font-bold text-glow-cyan text-foreground">
-          NEON BREAKER
-        </h1>
-      </div>
+        {showRatePopup && (
+          <RateUsPopup onClose={() => setShowRatePopup(false)} />
+        )}
+        
+        {(screenState === 'playing' || screenState === 'paused') && (
+          <div className="relative w-full h-full">
+            <GameCanvas
+              gameState={gameState}
+              onGameOver={handleGameOver}
+              onLevelComplete={handleLevelComplete}
+              onScoreUpdate={(score, coins, combo, maxCombo) => setGameState(prev => ({ ...prev, score, coins, combo, maxCombo }))}
+              onLivesUpdate={(lives) => setGameState(prev => ({ ...prev, lives }))}
+              pendingPowerUps={pendingPowerUps}
+              onPowerUpUsed={() => setPendingPowerUps([])}
+              emergencyPowerUp={emergencyRef.current}
+              onEmergencyUsed={handleEmergencyUsed}
+            />
+            
+            <GameUI
+              gameState={gameState}
+              onTogglePause={handleTogglePause}
+              onUseEmergency={handleUseEmergency}
+              emergencyCounts={emergencyCounts}
+            />
 
-      <div className="relative z-10">
-        <GameUI gameState={gameState} persistentCoins={persistentCoins} />
-      </div>
-
-      <div className="relative z-10">
-        <GameCanvas
-          gameState={gameState}
-          setGameState={setGameState}
-          onGameOver={handleGameOver}
-          onLevelComplete={handleLevelComplete}
-          // Award level completion bonus
-          onScoreChange={handleScoreChange}
-          emergencyRef={emergencyRef}
-        />
-
-        {/* Emergency Powerup Buttons - bottom right, matching reference image */}
-        {screenState === 'playing' && (
-          <div className="absolute flex flex-col items-center z-30" style={{ right: '8px', bottom: '80px', gap: '10px' }}>
-            {([
-              { key: 'auto' as const, label: 'AUTO', isText: true },
-              { key: 'shock' as const, label: '⚡', isText: false },
-              { key: 'multi' as const, label: null, isText: false },
-            ]).map((btn) => (
+            <div className="absolute top-4 right-4 z-40">
               <button
-                key={btn.key}
-                onPointerDown={(e) => { e.stopPropagation(); handleEmergencyPowerUp(btn.key); }}
-                disabled={emergencyCounts[btn.key] <= 0}
-                className="relative flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
-                style={{
-                  width: '55px',
-                  height: '55px',
-                  borderRadius: '50%',
-                  background: emergencyCounts[btn.key] > 0
-                    ? 'radial-gradient(circle at 40% 35%, hsl(200, 100%, 72%), hsl(210, 85%, 50%))'
-                    : 'radial-gradient(circle at 40% 35%, hsl(200, 15%, 35%), hsl(210, 15%, 25%))',
-                  boxShadow: emergencyCounts[btn.key] > 0
-                    ? '0 0 20px hsla(200, 100%, 60%, 0.6), 0 0 40px hsla(200, 100%, 50%, 0.2), inset 0 -4px 10px hsla(210, 100%, 25%, 0.5), inset 0 3px 6px hsla(200, 100%, 85%, 0.4)'
-                    : 'none',
-                  border: '3px solid hsla(195, 100%, 75%, 0.6)',
-                }}
+                onClick={handleTogglePause}
+                className="p-2 bg-black/40 backdrop-blur-md border border-neon-cyan/30 rounded-full text-neon-cyan hover:bg-neon-cyan/20 transition-all"
               >
-                {btn.label === null ? (
-                  /* Three balls icon */
-                  <svg width="28" height="28" viewBox="0 0 28 28">
-                    <circle cx="14" cy="8" r="5" fill="white" />
-                    <circle cx="7" cy="20" r="5" fill="white" />
-                    <circle cx="21" cy="20" r="5" fill="white" />
-                  </svg>
-                ) : btn.isText ? (
-                  <span className="font-bold text-base leading-none"
-                    style={{ color: 'hsl(50, 100%, 55%)', textShadow: '0 0 10px hsla(50, 100%, 50%, 0.8), 0 1px 2px rgba(0,0,0,0.5)', fontFamily: 'Orbitron, sans-serif' }}
-                  >
-                    {btn.label}
-                  </span>
-                ) : (
-                  <span className="text-white font-bold text-2xl leading-none"
-                    style={{ textShadow: '0 0 10px hsla(200, 100%, 70%, 0.9), 0 1px 2px rgba(0,0,0,0.5)' }}
-                  >
-                    {btn.label}
-                  </span>
-                )}
-                <span className="absolute flex items-center justify-center" style={{ bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.75)', border: '1.5px solid hsla(200, 100%, 70%, 0.4)' }}>
-                  <span className="text-white font-bold" style={{ fontSize: '11px' }}>{emergencyCounts[btn.key]}</span>
-                </span>
+                {screenState === 'paused' ? <Play size={24} /> : <Pause size={24} />}
               </button>
-            ))}
+            </div>
+          </div>
+        )}
+        
+        {screenState === 'paused' && !buyPrompt && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg z-50">
+            <div className="text-center p-6">
+              <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleTogglePause}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  RESUME
+                </button>
+                <button
+                  onClick={handleReplayLevel}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-yellow to-neon-yellow/70 hover:from-neon-yellow/90 hover:to-neon-yellow/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  RETRY
+                </button>
+                <button
+                  onClick={handleMainMenu}
+                  className="w-48 py-3 px-6 bg-gradient-to-r from-muted-foreground to-muted-foreground/70 hover:from-muted-foreground/90 hover:to-muted-foreground/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
+                >
+                  MAIN MENU
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -550,44 +495,15 @@ const BrickBreakerGame: React.FC = () => {
             </div>
           </div>
         )}
-
-        {screenState === 'paused' && !buyPrompt && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg">
-            <div className="text-center p-6">
-              <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={handleTogglePause}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  RESUME
-                </button>
-                <button
-                  onClick={handleReplayLevel}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-yellow to-neon-yellow/70 hover:from-neon-yellow/90 hover:to-neon-yellow/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  RETRY
-                </button>
-                <button
-                  onClick={handleMainMenu}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-muted-foreground to-muted-foreground/70 hover:from-muted-foreground/90 hover:to-muted-foreground/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  MAIN MENU
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
         
         {screenState === 'gameover' && (
           <GameOverScreen
             gameState={gameState}
             isNewHighScore={isNewHighScore}
-            onRestart={handleRestart}
+            onRestart={handleStartGame}
             onMainMenu={handleMainMenu}
           />
         )}
-
         {(screenState === 'levelcomplete' || screenState === 'won') && (
           <LevelCompleteScreen
             gameState={gameState}
@@ -597,7 +513,6 @@ const BrickBreakerGame: React.FC = () => {
           />
         )}
       </div>
-
     </div>
   );
 };
