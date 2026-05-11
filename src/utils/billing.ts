@@ -23,6 +23,7 @@ const PRODUCT_TO_COINS: Record<string, number> = {
 
 let NativePurchases: any = null;
 let isInitialized = false;
+let purchaseCallback: ((coins: number) => void) | null = null;
 
 async function getBillingPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
@@ -44,16 +45,23 @@ export async function initBilling(): Promise<boolean> {
   try {
     await billing.initialize();
     
-    // Add a listener to catch successful purchases even if the app was closed/reopened
+    // Global Purchase Listener
     await billing.addListener('purchaseSuccess', async (data: any) => {
-      console.log('[Billing] Purchase Success Listener:', data);
+      console.log('[Billing] Purchase Success:', data);
       if (data.transactionId) {
+        // Acknowledge and Consume the purchase so it can be bought again
         await billing.finishTransaction({ transactionId: data.transactionId });
+        
+        // Find how many coins to give
+        const productId = data.productIdentifier;
+        const coins = PRODUCT_TO_COINS[productId] || 0;
+        if (purchaseCallback && coins > 0) {
+          purchaseCallback(coins);
+        }
       }
     });
 
     isInitialized = true;
-    console.log('[Billing] Initialized with listener');
     return true;
   } catch (err) {
     console.error('[Billing] Failed to init:', err);
@@ -61,38 +69,30 @@ export async function initBilling(): Promise<boolean> {
   }
 }
 
-export async function purchaseCoinPackage(packageId: string): Promise<number> {
+export function setPurchaseCallback(callback: (coins: number) => void) {
+  purchaseCallback = callback;
+}
+
+export async function purchaseCoinPackage(packageId: string): Promise<void> {
   const productId = PACKAGE_TO_PRODUCT[packageId];
-  if (!productId) return 0;
+  if (!productId) return;
 
   const billing = await getBillingPlugin();
-  if (!billing) {
-    console.warn('[Billing] Not on a native device');
-    return 0;
-  }
+  if (!billing) return;
 
-  if (!isInitialized) {
-    await initBilling();
-    await new Promise(r => setTimeout(r, 1500));
-  }
+  if (!isInitialized) await initBilling();
 
   try {
-    const result = await billing.purchaseProduct({
+    await billing.purchaseProduct({
       productIdentifier: productId,
       productType: 'CONSUMABLE',
       quantity: 1,
     });
-
-    if (result && result.transactionId) {
-      await billing.finishTransaction({ transactionId: result.transactionId });
-      return PRODUCT_TO_COINS[productId] || 0;
-    }
-    return 0;
+    // The actual coin reward happens in the 'purchaseSuccess' listener above
   } catch (err: any) {
     console.error('[Billing] Purchase error:', err);
     if (Capacitor.isNativePlatform()) {
       alert('Purchase Error: ' + (err.message || 'Could not connect to Google Play.'));
     }
-    return 0;
   }
 }
