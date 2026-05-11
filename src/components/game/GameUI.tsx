@@ -62,7 +62,7 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, persistentCoins }) => {
             border: '1px solid #92710a',
           }}
         >
-          🪙
+          $
         </span>
         <span className="font-display text-sm text-yellow-300" style={{ textShadow: '0 0 6px rgba(250,204,21,0.6)' }}>
           {(persistentCoins ?? 0) + gameState.coins}
