@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+
+    import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameState } from '@/types/game';
 import { getTotalLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
@@ -109,174 +110,83 @@ const BrickBreakerGame: React.FC = () => {
       });
     });
 
-    // 2. Then initialize plugins in the background
-    initBilling().then(ok => ok && console.log('[Billing] Ready'));
-    initAdMob().then(ok => { 
-      if (ok) { 
-        console.log('[AdMob] Ready'); 
-        showBannerAd(); 
-      } 
-    });
-    
-    initDailyReminder();
+    // 2. Initialize SDKs
+    const initMonetization = async () => {
+      try {
+        await initAdMob();
+        await initBilling();
+        initDailyReminder();
+      } catch (err) {
+        console.error('Monetization init failed:', err);
+      }
+    };
+    initMonetization();
   }, []);
 
-
-  // Update high score and unlocked level when game ends
   useEffect(() => {
-    if (screenState === 'gameover' || screenState === 'won' || screenState === 'levelcomplete') {
-      if (gameState.score > gameState.highScore) {
-        setStoredHighScore(gameState.score);
-        setGameState(prev => ({ ...prev, highScore: gameState.score }));
-        setIsNewHighScore(true);
-      }
-      if (screenState === 'levelcomplete' || screenState === 'won') {
-        const nextLevel = gameState.level + 1;
-        if (nextLevel > unlockedLevel) {
-          setUnlockedLevel(nextLevel);
-          setStoredUnlockedLevel(nextLevel);
-        }
-        // Save star rating for this level
-        const stars = calculateStars(gameState.lives, gameState.maxCombo, gameState.score, gameState.level);
-        setLevelStars(gameState.level, stars);
-        
-        const coinReward = gameState.level <= 10 ? 2 :
-  gameState.level <= 20 ? 3 :
-  gameState.level <= 30 ? 4 :
-  gameState.level <= 50 ? 5 : 6;
-        const newTotal = persistentCoins + gameState.coins + coinReward;
-        setPersistentCoins(newTotal);
-        setStoredCoins(newTotal);
-      }
+    if (gameState.score > gameState.highScore) {
+      setGameState(prev => ({ ...prev, highScore: prev.score }));
+      setStoredHighScore(gameState.score);
+      setIsNewHighScore(true);
     }
-  }, [screenState, gameState.score, gameState.highScore, gameState.level, unlockedLevel]);
+  }, [gameState.score, gameState.highScore]);
+
+  useEffect(() => {
+    if (gameState.level > unlockedLevel) {
+      setUnlockedLevel(gameState.level);
+      setStoredUnlockedLevel(gameState.level);
+    }
+  }, [gameState.level, unlockedLevel]);
+
+  const handleStartGame = useCallback((level: number) => {
+    setGameState(prev => ({
+      ...prev,
+      status: 'playing',
+      score: 0,
+      lives: 3,
+      level: level,
+      coins: 0,
+      combo: 0,
+      maxCombo: 0,
+    }));
+    setScreenState('playing');
+    setIsNewHighScore(false);
+    
+    if (!hasSeenTutorial()) {
+      setActiveModal('tutorial');
+    }
+  }, []);
 
   const handlePlayFromSplash = useCallback(() => {
     setScreenState('menu');
-    if (!hasSeenTutorial()) {
-      setTimeout(() => setActiveModal('tutorial'), 300);
-      return;
-    }
-    const { shouldShow } = checkDailyReward();
-    if (shouldShow) {
-      setTimeout(() => setActiveModal('daily'), 400);
+    if (checkDailyReward()) {
+      setActiveModal('daily');
     }
   }, []);
-
-  const handleTutorialClose = useCallback(() => {
-    setActiveModal('none');
-    const { shouldShow } = checkDailyReward();
-    if (shouldShow) {
-      setTimeout(() => setActiveModal('daily'), 300);
-    }
-  }, []);
-
-  const handleDailyRewardClose = useCallback((reward?: { type: string; amount: number }) => {
-    setActiveModal('none');
-    if (reward) {
-      if (reward.type === 'coins') {
-        const newTotal = persistentCoins + reward.amount;
-        setPersistentCoins(newTotal);
-        setStoredCoins(newTotal);
-      } else {
-        setPendingPowerUps(prev => [...prev, reward.type]);
-      }
-    }
-  }, [persistentCoins]);
-
-  const handleWheelClose = useCallback((reward?: { type: string; amount: number; label: string }) => {
-    setActiveModal('none');
-    if (reward) {
-      if (reward.type === 'coins') {
-        const newTotal = persistentCoins + reward.amount;
-        setPersistentCoins(newTotal);
-        setStoredCoins(newTotal);
-      } else if (['auto', 'shock', 'multi'].includes(reward.type)) {
-        setEmergencyCounts(prev => {
-          const key = reward.type as 'auto' | 'shock' | 'multi';
-          const newVal = prev[key] + reward.amount;
-          const updated = { ...prev, [key]: newVal };
-          try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
-          return updated;
-        });
-      } else {
-        setPendingPowerUps(prev => [...prev, reward.type]);
-      }
-    }
-  }, [persistentCoins]);
-
-  const handleShopPurchase = useCallback((item: ShopItem) => {
-    if (persistentCoins < item.cost) return;
-    const newTotal = persistentCoins - item.cost;
-    setPersistentCoins(newTotal);
-    setStoredCoins(newTotal);
-    if (item.category === 'emergency') {
-      // Increment emergency power-up counts (auto, shock, multi)
-      const key = item.type as 'auto' | 'shock' | 'multi';
-      setEmergencyCounts(prev => {
-        const newVal = prev[key] + 1;
-        const updated = { ...prev, [key]: newVal };
-        try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
-        return updated;
-      });
-    } else if (item.category === 'powerup') {
-      setPendingPowerUps(prev => [...prev, item.type]);
-    }
-  }, [persistentCoins]);
 
   const handleBackToSplash = useCallback(() => {
     setScreenState('splash');
   }, []);
 
-  const handleStartGame = useCallback((level: number = 1) => {
-    setIsNewHighScore(false);
-    setGameState({
-      status: 'playing',
-      score: 0,
-      lives: 3,
-      level: level,
-      highScore: getStoredHighScore(),
-      coins: 0,
-      combo: 0,
-      maxCombo: 0,
-    });
-    setScreenState('playing');
-  }, []);
-
-  const handleGameOver = useCallback(() => {
-    setScreenState('gameover');
-    setGameState(prev => ({ ...prev, status: 'gameover' }));
-  }, []);
-
-  const handleLevelComplete = useCallback(() => {
-    const totalLevels = getTotalLevels();
-    // No interstitial ads for first 9 levels — give new players a smooth start.
-    if (gameState.level >= 10) showInterstitialAd();
-    // Rate-us prompt after first level-10 completion
-    if (gameState.level === 10 && shouldShowRatePrompt(10)) {
-      setTimeout(() => setShowRatePopup(true), 600);
+  const handleDailyRewardClose = useCallback((rewardCoins: number) => {
+    if (rewardCoins > 0) {
+      const newTotal = persistentCoins + rewardCoins;
+      setPersistentCoins(newTotal);
+      setStoredCoins(newTotal);
     }
-    if (gameState.level >= totalLevels) {
-      setScreenState('won');
-      setGameState(prev => ({ ...prev, status: 'won' }));
-    } else {
-      setScreenState('levelcomplete');
-      setGameState(prev => ({ ...prev, status: 'levelcomplete' }));
-    }
-  }, [gameState.level]);
+    setActiveModal('none');
+  }, [persistentCoins]);
 
-  const handleNextLevel = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      status: 'playing',
-      level: prev.level + 1,
-      lives: 3,
-    }));
-    setScreenState('playing');
+  const handleWheelClose = useCallback(() => {
+    setActiveModal('none');
+    setStoredCoins(persistentCoins);
+  }, [persistentCoins]);
+
+  const handleTutorialClose = useCallback(() => {
+    setActiveModal('none');
   }, []);
 
   const handleReplayLevel = useCallback(() => {
-    setIsNewHighScore(false);
     const currentLevel = gameState.level;
     const currentHighScore = gameState.highScore;
     setScreenState('menu');
@@ -363,6 +273,29 @@ const BrickBreakerGame: React.FC = () => {
     setStoredCoins(newTotal);
   }, [persistentCoins]);
 
+  const handleScoreChange = useCallback((score: number) => {
+    setGameState(prev => ({ ...prev, score }));
+  }, []);
+
+  const handleGameOver = useCallback(() => {
+    setScreenState('gameover');
+    setGameState(prev => ({ ...prev, status: 'gameover' }));
+  }, []);
+
+  const handleLevelComplete = useCallback(() => {
+    setGameState(prev => {
+      if (prev.level >= 500) {
+        setScreenState('won');
+        return { ...prev, status: 'won' };
+      }
+      return { ...prev, level: prev.level + 1 };
+    });
+  }, []);
+
+  const handleShopPurchase = useCallback((coins: number) => {
+    handleAddCoins(coins);
+  }, [handleAddCoins]);
+
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden font-sans select-none">
       <div className="relative mx-auto max-w-md h-screen shadow-2xl shadow-neon-cyan/20">
@@ -411,26 +344,28 @@ const BrickBreakerGame: React.FC = () => {
         )}
         
         {(screenState === 'playing' || screenState === 'paused') && (
-          <div className="relative w-full h-full">
-            <GameCanvas
-              gameState={gameState}
-              onGameOver={handleGameOver}
-              onLevelComplete={handleLevelComplete}
-              onScoreUpdate={(score, coins, combo, maxCombo) => setGameState(prev => ({ ...prev, score, coins, combo, maxCombo }))}
-              onLivesUpdate={(lives) => setGameState(prev => ({ ...prev, lives }))}
-              pendingPowerUps={pendingPowerUps}
-              onPowerUpUsed={() => setPendingPowerUps([])}
-              emergencyPowerUp={emergencyRef.current}
-              onEmergencyUsed={handleEmergencyUsed}
-            />
+          <div className="relative w-full h-full flex flex-col">
+            {/* HUD at the top */}
+            <div className="z-30 w-full pt-4 pb-2">
+              <GameUI
+                gameState={gameState}
+                persistentCoins={persistentCoins}
+              />
+            </div>
             
-            <GameUI
-              gameState={gameState}
-              onTogglePause={handleTogglePause}
-              onUseEmergency={handleUseEmergency}
-              emergencyCounts={emergencyCounts}
-            />
+            {/* Game Area */}
+            <div className="flex-1 relative overflow-hidden">
+              <GameCanvas
+                gameState={gameState}
+                setGameState={setGameState}
+                onGameOver={handleGameOver}
+                onLevelComplete={handleLevelComplete}
+                onScoreChange={handleScoreChange}
+                emergencyRef={emergencyRef}
+              />
+            </div>
 
+            {/* Pause Button Overlay */}
             <div className="absolute top-4 right-4 z-40">
               <button
                 onClick={handleTogglePause}
@@ -499,18 +434,34 @@ const BrickBreakerGame: React.FC = () => {
         {screenState === 'gameover' && (
           <GameOverScreen
             gameState={gameState}
-            isNewHighScore={isNewHighScore}
-            onRestart={handleStartGame}
+            onReplay={handleReplayLevel}
             onMainMenu={handleMainMenu}
+            isNewHighScore={isNewHighScore}
           />
         )}
-        {(screenState === 'levelcomplete' || screenState === 'won') && (
+        
+        {screenState === 'levelcomplete' && (
           <LevelCompleteScreen
             gameState={gameState}
-            onNextLevel={handleNextLevel}
+            onNextLevel={handleLevelComplete}
             onReplay={handleReplayLevel}
             onMainMenu={handleMainMenu}
           />
+        )}
+        
+        {screenState === 'won' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-50">
+            <div className="text-center p-8">
+              <h1 className="font-display text-5xl text-neon-yellow text-glow-yellow mb-4">VICTORY!</h1>
+              <p className="text-xl mb-8">You have conquered all 500 levels!</p>
+              <button
+                onClick={handleMainMenu}
+                className="py-3 px-8 bg-neon-cyan text-black font-display text-xl rounded-lg"
+              >
+                MAIN MENU
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
