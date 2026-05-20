@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Neon Brick Breaker Ball</string>
+    <string name="title_activity_main">Neon Brick Breaker Ball</string>
+    <string name="package_name">com.neonbrickbreaker.ball</string>
+    <string name="custom_url_scheme">com.neonbrickbreaker.ball</string>
+</resources>

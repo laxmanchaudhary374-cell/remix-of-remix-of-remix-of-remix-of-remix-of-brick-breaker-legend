@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { X, ShoppingBag, Tv } from 'lucide-react';
 import { purchaseCoinPackage } from '@/utils/billing';
 import { showRewardedAd } from '@/utils/admob';
@@ -23,22 +23,22 @@ export interface ShopItem {
 
 const SHOP_ITEMS: ShopItem[] = [
   // Emergency Power-ups (increment emergency counts)
-  { id: 'em_auto', name: 'Auto Paddle', description: 'Paddle moves automatically for 10s', cost: 50, category: 'emergency', type: 'auto', emoji: '🤖' },
-  { id: 'em_shock', name: 'Electric Shock', description: 'Chain lightning destroys bricks', cost: 75, category: 'emergency', type: 'shock', emoji: '⚡' },
-  { id: 'em_multi', name: 'Three-Ball', description: 'Multiplies all balls by 3', cost: 100, category: 'emergency', type: 'multi', emoji: '🔮' },
+  { id: 'em_auto', name: 'Auto Paddle', description: 'Paddle moves automatically for 10s', cost: 500, category: 'emergency', type: 'auto', emoji: '🤖' },
+  { id: 'em_shock', name: 'Electric Shock', description: 'Chain lightning destroys bricks', cost: 750, category: 'emergency', type: 'shock', emoji: '⚡' },
+  { id: 'em_multi', name: 'Three-Ball', description: 'Multiplies all balls by 3', cost: 1000, category: 'emergency', type: 'multi', emoji: '🔮' },
   // Standard Power-ups
-  { id: 'pu_shield', name: 'Shield', description: 'Safety net for 10 seconds', cost: 30, category: 'powerup', type: 'shield', emoji: '🛡️' },
-  { id: 'pu_fireball', name: 'Fireball', description: 'Ball destroys all bricks in one hit', cost: 50, category: 'powerup', type: 'fireball', emoji: '🔥' },
-  { id: 'pu_multiball', name: 'Multiball', description: 'Doubles all your balls', cost: 40, category: 'powerup', type: 'multiball', emoji: '⚡' },
-  { id: 'pu_extralife', name: 'Extra Life', description: 'Gain +1 life', cost: 80, category: 'powerup', type: 'extralife', emoji: '❤️' },
-  { id: 'pu_laser', name: 'Laser Gun', description: 'Paddle auto-fires lasers for 7s', cost: 60, category: 'powerup', type: 'laser', emoji: '🔫' },
-  { id: 'pu_magnet', name: 'Magnet', description: 'Ball sticks to paddle for aiming', cost: 35, category: 'powerup', type: 'magnet', emoji: '🧲' },
-  { id: 'pu_widen', name: 'Wide Paddle', description: 'Widens your paddle for 10s', cost: 25, category: 'powerup', type: 'widen', emoji: '↔️' },
-  { id: 'pu_sevenball', name: 'Seven Ball', description: 'Multiplies balls by 7!', cost: 100, category: 'powerup', type: 'sevenball', emoji: '✨' },
+  { id: 'pu_shield', name: 'Shield', description: 'Safety net for 10 seconds', cost: 300, category: 'powerup', type: 'shield', emoji: '🛡️' },
+  { id: 'pu_fireball', name: 'Fireball', description: 'Ball destroys all bricks in one hit', cost: 500, category: 'powerup', type: 'fireball', emoji: '🔥' },
+  { id: 'pu_multiball', name: 'Multiball', description: 'Doubles all your balls', cost: 400, category: 'powerup', type: 'multiball', emoji: '⚡' },
+  { id: 'pu_extralife', name: 'Extra Life', description: 'Gain +1 life', cost: 800, category: 'powerup', type: 'extralife', emoji: 'â¤ï¸' },
+  { id: 'pu_laser', name: 'Laser Gun', description: 'Paddle auto-fires lasers for 7s', cost: 600, category: 'powerup', type: 'laser', emoji: 'ðŸ”«' },
+  { id: 'pu_magnet', name: 'Magnet', description: 'Ball sticks to paddle for aiming', cost: 350, category: 'powerup', type: 'magnet', emoji: 'ðŸ§²' },
+  { id: 'pu_widen', name: 'Wide Paddle', description: 'Widens your paddle for 10s', cost: 250, category: 'powerup', type: 'widen', emoji: 'â†”ï¸' },
+  { id: 'pu_sevenball', name: 'Seven Ball', description: 'Multiplies balls by 7!', cost: 1000, category: 'powerup', type: 'sevenball', emoji: 'âœ¨' },
 ];
 
 const COIN_PACKAGES = [
-  { id: 'coin_starter', name: 'Starter Pack', coins: 100, price: '$0.99', emoji: '🪙' },
+  { id: 'coin_starter', name: 'Starter Pack', coins: 100, price: '$0.99', emoji: 'ðŸª™' },
   { id: 'coin_pro', name: 'Pro Pack', coins: 500, price: '$3.99', emoji: '💰' },
   { id: 'coin_whale', name: 'Whale Pack', coins: 1500, price: '$9.99', emoji: '👑' },
 ];
@@ -67,7 +67,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
     const coins = await purchaseCoinPackage(pkg.id);
     if (coins > 0) {
       onAddCoins(coins);
-      toast.success(`+${coins} coins added! 🪙`);
+      toast.success(`+${coins} coins added! ðŸª™`);
     }
   };
 
@@ -88,7 +88,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
     } else if (result.reward > 0) {
       onAddCoins(result.reward);
       setAdWatched(true);
-      toast.success(`+${result.reward} coins added! 🪙`);
+      toast.success(`+${result.reward} coins added! ðŸª™`);
       setTimeout(() => setAdWatched(false), 3000);
     } else {
       // If result.ok is true but reward is 0, it means they closed it early
@@ -130,7 +130,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-neon-yellow/30">
-              <span className="text-base">🪙</span>
+              <span className="text-base">ðŸª™</span>
               <span className="font-display text-sm text-neon-yellow">{coins}</span>
             </div>
             <button
@@ -145,9 +145,9 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
         {/* Tabs */}
         <div className="flex border-b border-border">
           {([
-            { key: 'emergency' as TabType, label: '🚨 EMERGENCY' },
+            { key: 'emergency' as TabType, label: 'ðŸš¨ EMERGENCY' },
             { key: 'powerup' as TabType, label: '⚡ POWER-UPS' },
-            { key: 'coins' as TabType, label: '🪙 COINS' },
+            { key: 'coins' as TabType, label: 'ðŸª™ COINS' },
           ]).map(tab => (
             <button
               key={tab.key}
@@ -173,7 +173,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
                   <Tv className="w-5 h-5 text-neon-green" />
                   <div>
                     <p className="font-display text-sm text-foreground">Watch Ad for 50 Coins</p>
-                    <p className="font-game text-xs text-muted-foreground">Free coins — just watch a short ad!</p>
+                    <p className="font-game text-xs text-muted-foreground">Free coins â€” just watch a short ad!</p>
                   </div>
                 </div>
                 <button
@@ -188,7 +188,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
                   }`}
                 >
                   {adWatched
-                    ? '✓ +50 Coins Added!'
+                    ? 'âœ“ +50 Coins Added!'
                     : adLoading
                     ? (
                       <span className="inline-flex items-center gap-2 justify-center">
@@ -197,11 +197,11 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
                       </span>
                     )
                     : adTimer !== null
-                    ? `⏳ Watching ad... ${adTimer}s`
-                    : '▶ Watch Ad'}
+                    ? `â³ Watching ad... ${adTimer}s`
+                    : 'â–¶ Watch Ad'}
                 </button>
                 {adError && (
-                  <p className="mt-2 text-xs font-game text-red-400 text-center">⚠ {adError}</p>
+                  <p className="mt-2 text-xs font-game text-red-400 text-center">⚠  {adError}</p>
                 )}
               </div>
 
@@ -272,9 +272,9 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
                         : 'bg-muted/50 text-muted-foreground cursor-not-allowed'
                     }`}
                   >
-                    {wasPurchased ? '✓' : (
+                    {wasPurchased ? 'âœ“' : (
                       <>
-                        <span>🪙</span>
+                        <span>ðŸª™</span>
                         <span>{item.cost}</span>
                       </>
                     )}

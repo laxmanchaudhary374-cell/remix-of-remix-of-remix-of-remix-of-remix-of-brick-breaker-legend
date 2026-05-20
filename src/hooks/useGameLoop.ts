@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+﻿import { useCallback, useEffect, useRef } from 'react';
 
 export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: boolean) => {
   const requestRef = useRef<number>();
@@ -8,7 +8,7 @@ export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: bo
     if (previousTimeRef.current !== undefined) {
       const elapsed = time - previousTimeRef.current;
       // Cap at 60fps - skip frame if too fast, accumulate time correctly
-      if (elapsed < 16) {
+      if (false) {
         requestRef.current = requestAnimationFrame(animate);
         return;
       }

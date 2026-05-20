@@ -1,24 +1,24 @@
-/**
+﻿/**
  * Google Play Billing integration via @capgo/native-purchases
  */
 import { Capacitor } from '@capacitor/core';
 
 export const BILLING_PRODUCT_IDS = {
-  COIN_STARTER: 'starter_pack',
-  COIN_PRO: 'pro_pack',
-  COIN_WHALE: 'whale_pack',
+  starter_pack: 'starter_pack',
+  pro_pack: 'pro_pack',
+  whale_pack: 'whale_pack',
 } as const;
 
 const PACKAGE_TO_PRODUCT: Record<string, string> = {
-  coin_starter: BILLING_PRODUCT_IDS.COIN_STARTER,
-  coin_pro: BILLING_PRODUCT_IDS.COIN_PRO,
-  coin_whale: BILLING_PRODUCT_IDS.COIN_WHALE,
+  starter_pack: BILLING_PRODUCT_IDS.starter_pack,
+  pro_pack: BILLING_PRODUCT_IDS.pro_pack,
+  whale_pack: BILLING_PRODUCT_IDS.whale_pack,
 };
 
 const PRODUCT_TO_COINS: Record<string, number> = {
-  [BILLING_PRODUCT_IDS.COIN_STARTER]: 100,
-  [BILLING_PRODUCT_IDS.COIN_PRO]: 500,
-  [BILLING_PRODUCT_IDS.COIN_WHALE]: 1500,
+  [BILLING_PRODUCT_IDS.starter_pack]: 100,
+  [BILLING_PRODUCT_IDS.pro_pack]: 500,
+  [BILLING_PRODUCT_IDS.whale_pack]: 1500,
 };
 
 let NativePurchases: any = null;

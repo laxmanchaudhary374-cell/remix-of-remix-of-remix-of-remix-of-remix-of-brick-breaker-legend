@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { App } from '@capacitor/app';
 import { GameState } from '@/types/game';
 import { getTotalLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
@@ -66,6 +67,18 @@ const getEmergencyCounts = () => {
 };
 
 const BrickBreakerGame: React.FC = () => {
+  useEffect(() => {
+    const backListener = App.addListener('backButton', () => {
+      if (screenState === 'playing' || screenState === 'paused' || screenState === 'gameover' || screenState === 'levelcomplete') {
+        setScreenState('menu');
+      } else if (screenState === 'menu') {
+        App.exitApp();
+      } else if (screenState === 'splash') {
+        App.exitApp();
+      }
+    });
+    return () => { backListener.then(l => l.remove()); };
+  }, [screenState]);
   const [showLangSelect, setShowLangSelect] = useState(() => !hasChosenLanguage());
   const [showRatePopup, setShowRatePopup] = useState(false);
   const [screenState, setScreenState] = useState<ScreenState>('splash');
@@ -76,12 +89,23 @@ const BrickBreakerGame: React.FC = () => {
   const [emergencyCounts, setEmergencyCounts] = useState(getEmergencyCounts);
   const emergencyRef = useRef<string | null>(null);
   const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | null>(null);
+  useEffect(() => {
+    const backListener = App.addListener('backButton', () => {
+      if (screenState === 'playing' || screenState === 'paused' || screenState === 'gameover' || screenState === 'levelcomplete') {
+        setScreenState('menu');
+      } else if (screenState === 'menu' || screenState === 'splash') {
+        App.exitApp();
+      }
+    });
+    return () => { backListener.then(l => l.remove()); };
+  }, [screenState]);
+
 
   const [gameState, setGameState] = useState<GameState>({
     status: 'menu',
     score: 0,
     lives: 3,
-    level: 1,
+    level: prev.level,
     highScore: getStoredHighScore(),
     coins: 0,
     combo: 0,
@@ -119,7 +143,7 @@ const BrickBreakerGame: React.FC = () => {
         const coinReward = gameState.level <= 10 ? 2 :
   gameState.level <= 20 ? 3 :
   gameState.level <= 30 ? 4 :
-  gameState.level <= 50 ? 5 : 6;
+  gameState.level <= 50 ? 5 : 1;
         const newTotal = persistentCoins + gameState.coins + coinReward;
         setPersistentCoins(newTotal);
         setStoredCoins(newTotal);
@@ -226,7 +250,7 @@ const BrickBreakerGame: React.FC = () => {
 
   const handleLevelComplete = useCallback(() => {
     const totalLevels = getTotalLevels();
-    // No interstitial ads for first 9 levels — give new players a smooth start.
+    // No interstitial ads for first 9 levels â€” give new players a smooth start.
     if (gameState.level >= 10) showInterstitialAd();
     // Rate-us prompt after first level-10 completion
     if (gameState.level === 10 && shouldShowRatePrompt(10)) {
@@ -280,7 +304,7 @@ const BrickBreakerGame: React.FC = () => {
       status: 'menu',
       score: 0,
       lives: 3,
-      level: 1,
+      level: prev.level,
     }));
   }, []);
 
@@ -295,7 +319,7 @@ const BrickBreakerGame: React.FC = () => {
       status: 'playing',
       score: 0,
       lives: 3,
-      level: 1,
+      level: prev.level,
       coins: 0,
       combo: 0,
       maxCombo: 0,
@@ -456,7 +480,7 @@ const BrickBreakerGame: React.FC = () => {
           <div className="absolute flex flex-col items-center z-30" style={{ right: '8px', bottom: '80px', gap: '10px' }}>
             {([
               { key: 'auto' as const, label: 'AUTO', isText: true },
-              { key: 'shock' as const, label: '⚡', isText: false },
+              { key: 'shock' as const, label: 'âš¡', isText: false },
               { key: 'multi' as const, label: null, isText: false },
             ]).map((btn) => (
               <button
@@ -510,8 +534,8 @@ const BrickBreakerGame: React.FC = () => {
             <div className="text-center p-6 rounded-xl border border-neon-cyan/30" style={{ background: 'linear-gradient(135deg, hsl(220,60%,8%), hsl(220,50%,14%))' }}>
               <h2 className="font-display text-xl text-neon-cyan text-glow-cyan mb-2">BUY POWER-UP</h2>
               <p className="text-foreground/80 text-sm mb-1">{EMERGENCY_PRICES[buyPrompt].label}</p>
-              <p className="text-neon-yellow font-bold text-lg mb-4">🪙 {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
-              <p className="text-muted-foreground text-xs mb-4">You have: 🪙 {persistentCoins}</p>
+              <p className="text-neon-yellow font-bold text-lg mb-4">ðŸª™ {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
+              <p className="text-muted-foreground text-xs mb-4">You have: ðŸª™ {persistentCoins}</p>
               <div className="flex flex-col gap-2">
                 <button
                   onClick={handleBuyEmergency}

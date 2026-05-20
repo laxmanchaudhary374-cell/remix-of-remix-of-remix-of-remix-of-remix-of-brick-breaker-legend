@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+﻿import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Ball, Brick, Paddle, PowerUp, Particle, GameState, Laser, Coin, Explosion, Plane, LevelCoin } from '@/types/game';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import { levels } from '@/utils/levels/index';
@@ -155,7 +155,7 @@ useEffect(() => {
       setLastPowerUpTime(0);
       levelCompletingRef.current = false;
       planeThrowAnimRef.current = 0;
-      // Reset to 0 — the completion-check effect will populate this
+      // Reset to 0 â€” the completion-check effect will populate this
       // once the new bricks state is reflected. Setting to the new count
       // here causes a false "level complete" because the effect runs first
       // against the OLD (all-destroyed) bricks state.
@@ -168,7 +168,7 @@ useEffect(() => {
         hasShield: false,
       }));
 
-      // Free laser gun POWER-UP drops for first 5 levels — user must catch it!
+      // Free laser gun POWER-UP drops for first 5 levels â€” user must catch it!
       if (gameState.level <= 5) {
         setTimeout(() => {
           if (levelCompletingRef.current) return;
@@ -659,7 +659,7 @@ useEffect(() => {
           const pushDir = ballX > paddleCenter ? -1 : 1;
           const newX = Math.max(0, Math.min(GAME_WIDTH - paddle.width, paddle.x + pushDir * 150));
           paddleTargetRef.current = newX;
-          // Override smooth movement — force instant jump
+          // Override smooth movement â€” force instant jump
           setPaddle(prev => ({ ...prev, x: newX }));
           break; // Only react to closest ball
         }
@@ -1033,7 +1033,7 @@ explosions.forEach(explosion => {
             
             if (distance < ball.radius + 12) {
                             // Reduced coin value from coin.value to 1
-              setGameState(prev => ({ ...prev, coins: prev.coins + 1 }));
+              if(Math.random() < 0.05) { setGameState(prev => ({ ...prev, coins: prev.coins + 1 })); }
               createParticles(coin.x, coin.y, 'hsl(45, 100%, 55%)', 10);
               audioManager.playCoinCollect();
               return { ...coin, collected: true };
@@ -1271,7 +1271,7 @@ explosions.forEach(explosion => {
           coin.x - 10 < paddle.x + paddle.width
         ) {
                     // Reduced coin value from coin.value to 1
-          setGameState(prev => ({ ...prev, coins: prev.coins + 1 }));
+          if(Math.random() < 0.05) { setGameState(prev => ({ ...prev, coins: prev.coins + 1 })); }
           createParticles(coin.x, coin.y, 'hsl(45, 100%, 55%)', 8);
           audioManager.playCoinCollect();
           return false;
@@ -1325,7 +1325,7 @@ explosions.forEach(explosion => {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Per-world tinted base background — keeps night-sky readability for ball/bricks.
+    // Per-world tinted base background â€” keeps night-sky readability for ball/bricks.
     const wbg = getWorldBg(gameState.level);
     const baseGrad = ctx.createRadialGradient(GAME_WIDTH / 2, GAME_HEIGHT * 0.3, 0, GAME_WIDTH / 2, GAME_HEIGHT * 0.5, GAME_WIDTH);
     baseGrad.addColorStop(0, `hsl(${wbg.inner.hue}, ${wbg.inner.sat}%, ${wbg.inner.light + 4}%)`);
