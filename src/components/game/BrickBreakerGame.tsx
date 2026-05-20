@@ -67,18 +67,6 @@ const getEmergencyCounts = () => {
 };
 
 const BrickBreakerGame: React.FC = () => {
-  useEffect(() => {
-    const backListener = App.addListener('backButton', () => {
-      if (screenState === 'playing' || screenState === 'paused' || screenState === 'gameover' || screenState === 'levelcomplete') {
-        setScreenState('menu');
-      } else if (screenState === 'menu') {
-        App.exitApp();
-      } else if (screenState === 'splash') {
-        App.exitApp();
-      }
-    });
-    return () => { backListener.then(l => l.remove()); };
-  }, [screenState]);
   const [showLangSelect, setShowLangSelect] = useState(() => !hasChosenLanguage());
   const [showRatePopup, setShowRatePopup] = useState(false);
   const [screenState, setScreenState] = useState<ScreenState>('splash');
@@ -89,6 +77,8 @@ const BrickBreakerGame: React.FC = () => {
   const [emergencyCounts, setEmergencyCounts] = useState(getEmergencyCounts);
   const emergencyRef = useRef<string | null>(null);
   const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | null>(null);
+
+  // BACK BUTTON HANDLER - Correct position to avoid Black Screen
   useEffect(() => {
     const backListener = App.addListener('backButton', () => {
       if (screenState === 'playing' || screenState === 'paused' || screenState === 'gameover' || screenState === 'levelcomplete') {
@@ -100,12 +90,11 @@ const BrickBreakerGame: React.FC = () => {
     return () => { backListener.then(l => l.remove()); };
   }, [screenState]);
 
-
   const [gameState, setGameState] = useState<GameState>({
     status: 'menu',
     score: 0,
     lives: 3,
-    level: prev.level,
+    level: 1,
     highScore: getStoredHighScore(),
     coins: 0,
     combo: 0,
@@ -114,15 +103,12 @@ const BrickBreakerGame: React.FC = () => {
 
   const [isNewHighScore, setIsNewHighScore] = useState(false);
 
-  // Initialize native monetization SDKs on mount
   useEffect(() => {
     initBilling().then(ok => ok && console.log('[Billing] Ready'));
     initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
     initDailyReminder();
   }, []);
 
-
-  // Update high score and unlocked level when game ends
   useEffect(() => {
     if (screenState === 'gameover' || screenState === 'won' || screenState === 'levelcomplete') {
       if (gameState.score > gameState.highScore) {
@@ -136,14 +122,13 @@ const BrickBreakerGame: React.FC = () => {
           setUnlockedLevel(nextLevel);
           setStoredUnlockedLevel(nextLevel);
         }
-        // Save star rating for this level
         const stars = calculateStars(gameState.lives, gameState.maxCombo, gameState.score, gameState.level);
         setLevelStars(gameState.level, stars);
         
         const coinReward = gameState.level <= 10 ? 2 :
-  gameState.level <= 20 ? 3 :
-  gameState.level <= 30 ? 4 :
-  gameState.level <= 50 ? 5 : 1;
+          gameState.level <= 20 ? 3 :
+          gameState.level <= 30 ? 4 :
+          gameState.level <= 50 ? 5 : 1;
         const newTotal = persistentCoins + gameState.coins + coinReward;
         setPersistentCoins(newTotal);
         setStoredCoins(newTotal);
@@ -211,7 +196,6 @@ const BrickBreakerGame: React.FC = () => {
     setPersistentCoins(newTotal);
     setStoredCoins(newTotal);
     if (item.category === 'emergency') {
-      // Increment emergency power-up counts (auto, shock, multi)
       const key = item.type as 'auto' | 'shock' | 'multi';
       setEmergencyCounts(prev => {
         const newVal = prev[key] + 1;
@@ -250,9 +234,7 @@ const BrickBreakerGame: React.FC = () => {
 
   const handleLevelComplete = useCallback(() => {
     const totalLevels = getTotalLevels();
-    // No interstitial ads for first 9 levels â€” give new players a smooth start.
     if (gameState.level >= 10) showInterstitialAd();
-    // Rate-us prompt after first level-10 completion
     if (gameState.level === 10 && shouldShowRatePrompt(10)) {
       setTimeout(() => setShowRatePopup(true), 600);
     }
@@ -348,7 +330,6 @@ const BrickBreakerGame: React.FC = () => {
   const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi') => {
     if (screenState !== 'playing') return;
     if (emergencyCounts[type] <= 0) {
-      // Show buy prompt and pause game
       setBuyPrompt(type);
       setScreenState('paused');
       setGameState(prev => ({ ...prev, status: 'paused' }));
@@ -370,7 +351,6 @@ const BrickBreakerGame: React.FC = () => {
     const newCoins = persistentCoins - price;
     setPersistentCoins(newCoins);
     setStoredCoins(newCoins);
-    // Add to inventory only - don't use immediately
     const key = buyPrompt as 'auto' | 'shock' | 'multi';
     setEmergencyCounts(prev => {
       const newVal = prev[key] + 1;
@@ -432,9 +412,7 @@ const BrickBreakerGame: React.FC = () => {
   return (
     <div 
       className="min-h-screen flex flex-col items-center justify-center p-2 select-none overflow-hidden"
-      style={{
-        background: worldBg.base,
-      }}
+      style={{ background: worldBg.base }}
     >
       <div className="fixed inset-0 bg-black/40 pointer-events-none" />
       {showRatePopup && <RateUsPopup onClose={() => setShowRatePopup(false)} />}
@@ -446,18 +424,12 @@ const BrickBreakerGame: React.FC = () => {
           onClick={handleTogglePause}
           className="fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-colors"
         >
-          {screenState === 'paused' ? (
-            <Play className="w-5 h-5 text-neon-cyan" />
-          ) : (
-            <Pause className="w-5 h-5 text-neon-cyan" />
-          )}
+          {screenState === 'paused' ? <Play className="w-5 h-5 text-neon-cyan" /> : <Pause className="w-5 h-5 text-neon-cyan" />}
         </button>
       )}
       
       <div className="relative z-10 mb-4 text-center">
-        <h1 className="font-display text-2xl font-bold text-glow-cyan text-foreground">
-          NEON BREAKER
-        </h1>
+        <h1 className="font-display text-2xl font-bold text-glow-cyan text-foreground">NEON BREAKER</h1>
       </div>
 
       <div className="relative z-10">
@@ -470,17 +442,15 @@ const BrickBreakerGame: React.FC = () => {
           setGameState={setGameState}
           onGameOver={handleGameOver}
           onLevelComplete={handleLevelComplete}
-          // Award level completion bonus
           onScoreChange={handleScoreChange}
           emergencyRef={emergencyRef}
         />
 
-        {/* Emergency Powerup Buttons - bottom right, matching reference image */}
         {screenState === 'playing' && (
           <div className="absolute flex flex-col items-center z-30" style={{ right: '8px', bottom: '80px', gap: '10px' }}>
             {([
               { key: 'auto' as const, label: 'AUTO', isText: true },
-              { key: 'shock' as const, label: 'âš¡', isText: false },
+              { key: 'shock' as const, label: '⚡', isText: false },
               { key: 'multi' as const, label: null, isText: false },
             ]).map((btn) => (
               <button
@@ -502,24 +472,15 @@ const BrickBreakerGame: React.FC = () => {
                 }}
               >
                 {btn.label === null ? (
-                  /* Three balls icon */
                   <svg width="28" height="28" viewBox="0 0 28 28">
                     <circle cx="14" cy="8" r="5" fill="white" />
                     <circle cx="7" cy="20" r="5" fill="white" />
                     <circle cx="21" cy="20" r="5" fill="white" />
                   </svg>
                 ) : btn.isText ? (
-                  <span className="font-bold text-base leading-none"
-                    style={{ color: 'hsl(50, 100%, 55%)', textShadow: '0 0 10px hsla(50, 100%, 50%, 0.8), 0 1px 2px rgba(0,0,0,0.5)', fontFamily: 'Orbitron, sans-serif' }}
-                  >
-                    {btn.label}
-                  </span>
+                  <span className="font-bold text-base leading-none" style={{ color: 'hsl(50, 100%, 55%)', textShadow: '0 0 10px hsla(50, 100%, 50%, 0.8), 0 1px 2px rgba(0,0,0,0.5)', fontFamily: 'Orbitron, sans-serif' }}>{btn.label}</span>
                 ) : (
-                  <span className="text-white font-bold text-2xl leading-none"
-                    style={{ textShadow: '0 0 10px hsla(200, 100%, 70%, 0.9), 0 1px 2px rgba(0,0,0,0.5)' }}
-                  >
-                    {btn.label}
-                  </span>
+                  <span className="text-white font-bold text-2xl leading-none" style={{ textShadow: '0 0 10px hsla(200, 100%, 70%, 0.9), 0 1px 2px rgba(0,0,0,0.5)' }}>{btn.label}</span>
                 )}
                 <span className="absolute flex items-center justify-center" style={{ bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.75)', border: '1.5px solid hsla(200, 100%, 70%, 0.4)' }}>
                   <span className="text-white font-bold" style={{ fontSize: '11px' }}>{emergencyCounts[btn.key]}</span>
@@ -534,22 +495,13 @@ const BrickBreakerGame: React.FC = () => {
             <div className="text-center p-6 rounded-xl border border-neon-cyan/30" style={{ background: 'linear-gradient(135deg, hsl(220,60%,8%), hsl(220,50%,14%))' }}>
               <h2 className="font-display text-xl text-neon-cyan text-glow-cyan mb-2">BUY POWER-UP</h2>
               <p className="text-foreground/80 text-sm mb-1">{EMERGENCY_PRICES[buyPrompt].label}</p>
-              <p className="text-neon-yellow font-bold text-lg mb-4">ðŸª™ {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
-              <p className="text-muted-foreground text-xs mb-4">You have: ðŸª™ {persistentCoins}</p>
+              <p className="text-neon-yellow font-bold text-lg mb-4">🪙 {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
+              <p className="text-muted-foreground text-xs mb-4">You have: 🪙 {persistentCoins}</p>
               <div className="flex flex-col gap-2">
-                <button
-                  onClick={handleBuyEmergency}
-                  disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-base rounded-lg transition-all transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
-                >
+                <button onClick={handleBuyEmergency} disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost} className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-base rounded-lg transition-all transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100">
                   {persistentCoins >= EMERGENCY_PRICES[buyPrompt].cost ? 'BUY' : 'NOT ENOUGH'}
                 </button>
-                <button
-                  onClick={handleCancelBuy}
-                  className="w-48 py-2 px-6 bg-muted/30 hover:bg-muted/50 text-foreground/70 font-display text-sm rounded-lg transition-all"
-                >
-                  CANCEL
-                </button>
+                <button onClick={handleCancelBuy} className="w-48 py-2 px-6 bg-muted/30 hover:bg-muted/50 text-foreground/70 font-display text-sm rounded-lg transition-all">CANCEL</button>
               </div>
             </div>
           </div>
@@ -560,48 +512,17 @@ const BrickBreakerGame: React.FC = () => {
             <div className="text-center p-6">
               <h2 className="font-display text-3xl text-neon-cyan text-glow-cyan mb-6">PAUSED</h2>
               <div className="flex flex-col gap-3">
-                <button
-                  onClick={handleTogglePause}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  RESUME
-                </button>
-                <button
-                  onClick={handleReplayLevel}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-neon-yellow to-neon-yellow/70 hover:from-neon-yellow/90 hover:to-neon-yellow/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  RETRY
-                </button>
-                <button
-                  onClick={handleMainMenu}
-                  className="w-48 py-3 px-6 bg-gradient-to-r from-muted-foreground to-muted-foreground/70 hover:from-muted-foreground/90 hover:to-muted-foreground/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105"
-                >
-                  MAIN MENU
-                </button>
+                <button onClick={handleTogglePause} className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105">RESUME</button>
+                <button onClick={handleReplayLevel} className="w-48 py-3 px-6 bg-gradient-to-r from-neon-yellow to-neon-yellow/70 hover:from-neon-yellow/90 hover:to-neon-yellow/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105">RETRY</button>
+                <button onClick={handleMainMenu} className="w-48 py-3 px-6 bg-gradient-to-r from-muted-foreground to-muted-foreground/70 hover:from-muted-foreground/90 hover:to-muted-foreground/60 text-black font-display text-lg rounded-lg transition-all transform hover:scale-105">MAIN MENU</button>
               </div>
             </div>
           </div>
         )}
         
-        {screenState === 'gameover' && (
-          <GameOverScreen
-            gameState={gameState}
-            isNewHighScore={isNewHighScore}
-            onRestart={handleRestart}
-            onMainMenu={handleMainMenu}
-          />
-        )}
-
-        {(screenState === 'levelcomplete' || screenState === 'won') && (
-          <LevelCompleteScreen
-            gameState={gameState}
-            onNextLevel={handleNextLevel}
-            onReplay={handleReplayLevel}
-            onMainMenu={handleMainMenu}
-          />
-        )}
+        {screenState === 'gameover' && <GameOverScreen gameState={gameState} isNewHighScore={isNewHighScore} onRestart={handleRestart} onMainMenu={handleMainMenu} />}
+        {(screenState === 'levelcomplete' || screenState === 'won') && <LevelCompleteScreen gameState={gameState} onNextLevel={handleNextLevel} onReplay={handleReplayLevel} onMainMenu={handleMainMenu} />}
       </div>
-
     </div>
   );
 };
