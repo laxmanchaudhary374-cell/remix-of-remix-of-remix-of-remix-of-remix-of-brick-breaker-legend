@@ -1,7 +1,7 @@
 ﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { App } from '@capacitor/app';
 import { GameState } from '@/types/game';
-import { getTotalLevels } from '@/utils/levels/index';
+import { getTotalLevels, getLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
 import GameUI from './GameUI';
 import SplashScreen from './SplashScreen';
@@ -67,7 +67,7 @@ const getEmergencyCounts = () => {
 };
 
 const BrickBreakerGame: React.FC = () => {
-  const [showLangSelect, setShowLangSelect] = useState(() => !hasChosenLanguage());
+   const [showLangSelect, setShowLangSelect] = useState(false);
   const [showRatePopup, setShowRatePopup] = useState(false);
   const [screenState, setScreenState] = useState<ScreenState>('splash');
   const [unlockedLevel, setUnlockedLevel] = useState(getStoredUnlockedLevel());
@@ -103,8 +103,11 @@ const BrickBreakerGame: React.FC = () => {
 
   const [isNewHighScore, setIsNewHighScore] = useState(false);
 
-  useEffect(() => {
+    useEffect(() => {
+    setShowLangSelect(!hasChosenLanguage()); // Add this line here
     initBilling().then(ok => ok && console.log('[Billing] Ready'));
+    // ... rest of the code
+
     initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
     initDailyReminder();
   }, []);
@@ -392,18 +395,19 @@ const BrickBreakerGame: React.FC = () => {
         {activeModal === 'tutorial' && <TutorialOverlay onClose={handleTutorialClose} />}
         {activeModal === 'daily' && <DailyRewards onClose={handleDailyRewardClose} />}
         {activeModal === 'wheel' && <LuckyWheel onClose={handleWheelClose} />}
-        {activeModal === 'shop' && (
-          <ShopScreen
-            coins={persistentCoins}
-            onPurchase={handleShopPurchase}
-            onAddCoins={(amount: number) => {
-              const newTotal = persistentCoins + amount;
-              setPersistentCoins(newTotal);
-              setStoredCoins(newTotal);
-            }}
-            onClose={() => setActiveModal('none')}
-          />
-        )}
+        {/* PASTE THIS BLOCK INSTEAD */}
+{activeModal === 'shop' && (
+  <ShopScreen
+    onClose={() => setActiveModal('none')}
+    coins={persistentCoins}
+    addCoins={(amount: number) => {
+      const newTotal = persistentCoins + amount;
+      setPersistentCoins(newTotal);
+      setStoredCoins(newTotal);
+    }}
+  />
+)}
+
       </>
     );
   }
@@ -495,8 +499,8 @@ const BrickBreakerGame: React.FC = () => {
             <div className="text-center p-6 rounded-xl border border-neon-cyan/30" style={{ background: 'linear-gradient(135deg, hsl(220,60%,8%), hsl(220,50%,14%))' }}>
               <h2 className="font-display text-xl text-neon-cyan text-glow-cyan mb-2">BUY POWER-UP</h2>
               <p className="text-foreground/80 text-sm mb-1">{EMERGENCY_PRICES[buyPrompt].label}</p>
-              <p className="text-neon-yellow font-bold text-lg mb-4">🪙 {EMERGENCY_PRICES[buyPrompt].cost} Coins</p>
-              <p className="text-muted-foreground text-xs mb-4">You have: 🪙 {persistentCoins}</p>
+              <p className="text-neon-yellow font-bold text-lg mb-4">COST: {EMERGENCY_PRICES[buyPrompt].cost} COINS</p>
+              <p className="text-muted-foreground text-xs mb-4">YOU HAVE: {persistentCoins} COINS</p>
               <div className="flex flex-col gap-2">
                 <button onClick={handleBuyEmergency} disabled={persistentCoins < EMERGENCY_PRICES[buyPrompt].cost} className="w-48 py-3 px-6 bg-gradient-to-r from-neon-cyan to-neon-cyan/70 hover:from-neon-cyan/90 hover:to-neon-cyan/60 text-black font-display text-base rounded-lg transition-all transform hover:scale-105 disabled:opacity-40 disabled:hover:scale-100">
                   {persistentCoins >= EMERGENCY_PRICES[buyPrompt].cost ? 'BUY' : 'NOT ENOUGH'}

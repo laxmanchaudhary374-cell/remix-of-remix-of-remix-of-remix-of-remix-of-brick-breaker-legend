@@ -1,5 +1,7 @@
 ﻿import { useCallback, useEffect, useRef } from 'react';
 
+const MAX_DELTA = 1000 / 30; // Never simulate more than 30ms
+
 export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: boolean) => {
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>();
@@ -7,12 +9,7 @@ export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: bo
   const animate = useCallback((time: number) => {
     if (previousTimeRef.current !== undefined) {
       const elapsed = time - previousTimeRef.current;
-      // Cap at 60fps - skip frame if too fast, accumulate time correctly
-      if (false) {
-        requestRef.current = requestAnimationFrame(animate);
-        return;
-      }
-      const deltaTime = Math.min(elapsed / 1000, 0.1);
+      const deltaTime = Math.min(elapsed, MAX_DELTA) / 1000; 
       callback(deltaTime);
     }
     previousTimeRef.current = time;
@@ -23,16 +20,11 @@ export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: bo
     if (isRunning) {
       requestRef.current = requestAnimationFrame(animate);
     } else {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
       previousTimeRef.current = undefined;
     }
-    
     return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   }, [isRunning, animate]);
 };

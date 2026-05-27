@@ -1,6 +1,3 @@
-/**
- * AdMob integration via @capacitor-community/admob (Updated for v8.0.0)
- */
 import { Capacitor } from '@capacitor/core';
 
 export const AD_UNIT_IDS = {
@@ -9,33 +6,32 @@ export const AD_UNIT_IDS = {
   BANNER: 'ca-app-pub-6637721495380199/1558102866',
 } as const;
 
-export const ADMOB_APP_ID = 'ca-app-pub-6637721495380199~8632290443';
-
 let AdMob: any = null;
 let initialized = false;
 
-async function getAdMobPlugin() {
+async function getPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
   if (!AdMob) {
-    const mod = await import('@capacitor-community/admob');
-    AdMob = mod.AdMob;
+    try {
+      const mod = await import('@capacitor-community/admob');
+      AdMob = mod.AdMob;
+    } catch (e) {
+      console.error('[AdMob] Import failed:', e);
+      return null;
+    }
   }
   return AdMob;
 }
 
 export async function initAdMob(): Promise<boolean> {
-  const admob = await getAdMobPlugin();
+  const admob = await getPlugin();
   if (!admob || initialized) return initialized;
-
   try {
-    await admob.initialize({
-      initializeForTesting: false,
-    });
-    
+    await admob.initialize({ initializeForTesting: false });
     initialized = true;
     return true;
   } catch (err) {
-    console.error('[AdMob] Failed to init:', err);
+    console.error('[AdMob] Init failed:', err);
     return false;
   }
 }
@@ -45,52 +41,49 @@ export type RewardedAdResult =
   | { ok: false; error: string };
 
 export async function showRewardedAd(): Promise<RewardedAdResult> {
-  const admob = await getAdMobPlugin();
+  const admob = await getPlugin();
   if (!admob) {
-    return { ok: false, error: 'Ads are only available in the installed app.' };
+    return { ok: false, error: 'Ads only available in installed app.' };
   }
+  if (!initialized) await initAdMob();
 
   return new Promise(async (resolve) => {
     let settled = false;
-    const finish = (r: RewardedAdResult) => { if (!settled) { settled = true; resolve(r); } };
+    const finish = (r: RewardedAdResult) => {
+      if (!settled) { settled = true; resolve(r); }
+    };
 
     const timeout = setTimeout(() => {
-      finish({ ok: false, error: 'Ad took too long to load. Check your internet and try again.' });
+      finish({ ok: false, error: 'Ad timeout. Check internet and try again.' });
     }, 30000);
 
     try {
       let rewardGranted = false;
 
-      // Correct event names for version 8.0.0
-      const rewardListener = await admob.addListener('onRewardedVideoAdRewarded', () => {
+      const rewardListener = await admob.addListener('rewarded', () => {
         rewardGranted = true;
       });
-      
-      const closeListener = await admob.addListener('onRewardedVideoAdClosed', () => {
+
+      const closeListener = await admob.addListener('dismissed', () => {
         clearTimeout(timeout);
         rewardListener.remove();
         closeListener.remove();
         finish({ ok: true, reward: rewardGranted ? 50 : 0 });
       });
 
-      // Correct method names for version 8.0.0
-      await admob.prepareRewardVideoAd({
-        adId: AD_UNIT_IDS.REWARDED_COINS,
-      });
-      
-      await admob.showRewardVideoAd();
+      await admob.prepareRewarded({ adId: AD_UNIT_IDS.REWARDED_COINS });
+      await admob.showRewarded();
+
     } catch (err: any) {
       clearTimeout(timeout);
-      console.error('[AdMob] Rewarded ad error:', err);
-      finish({ ok: false, error: err?.message || 'Ad failed to load. Please try again later.' });
+      finish({ ok: false, error: err?.message || 'Ad failed to load.' });
     }
   });
 }
 
 export async function showBannerAd(): Promise<void> {
-  const admob = await getAdMobPlugin();
+  const admob = await getPlugin();
   if (!admob) return;
-
   try {
     await admob.showBanner({
       adId: AD_UNIT_IDS.BANNER,
@@ -104,19 +97,13 @@ export async function showBannerAd(): Promise<void> {
 }
 
 let lastInterstitialTime = 0;
-const INTERSTITIAL_COOLDOWN = 60000;
-
 export async function showInterstitialAd(): Promise<void> {
-  const admob = await getAdMobPlugin();
+  const admob = await getPlugin();
   if (!admob) return;
-
   const now = Date.now();
-  if (now - lastInterstitialTime < INTERSTITIAL_COOLDOWN) return;
-
+  if (now - lastInterstitialTime < 60000) return;
   try {
-    await admob.prepareInterstitial({
-      adId: AD_UNIT_IDS.INTERSTITIAL,
-    });
+    await admob.prepareInterstitial({ adId: AD_UNIT_IDS.INTERSTITIAL });
     await admob.showInterstitial();
     lastInterstitialTime = now;
   } catch (err) {

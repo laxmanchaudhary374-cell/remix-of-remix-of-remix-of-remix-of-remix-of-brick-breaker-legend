@@ -1,292 +1,147 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, Tv } from 'lucide-react';
-import { purchaseCoinPackage } from '@/utils/billing';
-import { showRewardedAd } from '@/utils/admob';
-import { toast } from 'sonner';
+import { X, Zap, Shield, ShoppingBag, AlertCircle, CheckCircle2, Package, Loader2 } from 'lucide-react';
+import { useLanguage } from '../../utils/i18n';
+import { initAdMob, showRewardedAd } from '../../utils/admob';
+import { initBilling, purchaseProduct, BILLING_PRODUCT_IDS } from '../../utils/billing';
 
+// We are using props because the parent (BrickBreakerGame) manages the state
 interface ShopScreenProps {
-  coins: number;
-  onPurchase: (item: ShopItem) => void;
-  onAddCoins: (amount: number) => void;
   onClose: () => void;
+  coins: number;
+  addCoins: (amount: number) => void;
 }
 
-export interface ShopItem {
-  id: string;
-  name: string;
-  description: string;
-  cost: number;
-  category: 'powerup' | 'emergency' | 'skin';
-  type: string;
-  emoji: string;
-}
-
-const SHOP_ITEMS: ShopItem[] = [
-  // Emergency Power-ups (increment emergency counts)
-  { id: 'em_auto', name: 'Auto Paddle', description: 'Paddle moves automatically for 10s', cost: 500, category: 'emergency', type: 'auto', emoji: '🤖' },
-  { id: 'em_shock', name: 'Electric Shock', description: 'Chain lightning destroys bricks', cost: 750, category: 'emergency', type: 'shock', emoji: '⚡' },
-  { id: 'em_multi', name: 'Three-Ball', description: 'Multiplies all balls by 3', cost: 1000, category: 'emergency', type: 'multi', emoji: '🔮' },
-  // Standard Power-ups
-  { id: 'pu_shield', name: 'Shield', description: 'Safety net for 10 seconds', cost: 300, category: 'powerup', type: 'shield', emoji: '🛡️' },
-  { id: 'pu_fireball', name: 'Fireball', description: 'Ball destroys all bricks in one hit', cost: 500, category: 'powerup', type: 'fireball', emoji: '🔥' },
-  { id: 'pu_multiball', name: 'Multiball', description: 'Doubles all your balls', cost: 400, category: 'powerup', type: 'multiball', emoji: '⚡' },
-  { id: 'pu_extralife', name: 'Extra Life', description: 'Gain +1 life', cost: 800, category: 'powerup', type: 'extralife', emoji: 'â¤ï¸' },
-  { id: 'pu_laser', name: 'Laser Gun', description: 'Paddle auto-fires lasers for 7s', cost: 600, category: 'powerup', type: 'laser', emoji: 'ðŸ”«' },
-  { id: 'pu_magnet', name: 'Magnet', description: 'Ball sticks to paddle for aiming', cost: 350, category: 'powerup', type: 'magnet', emoji: 'ðŸ§²' },
-  { id: 'pu_widen', name: 'Wide Paddle', description: 'Widens your paddle for 10s', cost: 250, category: 'powerup', type: 'widen', emoji: 'â†”ï¸' },
-  { id: 'pu_sevenball', name: 'Seven Ball', description: 'Multiplies balls by 7!', cost: 1000, category: 'powerup', type: 'sevenball', emoji: 'âœ¨' },
-];
-
-const COIN_PACKAGES = [
-  { id: 'coin_starter', name: 'Starter Pack', coins: 100, price: '$0.99', emoji: 'ðŸª™' },
-  { id: 'coin_pro', name: 'Pro Pack', coins: 500, price: '$3.99', emoji: '💰' },
-  { id: 'coin_whale', name: 'Whale Pack', coins: 1500, price: '$9.99', emoji: '👑' },
-];
-
-type TabType = 'emergency' | 'powerup' | 'coins';
-
-const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, onClose }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('emergency');
-  const [purchased, setPurchased] = useState<string[]>([]);
-  const [adTimer, setAdTimer] = useState<number | null>(null);
-  const [adWatched, setAdWatched] = useState(false);
-  const [adLoading, setAdLoading] = useState(false);
+export const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => {
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState<'emergency' | 'powerups' | 'coins'>('emergency');
+  const [isAdLoading, setIsAdLoading] = useState(false);
   const [adError, setAdError] = useState<string | null>(null);
+  const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null);
+  const [purchaseMessage, setPurchaseMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
-  const filteredItems = SHOP_ITEMS.filter(item => item.category === activeTab);
-
-  const handleBuy = (item: ShopItem) => {
-    if (coins < item.cost) return;
-    onPurchase(item);
-    setPurchased(prev => [...prev, item.id]);
-    // Clear purchased indicator after 1s so user can buy again
-    setTimeout(() => setPurchased(prev => prev.filter(id => id !== item.id)), 1000);
-  };
-
-  const handleBuyCoins = async (pkg: typeof COIN_PACKAGES[0]) => {
-    const coins = await purchaseCoinPackage(pkg.id);
-    if (coins > 0) {
-      onAddCoins(coins);
-      toast.success(`+${coins} coins added! ðŸª™`);
-    }
-  };
+  useEffect(() => {
+    initAdMob().catch(console.error);
+    initBilling().catch(console.error);
+  }, []);
 
   const handleWatchAd = async () => {
-    if (adTimer !== null || adLoading) return;
+    if (isAdLoading) return;
+    setIsAdLoading(true);
     setAdError(null);
-    setAdLoading(true);
-    
-    // We don't set the timer here anymore. 
-    // The timer should only start when the ad is actually playing.
-    
-    const result = await showRewardedAd();
-    
-    setAdLoading(false);
-    if (result.ok === false) {
-      setAdError(result.error);
-      setTimeout(() => setAdError(null), 5000);
-    } else if (result.reward > 0) {
-      onAddCoins(result.reward);
-      setAdWatched(true);
-      toast.success(`+${result.reward} coins added! ðŸª™`);
-      setTimeout(() => setAdWatched(false), 3000);
-    } else {
-      // If result.ok is true but reward is 0, it means they closed it early
-      setAdError('Ad was closed before finishing. No coins awarded.');
-      setTimeout(() => setAdError(null), 4000);
+    try {
+      const result = await showRewardedAd();
+      if (result.ok && result.reward > 0) {
+        addCoins(result.reward);
+        setPurchaseMessage({ type: 'success', text: `+${result.reward} COINS RECEIVED!` });
+      } else if (!result.ok) {
+        setAdError(result.error);
+      }
+    } catch (error) {
+      setAdError('Failed to load ad.');
+    } finally {
+      setIsAdLoading(false);
     }
   };
 
-  // Timer display for web preview ad simulation
-  useEffect(() => {
-    if (adTimer === null || adTimer <= 0) return;
-    const interval = setInterval(() => {
-      setAdTimer(prev => {
-        if (prev === null || prev <= 1) return prev;
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [adTimer]);
+  const handlePurchase = async (productId: string, amount: number) => {
+    setPurchaseLoading(productId);
+    setPurchaseMessage(null);
+    try {
+      const success = await purchaseProduct(productId);
+      if (success) {
+        addCoins(amount);
+        setPurchaseMessage({ type: 'success', text: `SUCCESS! +${amount} COINS ADDED.` });
+      } else {
+        setPurchaseMessage({ type: 'error', text: 'PURCHASE FAILED.' });
+      }
+    } catch (error) {
+      setPurchaseMessage({ type: 'error', text: 'BILLING ERROR.' });
+    } finally {
+      setPurchaseLoading(null);
+    }
+  };
+
+  const coinPacks = [
+    { id: BILLING_PRODUCT_IDS.starter_pack, name: 'STARTER PACK', amount: 100, price: '$0.99' },
+    { id: BILLING_PRODUCT_IDS.pro_pack, name: 'PRO PACK', amount: 500, price: '$3.99' },
+    { id: BILLING_PRODUCT_IDS.whale_pack, name: 'WHALE PACK', amount: 1500, price: '$9.99' },
+  ];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div
-        className="relative w-full max-w-sm rounded-2xl overflow-hidden border border-neon-cyan/20 shadow-2xl"
-        style={{
-          background: 'linear-gradient(160deg, hsl(240 25% 10%) 0%, hsl(260 30% 8%) 100%)',
-          boxShadow: '0 0 60px hsla(180, 100%, 50%, 0.1)',
-          maxHeight: '90vh',
-        }}
-      >
-        {/* Header */}
-        <div
-          className="px-5 py-4 flex items-center justify-between"
-          style={{ background: 'linear-gradient(180deg, hsl(220 50% 18%) 0%, hsl(240 40% 12%) 100%)' }}
-        >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="relative w-full max-w-md bg-slate-900 border-2 border-cyan-500/50 rounded-2xl flex flex-col max-h-[90vh]">
+        <div className="p-4 border-b border-cyan-500/20 flex items-center justify-between bg-slate-800/50">
           <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-neon-cyan" />
-            <h2 className="font-display text-lg font-black text-foreground">SHOP</h2>
+            <ShoppingBag className="w-6 h-6 text-cyan-400" />
+            <h2 className="text-xl font-bold text-white uppercase">{t('shop')}</h2>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-neon-yellow/30">
-              <span className="text-base">ðŸª™</span>
-              <span className="font-display text-sm text-neon-yellow">{coins}</span>
+          <div className="flex items-center gap-3">
+            <div className="bg-slate-950/80 px-3 py-1 rounded-full border border-yellow-500/30 flex items-center gap-2">
+              <span className="text-yellow-400 font-bold">COINS:</span>
+              <span className="text-white font-mono">{coins}</span>
             </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
+            <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full">
+              <X className="w-6 h-6 text-slate-400" />
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-border">
-          {([
-            { key: 'emergency' as TabType, label: 'ðŸš¨ EMERGENCY' },
-            { key: 'powerup' as TabType, label: '⚡ POWER-UPS' },
-            { key: 'coins' as TabType, label: 'ðŸª™ COINS' },
-          ]).map(tab => (
+        <div className="flex border-b border-cyan-500/10">
+          {(['emergency', 'coins'] as const).map((tab) => (
             <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 py-3 font-display text-xs transition-all ${
-                activeTab === tab.key
-                  ? 'text-neon-cyan border-b-2 border-neon-cyan'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={`flex-1 py-3 text-xs font-bold uppercase ${activeTab === tab ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500'}`}
             >
-              {tab.label}
+              {tab}
             </button>
           ))}
         </div>
 
-        {/* Items */}
-        <div className="overflow-y-auto p-4 space-y-3" style={{ maxHeight: '55vh' }}>
-          {activeTab === 'coins' ? (
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {purchaseMessage && (
+            <div className={`p-3 rounded-lg flex items-center gap-3 ${purchaseMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+              {purchaseMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+              <span className="text-sm font-bold">{purchaseMessage.text}</span>
+            </div>
+          )}
+
+          {activeTab === 'emergency' && (
+            <div className="bg-slate-800/40 border border-cyan-500/20 rounded-xl p-6 text-center space-y-4">
+              <h3 className="text-lg font-bold text-white">FREE COINS</h3>
+              <p className="text-slate-400 text-sm">WATCH A SHORT VIDEO TO GET 50 COINS.</p>
+              <button
+                onClick={handleWatchAd}
+                disabled={isAdLoading}
+                className="w-full py-3 rounded-xl font-bold bg-cyan-600 text-white disabled:bg-slate-800"
+              >
+                {isAdLoading ? 'LOADING AD...' : 'WATCH NOW'}
+              </button>
+              {adError && <p className="text-red-400 text-xs">{adError}</p>}
+            </div>
+          )}
+
+          {activeTab === 'coins' && (
             <div className="space-y-3">
-              {/* Watch Ad */}
-              <div className="p-4 rounded-xl border border-neon-green/30 bg-neon-green/5">
-                <div className="flex items-center gap-3 mb-3">
-                  <Tv className="w-5 h-5 text-neon-green" />
+              {coinPacks.map((pack) => (
+                <div key={pack.id} className="bg-slate-800/40 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-display text-sm text-foreground">Watch Ad for 50 Coins</p>
-                    <p className="font-game text-xs text-muted-foreground">Free coins â€” just watch a short ad!</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleWatchAd}
-                  disabled={adTimer !== null || adLoading}
-                  className={`w-full py-3 rounded-lg font-display text-sm font-bold transition-all ${
-                    adWatched
-                      ? 'bg-neon-green/20 text-neon-green'
-                      : adLoading || adTimer !== null
-                      ? 'bg-muted/30 text-muted-foreground cursor-wait'
-                      : 'bg-neon-green/80 text-black hover:bg-neon-green hover:scale-[1.02] active:scale-95'
-                  }`}
-                >
-                  {adWatched
-                    ? 'âœ“ +50 Coins Added!'
-                    : adLoading
-                    ? (
-                      <span className="inline-flex items-center gap-2 justify-center">
-                        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        Loading ad...
-                      </span>
-                    )
-                    : adTimer !== null
-                    ? `â³ Watching ad... ${adTimer}s`
-                    : 'â–¶ Watch Ad'}
-                </button>
-                {adError && (
-                  <p className="mt-2 text-xs font-game text-red-400 text-center">⚠  {adError}</p>
-                )}
-              </div>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-border" />
-                <span className="font-game text-xs text-muted-foreground">OR BUY</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-
-              {/* Coin Packages */}
-              {COIN_PACKAGES.map(pkg => (
-                <div
-                  key={pkg.id}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-neon-yellow/20 bg-muted/20 hover:border-neon-yellow/40 hover:bg-muted/30 transition-all"
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                    style={{ background: 'hsl(240 20% 18%)' }}
-                  >
-                    {pkg.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-sm text-foreground leading-none mb-0.5">{pkg.name}</p>
-                    <p className="font-game text-xs text-neon-yellow leading-tight">{pkg.coins} Coins</p>
+                    <h4 className="text-white font-bold">{pack.name}</h4>
+                    <p className="text-yellow-500/80 text-xs font-bold">{pack.amount} COINS</p>
                   </div>
                   <button
-                    onClick={() => handleBuyCoins(pkg)}
-                    className="flex-shrink-0 px-4 py-2 rounded-lg font-display text-xs font-bold bg-neon-yellow/90 text-black hover:bg-neon-yellow hover:scale-105 active:scale-95 transition-all"
+                    onClick={() => handlePurchase(pack.id, pack.amount)}
+                    disabled={purchaseLoading !== null}
+                    className="px-6 py-2 rounded-lg font-bold text-sm bg-green-600 text-white"
                   >
-                    {pkg.price}
+                    {purchaseLoading === pack.id ? <Loader2 className="w-4 h-4 animate-spin" /> : pack.price}
                   </button>
                 </div>
               ))}
-
             </div>
-          ) : (
-            filteredItems.map(item => {
-              const canAfford = coins >= item.cost;
-              const wasPurchased = purchased.includes(item.id);
-              return (
-                <div
-                  key={item.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                    canAfford
-                      ? 'border-neon-cyan/20 bg-muted/20 hover:border-neon-cyan/40 hover:bg-muted/30'
-                      : 'border-muted/20 bg-muted/10 opacity-60'
-                  }`}
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                    style={{ background: 'hsl(240 20% 18%)' }}
-                  >
-                    {item.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-sm text-foreground leading-none mb-0.5">{item.name}</p>
-                    <p className="font-game text-xs text-muted-foreground leading-tight">{item.description}</p>
-                  </div>
-                  <button
-                    onClick={() => handleBuy(item)}
-                    disabled={!canAfford || wasPurchased}
-                    className={`flex-shrink-0 flex items-center gap-1 px-3 py-2 rounded-lg font-display text-xs font-bold transition-all ${
-                      wasPurchased
-                        ? 'bg-neon-green/20 text-neon-green cursor-default'
-                        : canAfford
-                        ? 'bg-neon-yellow/90 text-black hover:bg-neon-yellow hover:scale-105 active:scale-95'
-                        : 'bg-muted/50 text-muted-foreground cursor-not-allowed'
-                    }`}
-                  >
-                    {wasPurchased ? 'âœ“' : (
-                      <>
-                        <span>ðŸª™</span>
-                        <span>{item.cost}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              );
-            })
           )}
         </div>
       </div>
     </div>
   );
 };
-
-export default ShopScreen;
