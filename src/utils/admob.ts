@@ -29,6 +29,7 @@ export async function initAdMob(): Promise<boolean> {
   try {
     await admob.initialize({ initializeForTesting: false });
     initialized = true;
+    console.log('[AdMob] Initialized successfully');
     return true;
   } catch (err) {
     console.error('[AdMob] Init failed:', err);
@@ -60,14 +61,16 @@ export async function showRewardedAd(): Promise<RewardedAdResult> {
     try {
       let rewardGranted = false;
 
-      const rewardListener = await admob.addListener('rewarded', () => {
+      const rewardListener = await admob.addListener('rewarded', (reward: any) => {
+        console.log('[AdMob] Reward received:', reward);
         rewardGranted = true;
       });
 
-      const closeListener = await admob.addListener('dismissed', () => {
+      const dismissedListener = await admob.addListener('rewardedVideoDismissed', () => {
+        console.log('[AdMob] Ad dismissed, rewardGranted=', rewardGranted);
         clearTimeout(timeout);
         rewardListener.remove();
-        closeListener.remove();
+        dismissedListener.remove();
         finish({ ok: true, reward: rewardGranted ? 50 : 0 });
       });
 
@@ -76,6 +79,7 @@ export async function showRewardedAd(): Promise<RewardedAdResult> {
 
     } catch (err: any) {
       clearTimeout(timeout);
+      console.error('[AdMob] Error:', err);
       finish({ ok: false, error: err?.message || 'Ad failed to load.' });
     }
   });
