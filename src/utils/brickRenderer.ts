@@ -833,6 +833,7 @@ export const drawPremiumPaddle = (
   hasShield: boolean = false,
   isGhost: boolean = false
 ): void => {
+  if (isInvalid(x, y, width, height)) return;
   ctx.save();
   
   const h = 22;
