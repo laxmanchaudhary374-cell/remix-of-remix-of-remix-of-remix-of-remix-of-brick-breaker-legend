@@ -3,6 +3,8 @@
 
 import { Brick, BrickColor, BrickType } from '@/types/game';
 
+const isInvalid = (...vals: any[]) => vals.some(v => typeof v !== 'number' || isNaN(v) || !isFinite(v));
+
 // Material types that match the reference image
 type MaterialType = 'copper' | 'ice' | 'metal' | 'wood' | 'glass' | 'diamond';
 
