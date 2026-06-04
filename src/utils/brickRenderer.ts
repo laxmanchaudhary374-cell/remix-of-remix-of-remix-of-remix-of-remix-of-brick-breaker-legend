@@ -532,7 +532,7 @@ export const drawPremiumBrick = (
   brick: Brick,
   gameTime: number = 0
 ): void => {
-  if (!brick || isNaN(brick.x) || isNaN(brick.y) || isNaN(brick.width) || isNaN(brick.height)) return;
+  if (!brick || isInvalid(brick.x, brick.y, brick.width, brick.height)) return;
   const { x, y, width, height, color, type, hits, maxHits } = brick;
   
   // Ghost bricks: flicker visible/invisible every 1 second
