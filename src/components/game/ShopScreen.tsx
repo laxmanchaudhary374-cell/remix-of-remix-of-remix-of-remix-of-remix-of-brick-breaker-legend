@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { X, ShoppingBag, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { useLanguage } from '@/utils/i18n';
+import { useI18n } from '@/utils/i18n';
 import { initAdMob, showRewardedAd } from '@/utils/admob';
 import { initBilling, purchaseProduct, BILLING_PRODUCT_IDS } from '@/utils/billing';
 
@@ -21,7 +21,7 @@ interface ShopScreenProps {
 }
 
 const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => {
-  const { t } = useLanguage();
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'emergency' | 'coins'>('emergency');
   const [isAdLoading, setIsAdLoading] = useState(false);
   const [adError, setAdError] = useState<string | null>(null);
