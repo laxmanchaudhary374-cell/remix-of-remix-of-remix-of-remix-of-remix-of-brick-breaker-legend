@@ -476,6 +476,7 @@ const drawGlassBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
 
 // Draw diamond brick with facets
 const drawDiamondBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 3;
   const borderWidth = 3;
   
