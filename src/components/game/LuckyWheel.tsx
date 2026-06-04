@@ -7,17 +7,18 @@ interface LuckyWheelProps {
 }
 
 const SEGMENTS = [
-  { label: '🪙 10', type: 'coins', amount: 10, color1: 'hsl(340, 70%, 55%)', color2: 'hsl(340, 60%, 45%)' },
-  { label: '🎯 AUTO x1', type: 'auto', amount: 1, color1: 'hsl(270, 55%, 50%)', color2: 'hsl(270, 50%, 40%)' },
-  { label: '🪙 20', type: 'coins', amount: 20, color1: 'hsl(150, 55%, 45%)', color2: 'hsl(150, 50%, 35%)' },
-  { label: '⚡ Multi x1', type: 'multi', amount: 1, color1: 'hsl(210, 70%, 50%)', color2: 'hsl(210, 65%, 40%)' },
-  { label: '⚡ Shock x1', type: 'shock', amount: 1, color1: 'hsl(280, 55%, 50%)', color2: 'hsl(280, 50%, 40%)' },
-  { label: '🪙 5', type: 'coins', amount: 5, color1: 'hsl(190, 65%, 50%)', color2: 'hsl(190, 60%, 40%)' },
-  { label: '🎯 AUTO x2', type: 'auto', amount: 2, color1: 'hsl(340, 70%, 55%)', color2: 'hsl(340, 60%, 45%)' },
-  { label: '⚡ Multi x1', type: 'multi', amount: 1, color1: 'hsl(210, 70%, 50%)', color2: 'hsl(210, 65%, 40%)' },
-  { label: '🪙 30', type: 'coins', amount: 30, color1: 'hsl(280, 55%, 50%)', color2: 'hsl(280, 50%, 40%)' },
-  { label: '💰 50', type: 'coins', amount: 50, color1: 'hsl(45, 90%, 55%)', color2: 'hsl(45, 85%, 42%)' },
+  { label: 'COIN 10', type: 'coins', amount: 10, color1: 'hsl(340, 70%, 55%)', color2: 'hsl(340, 60%, 45%)' },
+  { label: 'AUTO x1', type: 'auto', amount: 1, color1: 'hsl(270, 55%, 50%)', color2: 'hsl(270, 50%, 40%)' },
+  { label: 'COIN 20', type: 'coins', amount: 20, color1: 'hsl(150, 55%, 45%)', color2: 'hsl(150, 50%, 35%)' },
+  { label: 'MULTI x1', type: 'multi', amount: 1, color1: 'hsl(210, 70%, 50%)', color2: 'hsl(210, 65%, 40%)' },
+  { label: 'SHOCK x1', type: 'shock', amount: 1, color1: 'hsl(280, 55%, 50%)', color2: 'hsl(280, 50%, 40%)' },
+  { label: 'COIN 5', type: 'coins', amount: 5, color1: 'hsl(190, 65%, 50%)', color2: 'hsl(190, 60%, 40%)' },
+  { label: 'AUTO x2', type: 'auto', amount: 2, color1: 'hsl(340, 70%, 55%)', color2: 'hsl(340, 60%, 45%)' },
+  { label: 'MULTI x1', type: 'multi', amount: 1, color1: 'hsl(210, 70%, 50%)', color2: 'hsl(210, 65%, 40%)' },
+  { label: 'COIN 30', type: 'coins', amount: 30, color1: 'hsl(280, 55%, 50%)', color2: 'hsl(280, 50%, 40%)' },
+  { label: 'COIN 50', type: 'coins', amount: 50, color1: 'hsl(45, 90%, 55%)', color2: 'hsl(45, 85%, 42%)' },
 ];
+
 
 const STORAGE_KEYS = {
   lastSpin: 'lucky_wheel_last_spin',

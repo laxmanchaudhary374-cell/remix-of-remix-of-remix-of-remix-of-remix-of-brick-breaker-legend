@@ -11,8 +11,13 @@ let NativePurchases: any = null;
 async function getBillingPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
   if (!NativePurchases) {
-    const mod = await import('@capgo/native-purchases');
-    NativePurchases = mod.NativePurchases;
+    try {
+      const mod = await import('@capgo/native-purchases');
+      NativePurchases = mod.NativePurchases;
+    } catch (e) {
+      console.error('[Billing] Import failed:', e);
+      return null;
+    }
   }
   return NativePurchases;
 }
@@ -22,6 +27,7 @@ export async function initBilling(): Promise<boolean> {
   if (!billing) return false;
   try {
     await billing.initialize();
+    console.log('[Billing] Initialized successfully');
     return true;
   } catch (err) {
     console.error('[Billing] Failed to init:', err);
@@ -34,14 +40,18 @@ export async function purchaseProduct(productId: string): Promise<boolean> {
   if (!billing) return false;
 
   try {
+    console.log('[Billing] Purchasing:', productId);
     const result = await billing.purchaseProduct({
       productIdentifier: productId,
       productType: 'CONSUMABLE',
       quantity: 1,
     });
 
+    console.log('[Billing] Purchase result:', JSON.stringify(result));
+
     if (result && result.transactionId) {
       await billing.finishTransaction({ transactionId: result.transactionId });
+      console.log('[Billing] Transaction finished:', result.transactionId);
       return true;
     }
     return false;

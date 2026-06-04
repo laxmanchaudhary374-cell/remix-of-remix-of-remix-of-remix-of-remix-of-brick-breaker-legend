@@ -1,19 +1,28 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { X, Zap, Shield, ShoppingBag, AlertCircle, CheckCircle2, Package, Loader2 } from 'lucide-react';
-import { useLanguage } from '../../utils/i18n';
-import { initAdMob, showRewardedAd } from '../../utils/admob';
-import { initBilling, purchaseProduct, BILLING_PRODUCT_IDS } from '../../utils/billing';
+import { X, ShoppingBag, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { useLanguage } from '@/utils/i18n';
+import { initAdMob, showRewardedAd } from '@/utils/admob';
+import { initBilling, purchaseProduct, BILLING_PRODUCT_IDS } from '@/utils/billing';
 
-// We are using props because the parent (BrickBreakerGame) manages the state
+export interface ShopItem {
+  id: string;
+  name: string;
+  cost: number;
+  type: string;
+  category: 'powerup' | 'emergency' | 'skin';
+  description: string;
+  icon: any;
+}
+
 interface ShopScreenProps {
   onClose: () => void;
   coins: number;
   addCoins: (amount: number) => void;
 }
 
-export const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => {
+const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'emergency' | 'powerups' | 'coins'>('emergency');
+  const [activeTab, setActiveTab] = useState<'emergency' | 'coins'>('emergency');
   const [isAdLoading, setIsAdLoading] = useState(false);
   const [adError, setAdError] = useState<string | null>(null);
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null);
@@ -87,15 +96,18 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins
         </div>
 
         <div className="flex border-b border-cyan-500/10">
-          {(['emergency', 'coins'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`flex-1 py-3 text-xs font-bold uppercase ${activeTab === tab ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500'}`}
-            >
-              {tab}
-            </button>
-          ))}
+          <button
+            onClick={() => setActiveTab('emergency')}
+            className={`flex-1 py-3 text-xs font-bold uppercase ${activeTab === 'emergency' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500'}`}
+          >
+            FREE COINS
+          </button>
+          <button
+            onClick={() => setActiveTab('coins')}
+            className={`flex-1 py-3 text-xs font-bold uppercase ${activeTab === 'coins' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500'}`}
+          >
+            BUY COINS
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -108,14 +120,14 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins
 
           {activeTab === 'emergency' && (
             <div className="bg-slate-800/40 border border-cyan-500/20 rounded-xl p-6 text-center space-y-4">
-              <h3 className="text-lg font-bold text-white">FREE COINS</h3>
-              <p className="text-slate-400 text-sm">WATCH A SHORT VIDEO TO GET 50 COINS.</p>
+              <h3 className="text-lg font-bold text-white">Watch Ad for 50 Coins</h3>
+              <p className="text-slate-400 text-sm">Free coins - just watch a short ad!</p>
               <button
                 onClick={handleWatchAd}
                 disabled={isAdLoading}
                 className="w-full py-3 rounded-xl font-bold bg-cyan-600 text-white disabled:bg-slate-800"
               >
-                {isAdLoading ? 'LOADING AD...' : 'WATCH NOW'}
+                {isAdLoading ? 'Loading ad...' : 'WATCH NOW'}
               </button>
               {adError && <p className="text-red-400 text-xs">{adError}</p>}
             </div>
@@ -145,3 +157,5 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins
     </div>
   );
 };
+
+export default ShopScreen;

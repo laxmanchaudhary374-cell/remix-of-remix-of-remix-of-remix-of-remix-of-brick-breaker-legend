@@ -125,7 +125,7 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {
                     }}
                   >
                     <span className="font-display text-sm text-neon-yellow font-bold">{r.amount}</span>
-                    <span className="text-2xl mt-0.5">🪙</span>
+                    <span className="text-2xl mt-0.5 text-yellow-400 font-bold">C</span>
                   </div>
                   <span className="font-game text-[10px] text-muted-foreground mt-1">Day {r.day}</span>
                 </div>
@@ -152,7 +152,7 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {
                     }}
                   >
                     <span className="font-display text-sm text-neon-yellow font-bold">{r.amount}</span>
-                    <span className="text-2xl mt-0.5">{r.amount >= 500 ? '💰' : '🪙'}</span>
+                    <span className="text-2xl mt-0.5 text-yellow-400 font-bold">C</span>
                   </div>
                   <span className="font-game text-[10px] text-muted-foreground mt-1">Day {r.day}</span>
                 </div>
