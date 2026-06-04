@@ -309,6 +309,7 @@ const drawSteelCracks = (ctx: CanvasRenderingContext2D, x: number, y: number, w:
 
 // Draw metal brick with matte texture (original)
 const drawMetalBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 4;
   const borderWidth = 2;
   
