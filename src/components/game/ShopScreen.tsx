@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { X, ShoppingBag, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { useLanguage } from '@/utils/i18n';
+import { useI18n as useLanguage } from '../../utils/i18n';
 import { initAdMob, showRewardedAd } from '@/utils/admob';
 import { initBilling, purchaseProduct, BILLING_PRODUCT_IDS } from '@/utils/billing';
 
