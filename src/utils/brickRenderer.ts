@@ -401,6 +401,7 @@ const drawWoodBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 
 // Draw glass/gem brick
 const drawGlassBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 4;
   const bevelSize = 4;
   
