@@ -23,6 +23,7 @@ import {
   getBricksInExplosionRadius,
   getChainedBricks,
   updateMovingBricks,
+  rectCenter,
 } from '@/utils/gameUtils';
 import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
 import { drawPowerUp } from '@/utils/powerUpRenderer';
@@ -282,14 +283,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const scoreValue = brick.maxHits * 10 * (1 + combo * 0.1);
     audioManager.playBrickDestroy();
     if (combo > 1) audioManager.playCombo(combo);
-    createParticles(brick.x + brick.width / 2, brick.y + brick.height / 2, getBrickColor(brick.color), 12);
-    if (brick.type === 'explosive') handleExplosion(brick.x + brick.width / 2, brick.y + brick.height / 2);
+    const brickCenter = rectCenter(brick);
+    createParticles(brickCenter.x, brickCenter.y, getBrickColor(brick.color), 12);
+    if (brick.type === 'explosive') handleExplosion(brickCenter.x, brickCenter.y);
     if (brick.type === 'coin' && brick.color === 'gold') {
-      const coin = createCoin(brick.x + brick.width / 2, brick.y + brick.height / 2);
+      const coin = createCoin(brickCenter.x, brickCenter.y);
       setCoins(prev => [...prev, coin]);
     }
     if (shouldDropPowerUp() && brick.type !== 'coin') {
-      const powerUp = createPowerUp(brick.x + brick.width / 2, brick.y + brick.height);
+      const powerUp = createPowerUp(brickCenter.x, brick.y + brick.height);
       setPowerUps(prev => [...prev, powerUp]);
       setLastPowerUpTime(gameTime);
     }

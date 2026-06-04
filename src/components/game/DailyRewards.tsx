@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getStoredString, setStoredString, getStoredInt, setStoredInt } from '@/utils/storage';
 
 interface DailyRewardsProps {
   onClose: (reward?: { type: string; amount: number }) => void;
@@ -22,9 +23,9 @@ const STORAGE_KEYS = {
 
 export const checkDailyReward = (): { shouldShow: boolean; day: number } => {
   try {
-    const lastClaim = localStorage.getItem(STORAGE_KEYS.lastClaim);
-    const streak = parseInt(localStorage.getItem(STORAGE_KEYS.streak) || '0', 10);
-    const claimedToday = localStorage.getItem(STORAGE_KEYS.claimed);
+    const lastClaim = getStoredString(STORAGE_KEYS.lastClaim);
+    const streak = getStoredInt(STORAGE_KEYS.streak, 0);
+    const claimedToday = getStoredString(STORAGE_KEYS.claimed);
     
     const now = new Date();
     const today = now.toDateString();
@@ -35,10 +36,9 @@ export const checkDailyReward = (): { shouldShow: boolean; day: number } => {
     
     const lastDate = new Date(lastClaim);
     
-    // Clock manipulation detection: if lastClaim is in the future, reset
     if (lastDate > now) {
-      localStorage.removeItem(STORAGE_KEYS.lastClaim);
-      localStorage.removeItem(STORAGE_KEYS.streak);
+      setStoredString(STORAGE_KEYS.lastClaim, '');
+      setStoredString(STORAGE_KEYS.streak, '');
       return { shouldShow: true, day: 1 };
     }
     
@@ -60,10 +60,10 @@ export const checkDailyReward = (): { shouldShow: boolean; day: number } => {
 export const claimDailyReward = (day: number) => {
   try {
     const now = new Date();
-    const streak = parseInt(localStorage.getItem(STORAGE_KEYS.streak) || '0', 10);
-    localStorage.setItem(STORAGE_KEYS.lastClaim, now.toISOString());
-    localStorage.setItem(STORAGE_KEYS.streak, (streak + 1).toString());
-    localStorage.setItem(STORAGE_KEYS.claimed, now.toDateString());
+    const streak = getStoredInt(STORAGE_KEYS.streak, 0);
+    setStoredString(STORAGE_KEYS.lastClaim, now.toISOString());
+    setStoredInt(STORAGE_KEYS.streak, streak + 1);
+    setStoredString(STORAGE_KEYS.claimed, now.toDateString());
   } catch {}
 };
 

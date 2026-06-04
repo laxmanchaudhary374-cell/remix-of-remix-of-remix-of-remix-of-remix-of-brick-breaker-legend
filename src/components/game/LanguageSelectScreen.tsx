@@ -1,15 +1,12 @@
 import React from 'react';
 import { useI18n, Language, LANGUAGE_NAMES } from '@/utils/i18n';
+import { getStoredFlag, setStoredFlag } from '@/utils/storage';
 
 const FIRST_LAUNCH_KEY = 'neon_breaker_lang_chosen';
 
-export const hasChosenLanguage = (): boolean => {
-  try { return localStorage.getItem(FIRST_LAUNCH_KEY) === '1'; } catch { return true; }
-};
+export const hasChosenLanguage = (): boolean => getStoredFlag(FIRST_LAUNCH_KEY, true);
 
-const markChosen = () => {
-  try { localStorage.setItem(FIRST_LAUNCH_KEY, '1'); } catch {}
-};
+const markChosen = () => setStoredFlag(FIRST_LAUNCH_KEY);
 
 const OPTIONS: Language[] = ['en', 'hi', 'es', 'fr', 'pt', 'ar'];
 

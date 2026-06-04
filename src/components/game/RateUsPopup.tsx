@@ -1,17 +1,16 @@
 import React from 'react';
 import { Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getStoredFlag, setStoredFlag } from '@/utils/storage';
 
 const RATE_KEY = 'neon_breaker_rate_prompted';
 
 export const shouldShowRatePrompt = (level: number): boolean => {
   if (level < 10) return false;
-  try { return localStorage.getItem(RATE_KEY) !== '1'; } catch { return false; }
+  return !getStoredFlag(RATE_KEY);
 };
 
-export const markRatePrompted = () => {
-  try { localStorage.setItem(RATE_KEY, '1'); } catch {}
-};
+export const markRatePrompted = () => setStoredFlag(RATE_KEY);
 
 interface Props {
   onClose: () => void;
