@@ -175,6 +175,7 @@ const drawIceBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
 
 // Draw steel brick (for indestructible bricks) with rivets and industrial look - more rounded
 const drawSteelBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 8;
   
   // Drop shadow
