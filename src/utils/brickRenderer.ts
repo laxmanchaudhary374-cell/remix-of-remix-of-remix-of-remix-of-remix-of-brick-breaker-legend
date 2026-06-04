@@ -126,6 +126,7 @@ const drawCopperBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w:
 
 // Draw ice brick with cracks
 const drawIceBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 4;
   const borderWidth = 3;
   
