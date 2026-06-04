@@ -3,6 +3,8 @@
 
 import { Brick, BrickColor, BrickType } from '@/types/game';
 
+const isInvalid = (...vals: any[]) => vals.some(v => typeof v !== 'number' || isNaN(v) || !isFinite(v));
+
 // Material types that match the reference image
 type MaterialType = 'copper' | 'ice' | 'metal' | 'wood' | 'glass' | 'diamond';
 
@@ -80,6 +82,7 @@ const getMaterialColors = (material: MaterialType) => {
 
 // Draw copper brick with oxidation patches
 const drawCopperBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 4;
   const borderWidth = 3;
   
@@ -123,6 +126,7 @@ const drawCopperBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w:
 
 // Draw ice brick with cracks
 const drawIceBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 4;
   const borderWidth = 3;
   
@@ -171,6 +175,7 @@ const drawIceBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
 
 // Draw steel brick (for indestructible bricks) with rivets and industrial look - more rounded
 const drawSteelBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 8;
   
   // Drop shadow
@@ -304,6 +309,7 @@ const drawSteelCracks = (ctx: CanvasRenderingContext2D, x: number, y: number, w:
 
 // Draw metal brick with matte texture (original)
 const drawMetalBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 4;
   const borderWidth = 2;
   
@@ -350,6 +356,7 @@ const drawMetalBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
 
 // Draw wood brick with grain
 const drawWoodBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 3;
   const borderWidth = 3;
   
@@ -394,6 +401,7 @@ const drawWoodBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 
 // Draw glass/gem brick
 const drawGlassBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 4;
   const bevelSize = 4;
   
@@ -468,6 +476,7 @@ const drawGlassBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: 
 
 // Draw diamond brick with facets
 const drawDiamondBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  if (isInvalid(x, y, w, h)) return;
   const borderRadius = 3;
   const borderWidth = 3;
   
@@ -530,7 +539,7 @@ export const drawPremiumBrick = (
   brick: Brick,
   gameTime: number = 0
 ): void => {
-  if (!brick || isNaN(brick.x) || isNaN(brick.y) || isNaN(brick.width) || isNaN(brick.height)) return;
+  if (!brick || isInvalid(brick.x, brick.y, brick.width, brick.height)) return;
   const { x, y, width, height, color, type, hits, maxHits } = brick;
   
   // Ghost bricks: flicker visible/invisible every 1 second
@@ -824,6 +833,7 @@ export const drawPremiumPaddle = (
   hasShield: boolean = false,
   isGhost: boolean = false
 ): void => {
+  if (isInvalid(x, y, width, height)) return;
   ctx.save();
   
   const h = 22;
@@ -922,6 +932,7 @@ export const drawPremiumBall = (
   isFireball: boolean = false,
   isBigBall: boolean = false
 ): void => {
+  if (isInvalid(x, y, radius)) return;
   ctx.save();
   
   if (isFireball) {
