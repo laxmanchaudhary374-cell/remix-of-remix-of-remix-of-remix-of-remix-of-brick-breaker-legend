@@ -932,6 +932,7 @@ export const drawPremiumBall = (
   isFireball: boolean = false,
   isBigBall: boolean = false
 ): void => {
+  if (isInvalid(x, y, radius)) return;
   ctx.save();
   
   if (isFireball) {
