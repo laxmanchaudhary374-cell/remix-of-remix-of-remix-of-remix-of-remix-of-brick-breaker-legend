@@ -575,7 +575,9 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLangState(newLang);
     try {
       localStorage.setItem(LANG_KEY, newLang);
-    } catch {}
+    } catch (e) {
+      console.warn('[i18n] Failed to persist language preference:', e);
+    }
   }, []);
 
   const t = useCallback((key: string, params?: Record<string, string | number>): string => {

@@ -5,8 +5,13 @@ let LocalNotifications: any = null;
 async function getPlugin() {
   if (!Capacitor.isNativePlatform()) return null;
   if (!LocalNotifications) {
-    const mod = await import('@capacitor/local-notifications');
-    LocalNotifications = mod.LocalNotifications;
+    try {
+      const mod = await import('@capacitor/local-notifications');
+      LocalNotifications = mod.LocalNotifications;
+    } catch (e) {
+      console.error('[Notifications] Import failed:', e);
+      return null;
+    }
   }
   return LocalNotifications;
 }
@@ -27,7 +32,9 @@ export async function initDailyReminder(): Promise<void> {
       if (pending?.notifications?.length) {
         await plugin.cancel({ notifications: pending.notifications.map((n: any) => ({ id: n.id })) });
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[Notifications] Could not cancel existing notifications:', e);
+    }
 
     const at = new Date();
     at.setHours(9, 0, 0, 0);

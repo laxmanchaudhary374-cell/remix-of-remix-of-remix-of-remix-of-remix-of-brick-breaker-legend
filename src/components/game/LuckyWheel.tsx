@@ -44,7 +44,9 @@ export const canSpin = (): { can: boolean; timeLeft: string } => {
 const recordSpin = () => {
   try {
     localStorage.setItem(STORAGE_KEYS.lastSpin, Date.now().toString());
-  } catch {}
+  } catch (e) {
+    console.warn('[LuckyWheel] Failed to record spin time:', e);
+  }
 };
 
 const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {

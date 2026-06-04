@@ -8,7 +8,11 @@ export const hasChosenLanguage = (): boolean => {
 };
 
 const markChosen = () => {
-  try { localStorage.setItem(FIRST_LAUNCH_KEY, '1'); } catch {}
+  try {
+    localStorage.setItem(FIRST_LAUNCH_KEY, '1');
+  } catch (e) {
+    console.warn('[Language] Failed to persist language choice:', e);
+  }
 };
 
 const OPTIONS: Language[] = ['en', 'hi', 'es', 'fr', 'pt', 'ar'];

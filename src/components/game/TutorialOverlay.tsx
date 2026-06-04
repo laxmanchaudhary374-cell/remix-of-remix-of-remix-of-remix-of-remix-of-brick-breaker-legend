@@ -7,7 +7,11 @@ export const hasSeenTutorial = (): boolean => {
   try { return localStorage.getItem(TUTORIAL_KEY) === '1'; } catch { return false; }
 };
 export const markTutorialSeen = () => {
-  try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch {}
+  try {
+    localStorage.setItem(TUTORIAL_KEY, '1');
+  } catch (e) {
+    console.warn('[Tutorial] Failed to persist tutorial state:', e);
+  }
 };
 
 interface Step {
