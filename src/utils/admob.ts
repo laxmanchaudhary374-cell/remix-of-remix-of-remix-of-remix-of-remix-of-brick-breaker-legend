@@ -1,9 +1,11 @@
 import { Capacitor } from '@capacitor/core';
 
+// Ad unit IDs — in production these should be provided via build-time
+// environment variables (VITE_ADMOB_REWARDED, etc.) rather than hardcoded.
 export const AD_UNIT_IDS = {
-  REWARDED_COINS: 'ca-app-pub-6637721495380199/7860262690',
-  INTERSTITIAL: 'ca-app-pub-6637721495380199/9759645640',
-  BANNER: 'ca-app-pub-6637721495380199/1558102866',
+  REWARDED_COINS: import.meta.env.VITE_ADMOB_REWARDED || 'ca-app-pub-6637721495380199/7860262690',
+  INTERSTITIAL: import.meta.env.VITE_ADMOB_INTERSTITIAL || 'ca-app-pub-6637721495380199/9759645640',
+  BANNER: import.meta.env.VITE_ADMOB_BANNER || 'ca-app-pub-6637721495380199/1558102866',
 } as const;
 
 let AdMob: any = null;

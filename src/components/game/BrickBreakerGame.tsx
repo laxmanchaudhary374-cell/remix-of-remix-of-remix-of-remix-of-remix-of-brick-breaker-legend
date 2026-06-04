@@ -28,23 +28,39 @@ const STORAGE_KEY = 'neon_breaker_highscore';
 const LEVEL_KEY = 'neon_breaker_unlocked_level';
 const COINS_KEY = 'neon_breaker_coins';
 
+const MAX_COINS = 999999;
+const MAX_LEVEL = 500;
+const MAX_SCORE = 9999999;
+
+const clamp = (val: number, min: number, max: number): number =>
+  Math.max(min, Math.min(max, Math.floor(val)));
+
 const getStoredHighScore = (): number => {
-  try { return parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10); } catch { return 0; }
+  try {
+    const val = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    return Number.isFinite(val) ? clamp(val, 0, MAX_SCORE) : 0;
+  } catch { return 0; }
 };
 const setStoredHighScore = (score: number) => {
-  try { localStorage.setItem(STORAGE_KEY, score.toString()); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, clamp(score, 0, MAX_SCORE).toString()); } catch {}
 };
 const getStoredUnlockedLevel = (): number => {
-  try { return parseInt(localStorage.getItem(LEVEL_KEY) || '1', 10); } catch { return 1; }
+  try {
+    const val = parseInt(localStorage.getItem(LEVEL_KEY) || '1', 10);
+    return Number.isFinite(val) ? clamp(val, 1, MAX_LEVEL) : 1;
+  } catch { return 1; }
 };
 const setStoredUnlockedLevel = (level: number) => {
-  try { localStorage.setItem(LEVEL_KEY, level.toString()); } catch {}
+  try { localStorage.setItem(LEVEL_KEY, clamp(level, 1, MAX_LEVEL).toString()); } catch {}
 };
 const getStoredCoins = (): number => {
-  try { return parseInt(localStorage.getItem(COINS_KEY) || '0', 10); } catch { return 0; }
+  try {
+    const val = parseInt(localStorage.getItem(COINS_KEY) || '0', 10);
+    return Number.isFinite(val) ? clamp(val, 0, MAX_COINS) : 0;
+  } catch { return 0; }
 };
 const setStoredCoins = (coins: number) => {
-  try { localStorage.setItem(COINS_KEY, coins.toString()); } catch {}
+  try { localStorage.setItem(COINS_KEY, clamp(coins, 0, MAX_COINS).toString()); } catch {}
 };
 
 type ScreenState = 'splash' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'won';
@@ -56,12 +72,17 @@ const EMERGENCY_PRICES: Record<string, { cost: number; label: string }> = {
   multi: { cost: 100, label: 'Three-Ball' },
 };
 
+const MAX_EMERGENCY = 999;
 const getEmergencyCounts = () => {
   try {
+    const parseEm = (key: string, def: number) => {
+      const val = parseInt(localStorage.getItem(key) || String(def), 10);
+      return Number.isFinite(val) ? clamp(val, 0, MAX_EMERGENCY) : def;
+    };
     return {
-      auto: parseInt(localStorage.getItem('neon_breaker_em_auto') || '5'),
-      shock: parseInt(localStorage.getItem('neon_breaker_em_shock') || '5'),
-      multi: parseInt(localStorage.getItem('neon_breaker_em_multi') || '4'),
+      auto: parseEm('neon_breaker_em_auto', 5),
+      shock: parseEm('neon_breaker_em_shock', 5),
+      multi: parseEm('neon_breaker_em_multi', 4),
     };
   } catch { return { auto: 5, shock: 5, multi: 4 }; }
 };
