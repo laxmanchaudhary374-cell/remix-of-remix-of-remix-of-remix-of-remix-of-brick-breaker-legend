@@ -590,6 +590,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       bricks.forEach(brick => { if (!brick.destroyed) drawPremiumBrick(ctx, brick); });
+      ctx.restore();
       levelCoins.forEach(coin => {
         if (!coin.collected) {
           ctx.save();
