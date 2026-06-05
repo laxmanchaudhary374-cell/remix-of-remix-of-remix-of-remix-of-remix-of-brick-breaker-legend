@@ -100,6 +100,32 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const paddleRef = useRef(paddle);
   useEffect(() => { paddleRef.current = paddle; }, [paddle]);
 
+  const movePaddleToClientX = useCallback((clientX: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = ((clientX - rect.left) / rect.width) * GAME_WIDTH;
+    const nextX = Math.max(0, Math.min(GAME_WIDTH - paddleRef.current.width, canvasX - paddleRef.current.width / 2));
+    userOverrideRef.current = true;
+    paddleTargetRef.current = nextX;
+    setPaddle(prev => ({ ...prev, x: nextX }));
+    setBalls(prev => prev.map(ball => magnetBallRef.current?.id === ball.id
+      ? { ...ball, position: { ...ball.position, x: nextX + paddleRef.current.width / 2 } }
+      : ball
+    ));
+  }, []);
+
+  const releaseMagnetBall = useCallback(() => {
+    if (!magnetBallRef.current) return;
+    const releasedId = magnetBallRef.current.id;
+    magnetBallRef.current = null;
+    setBalls(prev => prev.map(ball => ball.id === releasedId
+      ? { ...ball, velocity: { dx: Math.cos(aimAngleRef.current) * ballSpeed, dy: Math.sin(aimAngleRef.current) * ballSpeed } }
+      : ball
+    ));
+    audioManager.playMagnetRelease();
+  }, [ballSpeed]);
+
   useEffect(() => {
     const img = new Image();
     img.src = spaceBackground;
