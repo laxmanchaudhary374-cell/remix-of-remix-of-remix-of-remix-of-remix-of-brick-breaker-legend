@@ -42,7 +42,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => 
       if (result.ok && result.reward > 0) {
         addCoins(result.reward);
         setPurchaseMessage({ type: 'success', text: `+${result.reward} COINS RECEIVED!` });
-      } else if (!result.ok) {
+      } else if (result.ok === false) {
         setAdError(result.error);
       }
     } catch (error) {
