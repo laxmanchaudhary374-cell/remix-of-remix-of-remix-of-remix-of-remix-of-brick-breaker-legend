@@ -647,10 +647,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (plane.hasPowerUp) {
           ctx.fillStyle = 'cyan';
           ctx.beginPath();
-          ctx.arc(plane.x + 20, plane.y + 20, 5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      drawPremiumPaddle(ctx, paddle.x, paddle.y, paddle.width, paddle.height, paddle.hasLaser, paddle.hasMagnet, paddle.hasShield, isGhostPaddle);      balls.forEach(ball => drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall));
+                  ctx.arc(plane.x + 20, plane.y + 20, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }   // ← End of if (plane) block
+
+      // === DRAW PADDLE AND BALL (MUST BE OUTSIDE if (plane)) ===
+      drawPremiumPaddle(ctx, paddle.x, paddle.y, paddle.width, paddle.height, paddle.hasLaser, paddle.hasMagnet, paddle.hasShield, isGhostPaddle);
+      
+      balls.forEach(ball => drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall));
+
       if (magnetBallRef.current) {
         const ball = balls.find(b => b.id === magnetBallRef.current?.id);
         if (ball) {
