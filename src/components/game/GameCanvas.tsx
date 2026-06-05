@@ -579,7 +579,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
       
       const worldBg = getWorldBg(gameState.level);
-     ctx.fillStyle = worldBg.base;
+      ctx.fillStyle = worldBg.base;
       ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
       ctx.save();
@@ -647,15 +647,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (plane.hasPowerUp) {
           ctx.fillStyle = 'cyan';
           ctx.beginPath();
-                  ctx.arc(plane.x + 20, plane.y + 20, 5, 0, Math.PI * 2);
-        ctx.fill();
-      }   // ← End of if (plane) block
-
-      // === DRAW PADDLE AND BALL (MUST BE OUTSIDE if (plane)) ===
+          ctx.arc(plane.x + 20, plane.y + 20, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
       drawPremiumPaddle(ctx, paddle.x, paddle.y, paddle.width, paddle.height, paddle.hasLaser, paddle.hasMagnet, paddle.hasShield, isGhostPaddle);
-      
       balls.forEach(ball => drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall));
-
       if (magnetBallRef.current) {
         const ball = balls.find(b => b.id === magnetBallRef.current?.id);
         if (ball) {
@@ -673,7 +670,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     };
     render();
     return () => cancelAnimationFrame(animationFrameId);
-  }, [bricks, balls, paddle, powerUps, particles, lasers, coins, explosions, plane, levelCoins, screenShake, isFireball, isGhostPaddle, gameState.level]);
+  }, [bricks, balls, paddle, powerUps, particles, lasers, coins, explosions, plane, levelCoins, screenShake, isFireball, isBigBall, isGhostPaddle, gameState.level]);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden touch-none">
