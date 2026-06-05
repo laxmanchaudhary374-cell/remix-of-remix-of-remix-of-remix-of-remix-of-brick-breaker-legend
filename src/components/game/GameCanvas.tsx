@@ -327,9 +327,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const applyPowerUp = (type: string) => {
     audioManager.playPowerUp();
     switch(type) {
-      case 'expand': setPaddle(prev => ({ ...prev, width: Math.min(GAME_WIDTH, prev.width + 30) })); break;
+      case 'widen': setPaddle(prev => ({ ...prev, width: Math.min(GAME_WIDTH, prev.width + 30) })); break;
       case 'shrink': setPaddle(prev => ({ ...prev, width: Math.max(40, prev.width - 20) })); break;
-      case 'multi':
+      case 'multiball':
         setBalls(prev => {
           const newBalls = [...prev];
           prev.forEach(ball => {
@@ -338,15 +338,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           return newBalls;
         });
         break;
+      case 'sevenball':
+        setBalls(prev => {
+          const source = prev[0] || magnetBallRef.current;
+          if (!source) return prev;
+          return Array.from({ length: 7 }, (_, i) => ({
+            ...source,
+            id: generateId(),
+            velocity: { dx: Math.cos(-Math.PI * 0.85 + i * Math.PI * 0.12) * ballSpeed, dy: -Math.abs(Math.sin(-Math.PI * 0.85 + i * Math.PI * 0.12) * ballSpeed) },
+          }));
+        });
+        magnetBallRef.current = null;
+        break;
       case 'laser': setPaddle(prev => ({ ...prev, hasLaser: true })); break;
       case 'magnet': setPaddle(prev => ({ ...prev, hasMagnet: true })); break;
       case 'fireball': setIsFireball(true); setTimeout(() => setIsFireball(false), 10000); break;
       case 'bigball': setIsBigBall(true); setBalls(prev => prev.map(b => ({ ...b, radius: BALL_RADIUS * 1.8 }))); setTimeout(() => { setIsBigBall(false); setBalls(prev => prev.map(b => ({ ...b, radius: BALL_RADIUS }))); }, 10000); break;
       case 'shield': setPaddle(prev => ({ ...prev, hasShield: true })); if (shieldTimerRef.current) clearTimeout(shieldTimerRef.current); shieldTimerRef.current = setTimeout(() => setPaddle(prev => ({ ...prev, hasShield: false })), 15000); break;
-      case 'life': setGameState(prev => ({ ...prev, lives: Math.min(5, prev.lives + 1) })); break;
+      case 'extralife': setGameState(prev => ({ ...prev, lives: Math.min(5, prev.lives + 1) })); break;
       case 'slow': setBallSpeed(prev => Math.max(150, prev - 40)); break;
-      case 'fast': setBallSpeed(prev => Math.min(500, prev + 50)); break;
-      case 'auto': setIsAutoPaddle(true); setAutoPaddleEndTime(gameTime + 15); userOverrideRef.current = false; break;
+      case 'speedup': setBallSpeed(prev => Math.min(500, prev + 50)); break;
+      case 'autopaddle': setIsAutoPaddle(true); setAutoPaddleEndTime(gameTime + 15); userOverrideRef.current = false; break;
       case 'ghost': setIsGhostPaddle(true); setTimeout(() => setIsGhostPaddle(false), 10000); break;
     }
   };
