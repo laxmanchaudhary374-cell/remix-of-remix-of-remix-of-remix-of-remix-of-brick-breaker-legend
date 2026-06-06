@@ -79,20 +79,19 @@ const steps: Step[] = [
       <div className="flex flex-col items-center gap-2">
         <div className="px-4 py-2 rounded-lg border border-cyan-400/40 bg-black/60">
           <div className="text-cyan-300 text-xs font-bold mb-1">BUY POWER-UP</div>
-          <div className="text-yellow-300 font-bold">75 Coins</div>
+          <div className="text-yellow-300 font-bold">🪙 75 Coins</div>
         </div>
       </div>
     ),
   },
   {
     title: 'EARN COINS & LIVES',
-    body: 'Complete levels to earn coins. Spend them in the Shop on power-ups, extra balls, and special items. Watch your lives - lose all 3 and it is game over!',
-visual: (
-  <div className="flex justify-center gap-4 text-2xl font-bold">
-    <span className="text-yellow-400">C</span><span className="text-red-400">L</span><span className="text-cyan-400">S</span><span className="text-green-400">G</span>
-  </div>
-),
-
+    body: 'Complete levels to earn 🪙 coins. Spend them in the Shop on power-ups, extra balls, and special items. Watch your ❤️ lives — lose all 3 and it\'s game over!',
+    visual: (
+      <div className="flex justify-center gap-4 text-2xl">
+        <span>🪙</span><span>❤️</span><span>⭐</span><span>🎁</span>
+      </div>
+    ),
   },
   {
     title: 'DAILY REWARDS & WHEEL',

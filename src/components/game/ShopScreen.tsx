@@ -1,28 +1,19 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { useI18n as useLanguage } from '../../utils/i18n';
-import { initAdMob, showRewardedAd } from '@/utils/admob';
-import { initBilling, purchaseProduct, BILLING_PRODUCT_IDS } from '@/utils/billing';
+import { X, Zap, Shield, ShoppingBag, AlertCircle, CheckCircle2, Package, Loader2 } from 'lucide-react';
+import { useLanguage } from '../../utils/i18n';
+import { initAdMob, showRewardedAd } from '../../utils/admob';
+import { initBilling, purchaseProduct, BILLING_PRODUCT_IDS } from '../../utils/billing';
 
-export interface ShopItem {
-  id: string;
-  name: string;
-  cost: number;
-  type: string;
-  category: 'powerup' | 'emergency' | 'skin';
-  description: string;
-  icon: any;
-}
-
+// We are using props because the parent (BrickBreakerGame) manages the state
 interface ShopScreenProps {
   onClose: () => void;
   coins: number;
   addCoins: (amount: number) => void;
 }
 
-const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => {
+export const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'emergency' | 'coins'>('emergency');
+  const [activeTab, setActiveTab] = useState<'emergency' | 'powerups' | 'coins'>('emergency');
   const [isAdLoading, setIsAdLoading] = useState(false);
   const [adError, setAdError] = useState<string | null>(null);
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null);
@@ -42,7 +33,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => 
       if (result.ok && result.reward > 0) {
         addCoins(result.reward);
         setPurchaseMessage({ type: 'success', text: `+${result.reward} COINS RECEIVED!` });
-      } else if (result.ok === false) {
+      } else if (!result.ok) {
         setAdError(result.error);
       }
     } catch (error) {
@@ -96,18 +87,15 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => 
         </div>
 
         <div className="flex border-b border-cyan-500/10">
-          <button
-            onClick={() => setActiveTab('emergency')}
-            className={`flex-1 py-3 text-xs font-bold uppercase ${activeTab === 'emergency' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500'}`}
-          >
-            FREE COINS
-          </button>
-          <button
-            onClick={() => setActiveTab('coins')}
-            className={`flex-1 py-3 text-xs font-bold uppercase ${activeTab === 'coins' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500'}`}
-          >
-            BUY COINS
-          </button>
+          {(['emergency', 'coins'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={`flex-1 py-3 text-xs font-bold uppercase ${activeTab === tab ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-500'}`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -120,14 +108,14 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => 
 
           {activeTab === 'emergency' && (
             <div className="bg-slate-800/40 border border-cyan-500/20 rounded-xl p-6 text-center space-y-4">
-              <h3 className="text-lg font-bold text-white">Watch Ad for 50 Coins</h3>
-              <p className="text-slate-400 text-sm">Free coins - just watch a short ad!</p>
+              <h3 className="text-lg font-bold text-white">FREE COINS</h3>
+              <p className="text-slate-400 text-sm">WATCH A SHORT VIDEO TO GET 50 COINS.</p>
               <button
                 onClick={handleWatchAd}
                 disabled={isAdLoading}
                 className="w-full py-3 rounded-xl font-bold bg-cyan-600 text-white disabled:bg-slate-800"
               >
-                {isAdLoading ? 'Loading ad...' : 'WATCH NOW'}
+                {isAdLoading ? 'LOADING AD...' : 'WATCH NOW'}
               </button>
               {adError && <p className="text-red-400 text-xs">{adError}</p>}
             </div>
@@ -157,5 +145,3 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins }) => 
     </div>
   );
 };
-
-export default ShopScreen;

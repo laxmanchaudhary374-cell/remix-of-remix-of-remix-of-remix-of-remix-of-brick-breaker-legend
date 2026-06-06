@@ -100,55 +100,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const paddleRef = useRef(paddle);
   useEffect(() => { paddleRef.current = paddle; }, [paddle]);
 
-  const movePaddleToClientX = useCallback((clientX: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const canvasX = ((clientX - rect.left) / rect.width) * GAME_WIDTH;
-    const nextX = Math.max(0, Math.min(GAME_WIDTH - paddleRef.current.width, canvasX - paddleRef.current.width / 2));
-    userOverrideRef.current = true;
-    paddleTargetRef.current = nextX;
-    setPaddle(prev => ({ ...prev, x: nextX }));
-    setBalls(prev => prev.map(ball => magnetBallRef.current?.id === ball.id
-      ? { ...ball, position: { ...ball.position, x: nextX + paddleRef.current.width / 2 } }
-      : ball
-    ));
-  }, []);
-
-  const releaseMagnetBall = useCallback(() => {
-    if (!magnetBallRef.current) return;
-    const releasedId = magnetBallRef.current.id;
-    magnetBallRef.current = null;
-    setBalls(prev => prev.map(ball => ball.id === releasedId
-      ? { ...ball, velocity: { dx: Math.cos(aimAngleRef.current) * ballSpeed, dy: Math.sin(aimAngleRef.current) * ballSpeed } }
-      : ball
-    ));
-    audioManager.playMagnetRelease();
-  }, [ballSpeed]);
-
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (gameState.status !== 'playing') return;
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    movePaddleToClientX(e.clientX);
-  }, [gameState.status, movePaddleToClientX]);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (gameState.status !== 'playing') return;
-    e.preventDefault();
-    movePaddleToClientX(e.clientX);
-  }, [gameState.status, movePaddleToClientX]);
-
-  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (gameState.status !== 'playing') return;
-    e.preventDefault();
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    movePaddleToClientX(e.clientX);
-    releaseMagnetBall();
-  }, [gameState.status, movePaddleToClientX, releaseMagnetBall]);
-
   useEffect(() => {
     const img = new Image();
     img.src = spaceBackground;
@@ -350,9 +301,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const applyPowerUp = (type: string) => {
     audioManager.playPowerUp();
     switch(type) {
-      case 'widen': setPaddle(prev => ({ ...prev, width: Math.min(GAME_WIDTH, prev.width + 30) })); break;
+      case 'expand': setPaddle(prev => ({ ...prev, width: Math.min(GAME_WIDTH, prev.width + 30) })); break;
       case 'shrink': setPaddle(prev => ({ ...prev, width: Math.max(40, prev.width - 20) })); break;
-      case 'multiball':
+      case 'multi':
         setBalls(prev => {
           const newBalls = [...prev];
           prev.forEach(ball => {
@@ -361,27 +312,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           return newBalls;
         });
         break;
-      case 'sevenball':
-        setBalls(prev => {
-          const source = prev[0] || magnetBallRef.current;
-          if (!source) return prev;
-          return Array.from({ length: 7 }, (_, i) => ({
-            ...source,
-            id: generateId(),
-            velocity: { dx: Math.cos(-Math.PI * 0.85 + i * Math.PI * 0.12) * ballSpeed, dy: -Math.abs(Math.sin(-Math.PI * 0.85 + i * Math.PI * 0.12) * ballSpeed) },
-          }));
-        });
-        magnetBallRef.current = null;
-        break;
       case 'laser': setPaddle(prev => ({ ...prev, hasLaser: true })); break;
       case 'magnet': setPaddle(prev => ({ ...prev, hasMagnet: true })); break;
       case 'fireball': setIsFireball(true); setTimeout(() => setIsFireball(false), 10000); break;
       case 'bigball': setIsBigBall(true); setBalls(prev => prev.map(b => ({ ...b, radius: BALL_RADIUS * 1.8 }))); setTimeout(() => { setIsBigBall(false); setBalls(prev => prev.map(b => ({ ...b, radius: BALL_RADIUS }))); }, 10000); break;
       case 'shield': setPaddle(prev => ({ ...prev, hasShield: true })); if (shieldTimerRef.current) clearTimeout(shieldTimerRef.current); shieldTimerRef.current = setTimeout(() => setPaddle(prev => ({ ...prev, hasShield: false })), 15000); break;
-      case 'extralife': setGameState(prev => ({ ...prev, lives: Math.min(5, prev.lives + 1) })); break;
+      case 'life': setGameState(prev => ({ ...prev, lives: Math.min(5, prev.lives + 1) })); break;
       case 'slow': setBallSpeed(prev => Math.max(150, prev - 40)); break;
-      case 'speedup': setBallSpeed(prev => Math.min(500, prev + 50)); break;
-      case 'autopaddle': setIsAutoPaddle(true); setAutoPaddleEndTime(gameTime + 15); userOverrideRef.current = false; break;
+      case 'fast': setBallSpeed(prev => Math.min(500, prev + 50)); break;
+      case 'auto': setIsAutoPaddle(true); setAutoPaddleEndTime(gameTime + 15); userOverrideRef.current = false; break;
       case 'ghost': setIsGhostPaddle(true); setTimeout(() => setIsGhostPaddle(false), 10000); break;
     }
   };
@@ -390,7 +329,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (paddleRef.current.hasShield) {
       setPaddle(prev => ({ ...prev, hasShield: false }));
       setBalls([{ id: generateId(), position: { x: paddleRef.current.x + paddleRef.current.width / 2, y: paddleRef.current.y - BALL_RADIUS }, velocity: { dx: 0, dy: -ballSpeed }, radius: isBigBall ? BALL_RADIUS * 1.8 : BALL_RADIUS }]);
-      audioManager.playBallLost();
+      audioManager.playLifeLost();
       return;
     }
     setGameState(prev => {
@@ -399,7 +338,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       return { ...prev, lives: newLives };
     });
     if (gameState.lives > 1) {
-      audioManager.playBallLost();
+      audioManager.playLifeLost();
       magnetBallRef.current = { id: generateId(), position: { x: paddleRef.current.x + paddleRef.current.width / 2, y: paddleRef.current.y - BALL_RADIUS }, velocity: { dx: 0, dy: 0 }, radius: isBigBall ? BALL_RADIUS * 1.8 : BALL_RADIUS };
       setBalls([magnetBallRef.current]);
       setPowerUps([]);
@@ -502,10 +441,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (plane) {
       setPlane(prev => {
         if (!prev) return null;
-        const planeWidth = 40;
-        const newX = prev.x + prev.speed * dt;
-        if (newX < 0 || newX > GAME_WIDTH - planeWidth) {
-          return { ...prev, x: Math.max(0, Math.min(GAME_WIDTH - planeWidth, newX)), speed: -prev.speed };
+        const newX = prev.x + prev.dx * dt;
+        if (newX < 0 || newX > GAME_WIDTH - prev.width) {
+          return { ...prev, x: Math.max(0, Math.min(GAME_WIDTH - prev.width, newX)), dx: -prev.dx };
         }
         return { ...prev, x: newX };
       });
@@ -529,17 +467,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (newX - ball.radius < 0) {
           newX = ball.radius;
           newDx = Math.abs(newDx);
-          audioManager.playWallBounce();
+          audioManager.playWallHit();
         } else if (newX + ball.radius > GAME_WIDTH) {
           newX = GAME_WIDTH - ball.radius;
           newDx = -Math.abs(newDx);
-          audioManager.playWallBounce();
+          audioManager.playWallHit();
         }
 
         if (newY - ball.radius < 0) {
           newY = ball.radius;
           newDy = Math.abs(newDy);
-          audioManager.playWallBounce();
+          audioManager.playWallHit();
         }
 
         // Paddle collision
@@ -556,7 +494,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             audioManager.playMagnetCatch();
           } else {
             newDy = -Math.abs(newDy);
-            newDx = Math.sin(calculateBounceAngle({ ...ball, position: { x: newX, y: newY } }, paddleRef.current)) * ballSpeed;
+            newDx = calculateBounceAngle(newX, paddleRef.current.x, paddleRef.current.width) * ballSpeed;
             audioManager.playPaddleHit();
           }
         }
@@ -578,7 +516,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           if (collision) {
             hitByBall = true;
             if (!isFireball && brick.type !== 'ghost') {
-              ball.velocity.dy = -ball.velocity.dy;
+              if (collision === 'left' || collision === 'right') ball.velocity.dx = -ball.velocity.dx;
+              else ball.velocity.dy = -ball.velocity.dy;
             }
           }
           return ball;
@@ -640,7 +579,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
       
       const worldBg = getWorldBg(gameState.level);
-     ctx.fillStyle = worldBg.base;
+      ctx.fillStyle = worldBg;
       ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
       ctx.save();
@@ -651,7 +590,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       bricks.forEach(brick => { if (!brick.destroyed) drawPremiumBrick(ctx, brick); });
-      ctx.restore();
       levelCoins.forEach(coin => {
         if (!coin.collected) {
           ctx.save();
@@ -668,7 +606,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.restore();
         }
       });
-      powerUps.forEach(p => drawPowerUp(ctx, p, gameTime));
+      powerUps.forEach(p => drawPowerUp(ctx, p));
       coins.forEach(c => {
         ctx.fillStyle = 'gold';
         ctx.beginPath();
@@ -708,17 +646,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (plane.hasPowerUp) {
           ctx.fillStyle = 'cyan';
           ctx.beginPath();
-                  ctx.arc(plane.x + 20, plane.y + 20, 5, 0, Math.PI * 2);
-        ctx.fill();
+          ctx.arc(plane.x + 20, plane.y + 20, 5, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
-
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
-      drawPremiumPaddle(ctx, paddle.x, paddle.y, paddle.width, paddle.height, paddle.hasLaser, paddle.hasMagnet, paddle.hasShield, isGhostPaddle);
-      
-      balls.forEach(ball => drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall));
-
+      drawPremiumPaddle(ctx, paddle, isGhostPaddle);
+      balls.forEach(ball => drawPremiumBall(ctx, ball, isFireball));
       if (magnetBallRef.current) {
         const ball = balls.find(b => b.id === magnetBallRef.current?.id);
         if (ball) {
@@ -740,16 +673,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden touch-none">
-      <canvas
-        ref={canvasRef}
-        width={GAME_WIDTH}
-        height={GAME_HEIGHT}
-        className="max-w-full max-h-full object-contain shadow-2xl touch-none"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-      />
+      <canvas ref={canvasRef} width={GAME_WIDTH} height={GAME_HEIGHT} className="max-w-full max-h-full object-contain shadow-2xl" />
     </div>
   );
 };
