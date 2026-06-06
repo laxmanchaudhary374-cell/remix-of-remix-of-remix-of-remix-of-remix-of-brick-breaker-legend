@@ -126,6 +126,29 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     audioManager.playMagnetRelease();
   }, [ballSpeed]);
 
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (gameState.status !== 'playing') return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    movePaddleToClientX(e.clientX);
+  }, [gameState.status, movePaddleToClientX]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (gameState.status !== 'playing') return;
+    e.preventDefault();
+    movePaddleToClientX(e.clientX);
+  }, [gameState.status, movePaddleToClientX]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (gameState.status !== 'playing') return;
+    e.preventDefault();
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    movePaddleToClientX(e.clientX);
+    releaseMagnetBall();
+  }, [gameState.status, movePaddleToClientX, releaseMagnetBall]);
+
   useEffect(() => {
     const img = new Image();
     img.src = spaceBackground;
@@ -717,7 +740,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden touch-none">
-      <canvas ref={canvasRef} width={GAME_WIDTH} height={GAME_HEIGHT} className="max-w-full max-h-full object-contain shadow-2xl" />
+      <canvas
+        ref={canvasRef}
+        width={GAME_WIDTH}
+        height={GAME_HEIGHT}
+        className="max-w-full max-h-full object-contain shadow-2xl touch-none"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      />
     </div>
   );
 };
