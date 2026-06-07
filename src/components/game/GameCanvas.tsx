@@ -382,7 +382,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (paddleRef.current.hasShield) {
       setPaddle(prev => ({ ...prev, hasShield: false }));
       setBalls([{ id: generateId(), position: { x: paddleRef.current.x + paddleRef.current.width / 2, y: paddleRef.current.y - BALL_RADIUS }, velocity: { dx: 0, dy: -ballSpeed }, radius: isBigBall ? BALL_RADIUS * 1.8 : BALL_RADIUS }]);
-      audioManager.playLifeLost();
+      audioManager.playBallLost();
       return;
     }
     setGameState(prev => {
@@ -391,7 +391,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       return { ...prev, lives: newLives };
     });
     if (gameState.lives > 1) {
-      audioManager.playLifeLost();
+      audioManager.playBallLost();
       magnetBallRef.current = { id: generateId(), position: { x: paddleRef.current.x + paddleRef.current.width / 2, y: paddleRef.current.y - BALL_RADIUS }, velocity: { dx: 0, dy: 0 }, radius: isBigBall ? BALL_RADIUS * 1.8 : BALL_RADIUS };
       setBalls([magnetBallRef.current]);
       setPowerUps([]);
@@ -490,18 +490,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     // Update moving bricks
     setBricks(prev => updateMovingBricks(prev, dt));
 
-    // Update plane
-    if (plane) {
-      setPlane(prev => {
-        if (!prev) return null;
-        const newX = prev.x + prev.dx * dt;
-        if (newX < 0 || newX > GAME_WIDTH - prev.width) {
-          return { ...prev, x: Math.max(0, Math.min(GAME_WIDTH - prev.width, newX)), dx: -prev.dx };
-        }
-        return { ...prev, x: newX };
-      });
-    }
-
     // Update balls
     setBalls(prev => {
       const newBalls: Ball[] = [];
@@ -520,17 +508,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (newX - ball.radius < 0) {
           newX = ball.radius;
           newDx = Math.abs(newDx);
-          audioManager.playWallHit();
+          audioManager.playWallBounce();
         } else if (newX + ball.radius > GAME_WIDTH) {
           newX = GAME_WIDTH - ball.radius;
           newDx = -Math.abs(newDx);
-          audioManager.playWallHit();
+          audioManager.playWallBounce();
         }
 
         if (newY - ball.radius < 0) {
           newY = ball.radius;
           newDy = Math.abs(newDy);
-          audioManager.playWallHit();
+          audioManager.playWallBounce();
         }
 
         // Paddle collision
@@ -570,10 +558,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           const collision = checkBallBrickCollision(ball, brick);
           if (collision) {
             hitByBall = true;
-            if (!isFireball && brick.type !== 'ghost') {
-              if (collision === 'left' || collision === 'right') ball.velocity.dx = -ball.velocity.dx;
-              else ball.velocity.dy = -ball.velocity.dy;
-            }
+            if (!isFireball && brick.type !== 'ghost') ball.velocity.dy = -ball.velocity.dy;
           }
           return ball;
         }));
