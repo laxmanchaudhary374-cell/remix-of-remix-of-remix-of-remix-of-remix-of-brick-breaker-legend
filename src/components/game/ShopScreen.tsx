@@ -30,7 +30,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins
     setAdError(null);
     try {
       const result = await showRewardedAd();
-      if (!result.ok) {
+      if ('error' in result) {
         setAdError(result.error);
         return;
       }
