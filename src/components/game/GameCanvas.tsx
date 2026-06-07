@@ -100,6 +100,59 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const paddleRef = useRef(paddle);
   useEffect(() => { paddleRef.current = paddle; }, [paddle]);
 
+  const movePaddleToClientX = useCallback((clientX: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0) return;
+
+    const scaleX = GAME_WIDTH / rect.width;
+    const targetX = (clientX - rect.left) * scaleX - paddleRef.current.width / 2;
+    const clampedX = Math.max(0, Math.min(GAME_WIDTH - paddleRef.current.width, targetX));
+    paddleTargetRef.current = clampedX;
+    userOverrideRef.current = true;
+
+    setPaddle(prev => ({ ...prev, x: clampedX }));
+    setBalls(prev => prev.map(ball => (
+      magnetBallRef.current?.id === ball.id
+        ? { ...ball, position: { x: clampedX + paddleRef.current.width / 2, y: paddleRef.current.y - ball.radius } }
+        : ball
+    )));
+  }, []);
+
+  const launchHeldBall = useCallback(() => {
+    const heldBall = magnetBallRef.current;
+    if (!heldBall || gameState.status !== 'playing') return;
+
+    const launchAngle = Number.isFinite(aimAngleRef.current) ? aimAngleRef.current : -Math.PI / 2;
+    setBalls(prev => prev.map(ball => (
+      ball.id === heldBall.id
+        ? {
+            ...ball,
+            position: { x: paddleRef.current.x + paddleRef.current.width / 2, y: paddleRef.current.y - ball.radius },
+            velocity: {
+              dx: Math.cos(launchAngle) * ballSpeed,
+              dy: Math.min(-Math.abs(Math.sin(launchAngle) * ballSpeed), -ballSpeed * 0.7),
+            },
+          }
+        : ball
+    )));
+    magnetBallRef.current = null;
+    audioManager.playPaddleHit();
+  }, [ballSpeed, gameState.status]);
+
+  const handlePointerMove = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    movePaddleToClientX(event.clientX);
+  }, [movePaddleToClientX]);
+
+  const handlePointerDown = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    movePaddleToClientX(event.clientX);
+    launchHeldBall();
+  }, [launchHeldBall, movePaddleToClientX]);
+
   useEffect(() => {
     const img = new Image();
     img.src = spaceBackground;
@@ -494,7 +547,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             audioManager.playMagnetCatch();
           } else {
             newDy = -Math.abs(newDy);
-            newDx = calculateBounceAngle(newX, paddleRef.current.x, paddleRef.current.width) * ballSpeed;
+            const bounceAngle = calculateBounceAngle({ ...ball, position: { x: newX, y: newY } }, paddleRef.current);
+            newDx = Math.sin(bounceAngle) * ballSpeed;
+            newDy = -Math.abs(Math.cos(bounceAngle) * ballSpeed);
             audioManager.playPaddleHit();
           }
         }
