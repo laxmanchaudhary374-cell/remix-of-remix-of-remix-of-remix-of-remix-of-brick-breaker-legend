@@ -30,11 +30,13 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onClose, coins, addCoins
     setAdError(null);
     try {
       const result = await showRewardedAd();
-      if (result.ok && result.reward > 0) {
+      if ('error' in result) {
+        setAdError(result.error);
+        return;
+      }
+      if (result.reward > 0) {
         addCoins(result.reward);
         setPurchaseMessage({ type: 'success', text: `+${result.reward} COINS RECEIVED!` });
-      } else if (!result.ok) {
-        setAdError(result.error);
       }
     } catch (error) {
       setAdError('Failed to load ad.');
