@@ -578,8 +578,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.restore();
       }
       
+      // World-themed background tint (procedural)
       const worldBg = getWorldBg(gameState.level);
-      ctx.fillStyle = worldBg;
+      const bgGrad = ctx.createRadialGradient(
+        GAME_WIDTH / 2, GAME_HEIGHT * 0.3, 0,
+        GAME_WIDTH / 2, GAME_HEIGHT * 0.3, GAME_HEIGHT
+      );
+      bgGrad.addColorStop(0, `hsla(${worldBg.inner.hue}, ${worldBg.inner.sat}%, ${worldBg.inner.light + 6}%, 0.85)`);
+      bgGrad.addColorStop(1, `hsla(${worldBg.inner.hue}, ${worldBg.inner.sat}%, ${worldBg.inner.light}%, 0.95)`);
+      ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
       ctx.save();
@@ -650,8 +657,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.fill();
         }
       }
-      drawPremiumPaddle(ctx, paddle, isGhostPaddle);
-      balls.forEach(ball => drawPremiumBall(ctx, ball, isFireball));
+      drawPremiumPaddle(ctx, paddle.x, paddle.y, paddle.width, paddle.height, paddle.hasLaser, paddle.hasMagnet, paddle.hasShield, isGhostPaddle);
+      balls.forEach(ball => drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall));
       if (magnetBallRef.current) {
         const ball = balls.find(b => b.id === magnetBallRef.current?.id);
         if (ball) {
