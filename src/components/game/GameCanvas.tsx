@@ -653,7 +653,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           ctx.restore();
         }
       });
-      powerUps.forEach(p => drawPowerUp(ctx, p));
+      powerUps.forEach(p => drawPowerUp(ctx, p, gameTime));
       coins.forEach(c => {
         ctx.fillStyle = 'gold';
         ctx.beginPath();
@@ -716,11 +716,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     };
     render();
     return () => cancelAnimationFrame(animationFrameId);
-  }, [bricks, balls, paddle, powerUps, particles, lasers, coins, explosions, plane, levelCoins, screenShake, isFireball, isGhostPaddle, gameState.level]);
+  }, [bricks, balls, paddle, powerUps, particles, lasers, coins, explosions, plane, levelCoins, screenShake, isFireball, isGhostPaddle, gameState.level, gameTime]);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden touch-none">
-      <canvas ref={canvasRef} width={GAME_WIDTH} height={GAME_HEIGHT} className="max-w-full max-h-full object-contain shadow-2xl" />
+      <canvas
+        ref={canvasRef}
+        width={GAME_WIDTH}
+        height={GAME_HEIGHT}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        className="max-w-full max-h-full object-contain shadow-2xl cursor-pointer"
+      />
     </div>
   );
 };
