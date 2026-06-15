@@ -64,7 +64,9 @@ export const claimDailyReward = (day: number) => {
     localStorage.setItem(STORAGE_KEYS.lastClaim, now.toISOString());
     localStorage.setItem(STORAGE_KEYS.streak, (streak + 1).toString());
     localStorage.setItem(STORAGE_KEYS.claimed, now.toDateString());
-  } catch {}
+  } catch (e) {
+    console.warn('[DailyRewards] Failed to persist reward claim:', e);
+  }
 };
 
 const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {

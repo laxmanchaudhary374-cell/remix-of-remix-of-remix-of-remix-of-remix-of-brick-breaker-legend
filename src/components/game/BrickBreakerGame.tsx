@@ -33,19 +33,25 @@ const getStoredHighScore = (): number => {
   try { return parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10); } catch { return 0; }
 };
 const setStoredHighScore = (score: number) => {
-  try { localStorage.setItem(STORAGE_KEY, score.toString()); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, score.toString()); } catch (e) {
+    console.warn('[Storage] Failed to save high score:', e);
+  }
 };
 const getStoredUnlockedLevel = (): number => {
   try { return parseInt(localStorage.getItem(LEVEL_KEY) || '1', 10); } catch { return 1; }
 };
 const setStoredUnlockedLevel = (level: number) => {
-  try { localStorage.setItem(LEVEL_KEY, level.toString()); } catch {}
+  try { localStorage.setItem(LEVEL_KEY, level.toString()); } catch (e) {
+    console.warn('[Storage] Failed to save unlocked level:', e);
+  }
 };
 const getStoredCoins = (): number => {
   try { return parseInt(localStorage.getItem(COINS_KEY) || '0', 10); } catch { return 0; }
 };
 const setStoredCoins = (coins: number) => {
-  try { localStorage.setItem(COINS_KEY, coins.toString()); } catch {}
+  try { localStorage.setItem(COINS_KEY, coins.toString()); } catch (e) {
+    console.warn('[Storage] Failed to save coins:', e);
+  }
 };
 
 type ScreenState = 'splash' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'won';
@@ -105,12 +111,16 @@ const BrickBreakerGame: React.FC = () => {
   const [isNewHighScore, setIsNewHighScore] = useState(false);
 
     useEffect(() => {
-    setShowLangSelect(!hasChosenLanguage()); // Add this line here
-    initBilling().then(ok => ok && console.log('[Billing] Ready'));
-    // ... rest of the code
+    setShowLangSelect(!hasChosenLanguage());
+    initBilling()
+      .then(ok => ok && console.log('[Billing] Ready'))
+      .catch(err => console.error('[Billing] Unexpected init error:', err));
 
-    initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
-    initDailyReminder();
+    initAdMob()
+      .then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } })
+      .catch(err => console.error('[AdMob] Unexpected init error:', err));
+    initDailyReminder()
+      .catch(err => console.error('[Notifications] Unexpected init error:', err));
   }, []);
 
   useEffect(() => {
@@ -185,7 +195,9 @@ const BrickBreakerGame: React.FC = () => {
           const key = reward.type as 'auto' | 'shock' | 'multi';
           const newVal = prev[key] + reward.amount;
           const updated = { ...prev, [key]: newVal };
-          try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+          try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch (e) {
+            console.warn('[Storage] Failed to save emergency count:', e);
+          }
           return updated;
         });
       } else {
@@ -204,7 +216,9 @@ const BrickBreakerGame: React.FC = () => {
       setEmergencyCounts(prev => {
         const newVal = prev[key] + 1;
         const updated = { ...prev, [key]: newVal };
-        try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+        try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch (e) {
+          console.warn('[Storage] Failed to save emergency count:', e);
+        }
         return updated;
       });
     } else if (item.category === 'powerup') {
@@ -343,7 +357,9 @@ const BrickBreakerGame: React.FC = () => {
     setEmergencyCounts(prev => {
       const newVal = prev[type] - 1;
       const updated = { ...prev, [type]: newVal };
-      try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch {}
+      try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch (e) {
+        console.warn('[Storage] Failed to save emergency count:', e);
+      }
       return updated;
     });
   }, [emergencyCounts, screenState]);
@@ -359,7 +375,9 @@ const BrickBreakerGame: React.FC = () => {
     setEmergencyCounts(prev => {
       const newVal = prev[key] + 1;
       const updated = { ...prev, [key]: newVal };
-      try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+      try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch (e) {
+        console.warn('[Storage] Failed to save emergency count:', e);
+      }
       return updated;
     });
     setBuyPrompt(null);

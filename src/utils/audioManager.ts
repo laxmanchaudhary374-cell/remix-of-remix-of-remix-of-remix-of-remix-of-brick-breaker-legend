@@ -65,7 +65,11 @@ class AudioManager {
   // Resume audio context (needed after user interaction)
   async resume(): Promise<void> {
     if (this.audioContext?.state === 'suspended') {
-      await this.audioContext.resume();
+      try {
+        await this.audioContext.resume();
+      } catch (e) {
+        console.warn('[AudioManager] Failed to resume audio context:', e);
+      }
     }
   }
 
@@ -259,14 +263,16 @@ class AudioManager {
       // Load the MP3 file if not already loaded
       if (!this.musicBuffer) {
         const response = await fetch('/audio/background-music.mp3');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         const arrayBuffer = await response.arrayBuffer();
         this.musicBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
       }
 
       this.playMusicFromBuffer();
     } catch (e) {
-      console.warn('Failed to load background music:', e);
-      // Fallback to procedural music
+      console.warn('[AudioManager] Failed to load background music, falling back to procedural:', e);
       this.playProceduralMusicLoop();
     }
   }

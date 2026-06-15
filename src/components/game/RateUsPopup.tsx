@@ -10,7 +10,11 @@ export const shouldShowRatePrompt = (level: number): boolean => {
 };
 
 export const markRatePrompted = () => {
-  try { localStorage.setItem(RATE_KEY, '1'); } catch {}
+  try {
+    localStorage.setItem(RATE_KEY, '1');
+  } catch (e) {
+    console.warn('[RateUs] Failed to persist rate prompt state:', e);
+  }
 };
 
 interface Props {
@@ -22,7 +26,11 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.neonbrickbre
 const RateUsPopup: React.FC<Props> = ({ onClose }) => {
   const handleRate = () => {
     markRatePrompted();
-    try { window.open(PLAY_URL, '_blank'); } catch {}
+    try {
+      window.open(PLAY_URL, '_blank');
+    } catch (e) {
+      console.warn('[RateUs] Failed to open Play Store URL:', e);
+    }
     onClose();
   };
   const handleLater = () => {

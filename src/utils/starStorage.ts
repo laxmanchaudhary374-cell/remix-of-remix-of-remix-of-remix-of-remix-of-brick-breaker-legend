@@ -20,7 +20,9 @@ export const setLevelStars = (level: number, stars: number) => {
       stored[level] = stars;
       localStorage.setItem(STARS_KEY, JSON.stringify(stored));
     }
-  } catch {}
+  } catch (e) {
+    console.warn('[StarStorage] Failed to save level stars:', e);
+  }
 };
 
 export const getLevelStars = (level: number): number => {
