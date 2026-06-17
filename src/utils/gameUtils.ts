@@ -1,4 +1,6 @@
 import { Ball, Brick, Paddle, PowerUp, PowerUpType, BrickColor, BrickType, Coin, Explosion, Laser } from '@/types/game';
+import { circleRectOverlap, pointInRect, rectCenter, distance } from '@/utils/collision';
+export { rectCenter } from '@/utils/collision';
 
 export const GAME_WIDTH = 400;
 export const GAME_HEIGHT = 600;
@@ -11,35 +13,17 @@ export const generateId = (): string => {
   return `id_${Date.now()}_${++idCounter}`;
 };
 
-export const checkBallPaddleCollision = (ball: Ball, paddle: Paddle): boolean => {
-  return (
-    ball.position.x + ball.radius > paddle.x &&
-    ball.position.x - ball.radius < paddle.x + paddle.width &&
-    ball.position.y + ball.radius > paddle.y &&
-    ball.position.y - ball.radius < paddle.y + paddle.height
-  );
-};
+export const checkBallPaddleCollision = (ball: Ball, paddle: Paddle): boolean =>
+  circleRectOverlap(ball, paddle);
 
 export const checkBallBrickCollision = (ball: Ball, brick: Brick): boolean => {
   if (brick.destroyed) return false;
-  
-  return (
-    ball.position.x + ball.radius > brick.x &&
-    ball.position.x - ball.radius < brick.x + brick.width &&
-    ball.position.y + ball.radius > brick.y &&
-    ball.position.y - ball.radius < brick.y + brick.height
-  );
+  return circleRectOverlap(ball, brick);
 };
 
 export const checkLaserBrickCollision = (laser: Laser, brick: Brick): boolean => {
   if (brick.destroyed) return false;
-  
-  return (
-    laser.x > brick.x &&
-    laser.x < brick.x + brick.width &&
-    laser.y > brick.y &&
-    laser.y < brick.y + brick.height
-  );
+  return pointInRect(laser.x, laser.y, brick);
 };
 
 export const calculateBounceAngle = (ball: Ball, paddle: Paddle): number => {
@@ -206,16 +190,8 @@ export const getBricksInExplosionRadius = (
 ): Brick[] => {
   return bricks.filter(brick => {
     if (brick.destroyed || brick.type === 'indestructible') return false;
-    
-    const brickCenterX = brick.x + brick.width / 2;
-    const brickCenterY = brick.y + brick.height / 2;
-    
-    const distance = Math.sqrt(
-      Math.pow(brickCenterX - explosion.x, 2) +
-      Math.pow(brickCenterY - explosion.y, 2)
-    );
-    
-    return distance < explosion.radius;
+    const center = rectCenter(brick);
+    return distance(center.x, center.y, explosion.x, explosion.y) < explosion.radius;
   });
 };
 

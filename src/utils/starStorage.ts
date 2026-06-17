@@ -1,26 +1,19 @@
+import { getStoredJSON, setStoredJSON } from '@/utils/storage';
+
 const STARS_KEY = 'neon_breaker_level_stars';
 
 export interface LevelStars {
   [level: number]: number; // 1-3 stars
 }
 
-export const getStoredStars = (): LevelStars => {
-  try {
-    return JSON.parse(localStorage.getItem(STARS_KEY) || '{}');
-  } catch {
-    return {};
-  }
-};
+export const getStoredStars = (): LevelStars => getStoredJSON<LevelStars>(STARS_KEY, {});
 
 export const setLevelStars = (level: number, stars: number) => {
-  try {
-    const stored = getStoredStars();
-    // Only save if better than existing
-    if (!stored[level] || stars > stored[level]) {
-      stored[level] = stars;
-      localStorage.setItem(STARS_KEY, JSON.stringify(stored));
-    }
-  } catch {}
+  const stored = getStoredStars();
+  if (!stored[level] || stars > stored[level]) {
+    stored[level] = stars;
+    setStoredJSON(STARS_KEY, stored);
+  }
 };
 
 export const getLevelStars = (level: number): number => {

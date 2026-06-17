@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { showRewardedAd } from '@/utils/admob';
+import { getStoredString, setStoredString } from '@/utils/storage';
 
 interface LuckyWheelProps {
   onClose: (reward?: { type: string; amount: number; label: string }) => void;
@@ -27,7 +28,7 @@ const SPIN_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
 export const canSpin = (): { can: boolean; timeLeft: string } => {
   try {
-    const lastSpin = localStorage.getItem(STORAGE_KEYS.lastSpin);
+    const lastSpin = getStoredString(STORAGE_KEYS.lastSpin);
     if (!lastSpin) return { can: true, timeLeft: '' };
     const diff = Date.now() - parseInt(lastSpin, 10);
     if (diff >= SPIN_COOLDOWN_MS) return { can: true, timeLeft: '' };
@@ -40,11 +41,7 @@ export const canSpin = (): { can: boolean; timeLeft: string } => {
   }
 };
 
-const recordSpin = () => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.lastSpin, Date.now().toString());
-  } catch {}
-};
+const recordSpin = () => setStoredString(STORAGE_KEYS.lastSpin, Date.now().toString());
 
 const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { getStoredFlag, setStoredFlag } from '@/utils/storage';
 
 const TUTORIAL_KEY = 'neon_breaker_tutorial_seen_v1';
 
-export const hasSeenTutorial = (): boolean => {
-  try { return localStorage.getItem(TUTORIAL_KEY) === '1'; } catch { return false; }
-};
-export const markTutorialSeen = () => {
-  try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch {}
-};
+export const hasSeenTutorial = (): boolean => getStoredFlag(TUTORIAL_KEY);
+export const markTutorialSeen = () => setStoredFlag(TUTORIAL_KEY);
 
 interface Step {
   title: string;

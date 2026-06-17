@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { getStoredString, setStoredString } from '@/utils/storage';
 
 export type Language = 'en' | 'pt' | 'hi' | 'es' | 'ar' | 'ru' | 'fr' | 'zh' | 'de' | 'ko';
 
@@ -563,19 +564,13 @@ const I18nContext = createContext<I18nContextType>({
 });
 
 export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [lang, setLangState] = useState<Language>(() => {
-    try {
-      return (localStorage.getItem(LANG_KEY) as Language) || 'en';
-    } catch {
-      return 'en';
-    }
-  });
+  const [lang, setLangState] = useState<Language>(
+    () => (getStoredString(LANG_KEY, 'en') as Language),
+  );
 
   const setLang = useCallback((newLang: Language) => {
     setLangState(newLang);
-    try {
-      localStorage.setItem(LANG_KEY, newLang);
-    } catch {}
+    setStoredString(LANG_KEY, newLang);
   }, []);
 
   const t = useCallback((key: string, params?: Record<string, string | number>): string => {

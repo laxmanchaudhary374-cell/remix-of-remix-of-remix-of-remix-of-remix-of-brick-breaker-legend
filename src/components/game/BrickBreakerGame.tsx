@@ -24,29 +24,18 @@ import RateUsPopup, { shouldShowRatePrompt } from './RateUsPopup';
 import LanguageSelectScreen, { hasChosenLanguage } from './LanguageSelectScreen';
 import spaceBackground from '@/assets/space-background.jpg';
 import { Pause, Play } from 'lucide-react';
+import { getStoredInt, setStoredInt } from '@/utils/storage';
 
 const STORAGE_KEY = 'neon_breaker_highscore';
 const LEVEL_KEY = 'neon_breaker_unlocked_level';
 const COINS_KEY = 'neon_breaker_coins';
 
-const getStoredHighScore = (): number => {
-  try { return parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10); } catch { return 0; }
-};
-const setStoredHighScore = (score: number) => {
-  try { localStorage.setItem(STORAGE_KEY, score.toString()); } catch {}
-};
-const getStoredUnlockedLevel = (): number => {
-  try { return parseInt(localStorage.getItem(LEVEL_KEY) || '1', 10); } catch { return 1; }
-};
-const setStoredUnlockedLevel = (level: number) => {
-  try { localStorage.setItem(LEVEL_KEY, level.toString()); } catch {}
-};
-const getStoredCoins = (): number => {
-  try { return parseInt(localStorage.getItem(COINS_KEY) || '0', 10); } catch { return 0; }
-};
-const setStoredCoins = (coins: number) => {
-  try { localStorage.setItem(COINS_KEY, coins.toString()); } catch {}
-};
+const getStoredHighScore = (): number => getStoredInt(STORAGE_KEY, 0);
+const setStoredHighScore = (score: number) => setStoredInt(STORAGE_KEY, score);
+const getStoredUnlockedLevel = (): number => getStoredInt(LEVEL_KEY, 1);
+const setStoredUnlockedLevel = (level: number) => setStoredInt(LEVEL_KEY, level);
+const getStoredCoins = (): number => getStoredInt(COINS_KEY, 0);
+const setStoredCoins = (coins: number) => setStoredInt(COINS_KEY, coins);
 
 type ScreenState = 'splash' | 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'won';
 type ModalType = 'none' | 'daily' | 'wheel' | 'shop' | 'tutorial';
@@ -57,15 +46,11 @@ const EMERGENCY_PRICES: Record<string, { cost: number; label: string }> = {
   multi: { cost: 100, label: 'Three-Ball' },
 };
 
-const getEmergencyCounts = () => {
-  try {
-    return {
-      auto: parseInt(localStorage.getItem('neon_breaker_em_auto') || '5'),
-      shock: parseInt(localStorage.getItem('neon_breaker_em_shock') || '5'),
-      multi: parseInt(localStorage.getItem('neon_breaker_em_multi') || '4'),
-    };
-  } catch { return { auto: 5, shock: 5, multi: 4 }; }
-};
+const getEmergencyCounts = () => ({
+  auto: getStoredInt('neon_breaker_em_auto', 5),
+  shock: getStoredInt('neon_breaker_em_shock', 5),
+  multi: getStoredInt('neon_breaker_em_multi', 4),
+});
 
 const BrickBreakerGame: React.FC = () => {
    const [showLangSelect, setShowLangSelect] = useState(false);
@@ -185,7 +170,7 @@ const BrickBreakerGame: React.FC = () => {
           const key = reward.type as 'auto' | 'shock' | 'multi';
           const newVal = prev[key] + reward.amount;
           const updated = { ...prev, [key]: newVal };
-          try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+          setStoredInt(`neon_breaker_em_${key}`, newVal);
           return updated;
         });
       } else {
@@ -204,7 +189,7 @@ const BrickBreakerGame: React.FC = () => {
       setEmergencyCounts(prev => {
         const newVal = prev[key] + 1;
         const updated = { ...prev, [key]: newVal };
-        try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+        setStoredInt(`neon_breaker_em_${key}`, newVal);
         return updated;
       });
     } else if (item.category === 'powerup') {
@@ -343,7 +328,7 @@ const BrickBreakerGame: React.FC = () => {
     setEmergencyCounts(prev => {
       const newVal = prev[type] - 1;
       const updated = { ...prev, [type]: newVal };
-      try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch {}
+      setStoredInt(`neon_breaker_em_${type}`, newVal);
       return updated;
     });
   }, [emergencyCounts, screenState]);
@@ -359,7 +344,7 @@ const BrickBreakerGame: React.FC = () => {
     setEmergencyCounts(prev => {
       const newVal = prev[key] + 1;
       const updated = { ...prev, [key]: newVal };
-      try { localStorage.setItem(`neon_breaker_em_${key}`, newVal.toString()); } catch {}
+      setStoredInt(`neon_breaker_em_${key}`, newVal);
       return updated;
     });
     setBuyPrompt(null);
