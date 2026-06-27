@@ -14,8 +14,8 @@ import LuckyWheel from './LuckyWheel';
 import ShopScreen, { ShopItem } from './ShopScreen';
 import TutorialOverlay, { hasSeenTutorial } from './TutorialOverlay';
 import { audioManager } from '@/utils/audioManager';
-import { initBilling } from '@/utils/billing';
-import { initAdMob, showBannerAd, showInterstitialAd } from '@/utils/admob';
+import { initBilling, restoreUnconsumedPurchases } from '@/utils/billing';
+import { initAdMob, showBannerAd, showInterstitialAd, preloadInterstitial, isAdActive, isAdsRemoved } from '@/utils/admob';
 import { calculateStars, setLevelStars } from '@/utils/starStorage';
 import { initDailyReminder } from '@/utils/notifications';
 import { getWorldBg } from '@/utils/worldBackgrounds';
@@ -27,6 +27,24 @@ import { Pause, Play } from 'lucide-react';
 const STORAGE_KEY = 'neon_breaker_highscore';
 const LEVEL_KEY = 'neon_breaker_unlocked_level';
 const COINS_KEY = 'neon_breaker_coins';
+const LIVES_KEY = 'neon_breaker_lives';
+const LAST_LIFE_REGEN_KEY = 'neon_breaker_last_regen';
+
+const MAX_LIVES = 5;
+const REGEN_TIME = 15 * 60 * 1000; // 15 minutes
+
+const getStoredLives = (): number => {
+  try { return parseInt(localStorage.getItem(LIVES_KEY) || '5', 10); } catch { return 5; }
+};
+const setStoredLives = (lives: number) => {
+  try { localStorage.setItem(LIVES_KEY, lives.toString()); } catch {}
+};
+const getStoredLastRegen = (): number => {
+  try { return parseInt(localStorage.getItem(LAST_LIFE_REGEN_KEY) || Date.now().toString(), 10); } catch { return Date.now(); }
+};
+const setStoredLastRegen = (time: number) => {
+  try { localStorage.setItem(LAST_LIFE_REGEN_KEY, time.toString()); } catch {}
+};
 
 const getStoredHighScore = (): number => {
   try { return parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10); } catch { return 0; }
@@ -76,7 +94,37 @@ const BrickBreakerGame: React.FC = () => {
   const [pendingPowerUps, setPendingPowerUps] = useState<string[]>([]);
   const [emergencyCounts, setEmergencyCounts] = useState(getEmergencyCounts);
   const emergencyRef = useRef<string | null>(null);
+  const pendingNextLevelRef = useRef<number | null>(null);
   const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | null>(null);
+  const [lives, setLives] = useState(getStoredLives);
+  const [lastRegen, setLastRegen] = useState(getStoredLastRegen);
+  const [showDaily, setShowDaily] = useState(false);
+
+  // Check daily reward on startup
+  useEffect(() => {
+    const { shouldShow } = checkDailyReward();
+    if (shouldShow) {
+      setTimeout(() => setShowDaily(true), 2000);
+    }
+  }, []);
+
+  // Life regeneration logic
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (lives < MAX_LIVES) {
+        const now = Date.now();
+        const diff = now - lastRegen;
+        if (diff >= REGEN_TIME) {
+          const newLives = Math.min(MAX_LIVES, lives + 1);
+          setLives(newLives);
+          setStoredLives(newLives);
+          setLastRegen(now);
+          setStoredLastRegen(now);
+        }
+      }
+    }, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, [lives, lastRegen]);
 
   // BACK BUTTON HANDLER - Correct position to avoid Black Screen
   useEffect(() => {
@@ -104,8 +152,22 @@ const BrickBreakerGame: React.FC = () => {
   const [isNewHighScore, setIsNewHighScore] = useState(false);
 
   useEffect(() => {
-    initBilling().then(ok => ok && console.log('[Billing] Ready'));
-    initAdMob().then(ok => { if (ok) { console.log('[AdMob] Ready'); showBannerAd(); } });
+    // Initialize billing and restore any unconsumed purchases
+    initBilling().then(async (ok) => {
+      console.log('[Billing] Init result:', ok);
+      if (ok) {
+        const restoredCoins = await restoreUnconsumedPurchases();
+        if (restoredCoins > 0) {
+          setGameState(prev => ({ ...prev, coins: prev.coins + restoredCoins }));
+          console.log('[Billing] Restored', restoredCoins, 'coins from unconsumed purchases');
+        }
+      }
+    });
+    // Initialize AdMob
+    initAdMob().then(ok => { 
+      console.log('[AdMob] Init result:', ok);
+      if (ok) { showBannerAd(); preloadInterstitial(); } 
+    });
     initDailyReminder();
   }, []);
 
@@ -125,10 +187,7 @@ const BrickBreakerGame: React.FC = () => {
         const stars = calculateStars(gameState.lives, gameState.maxCombo, gameState.score, gameState.level);
         setLevelStars(gameState.level, stars);
         
-        const coinReward = gameState.level <= 10 ? 2 :
-          gameState.level <= 20 ? 3 :
-          gameState.level <= 30 ? 4 :
-          gameState.level <= 50 ? 5 : 1;
+        const coinReward = 1; // Fixed 1 coin per level completion
         const newTotal = persistentCoins + gameState.coins + coinReward;
         setPersistentCoins(newTotal);
         setStoredCoins(newTotal);
@@ -213,11 +272,17 @@ const BrickBreakerGame: React.FC = () => {
   }, []);
 
   const handleStartGame = useCallback((level: number = 1) => {
+    if (lives <= 0) {
+      setActiveModal('shop');
+      toast.error("No lives left! Get more in shop or wait.");
+      return;
+    }
+    
     setIsNewHighScore(false);
     setGameState({
       status: 'playing',
       score: 0,
-      lives: 3,
+      lives: lives,
       level: level,
       highScore: getStoredHighScore(),
       coins: 0,
@@ -225,16 +290,26 @@ const BrickBreakerGame: React.FC = () => {
       maxCombo: 0,
     });
     setScreenState('playing');
-  }, []);
+  }, [lives]);
 
   const handleGameOver = useCallback(() => {
+    const newLives = Math.max(0, lives - 1);
+    setLives(newLives);
+    setStoredLives(newLives);
+    if (newLives < MAX_LIVES && lives === MAX_LIVES) {
+      setLastRegen(Date.now());
+      setStoredLastRegen(Date.now());
+    }
+    
     setScreenState('gameover');
-    setGameState(prev => ({ ...prev, status: 'gameover' }));
-  }, []);
+    setGameState(prev => ({ ...prev, status: 'gameover', lives: newLives }));
+  }, [lives]);
 
   const handleLevelComplete = useCallback(() => {
     const totalLevels = getTotalLevels();
-    if (gameState.level >= 10) showInterstitialAd();
+    
+    // Ad moved to handleNextLevel so it shows BEFORE game starts
+
     if (gameState.level === 10 && shouldShowRatePrompt(10)) {
       setTimeout(() => setShowRatePopup(true), 600);
     }
@@ -248,16 +323,72 @@ const BrickBreakerGame: React.FC = () => {
   }, [gameState.level]);
 
   const handleNextLevel = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      status: 'playing',
-      level: prev.level + 1,
-      lives: 3,
-    }));
-    setScreenState('playing');
-  }, []);
+    if (lives <= 0) {
+      setActiveModal('shop');
+      toast.error("No lives left! Get more in shop or wait.");
+      return;
+    }
+    const nextLevel = gameState.level + 1;
+
+    if (nextLevel >= 15 && !isAdsRemoved()) {
+      // Store the pending level in ref so ad dismiss can access it
+      pendingNextLevelRef.current = nextLevel;
+      audioManager.mute();
+      audioManager.stopBackgroundMusic();
+      showInterstitialAd(
+        () => { /* ad is showing */ },
+        () => {
+          // Ad dismissed - start the pending level
+          const lvl = pendingNextLevelRef.current;
+          pendingNextLevelRef.current = null;
+          audioManager.unmute();
+          if (lvl) {
+            setGameState(prev => ({
+              ...prev,
+              status: 'playing',
+              level: lvl,
+              lives: lives,
+            }));
+            setScreenState('playing');
+            preloadInterstitial();
+          }
+        }
+      );
+      // Fallback: if ad doesn't dismiss in 6 seconds, force start
+      setTimeout(() => {
+        if (pendingNextLevelRef.current) {
+          const lvl = pendingNextLevelRef.current;
+          pendingNextLevelRef.current = null;
+          audioManager.unmute();
+          setGameState(prev => ({
+            ...prev,
+            status: 'playing',
+            level: lvl,
+            lives: lives,
+          }));
+          setScreenState('playing');
+          preloadInterstitial();
+        }
+      }, 6000);
+    } else {
+      // No ad - just start next level
+      setGameState(prev => ({
+        ...prev,
+        status: 'playing',
+        level: nextLevel,
+        lives: lives,
+      }));
+      setScreenState('playing');
+      preloadInterstitial();
+    }
+  }, [lives, gameState.level]);
 
   const handleReplayLevel = useCallback(() => {
+    if (lives <= 0) {
+      setActiveModal('shop');
+      toast.error("No lives left! Get more in shop or wait.");
+      return;
+    }
     setIsNewHighScore(false);
     const currentLevel = gameState.level;
     const currentHighScore = gameState.highScore;
@@ -267,7 +398,7 @@ const BrickBreakerGame: React.FC = () => {
         setGameState({
           status: 'playing',
           score: 0,
-          lives: 3,
+          lives: lives,
           level: currentLevel,
           highScore: currentHighScore,
           coins: 0,
@@ -275,9 +406,9 @@ const BrickBreakerGame: React.FC = () => {
           maxCombo: 0,
         });
         setScreenState('playing');
-      }, 80);
+      }, 100);
     });
-  }, [gameState.level, gameState.highScore]);
+  }, [gameState.level, gameState.highScore, lives]);
 
   const handleMainMenu = useCallback(() => {
     setScreenState('menu');
@@ -314,6 +445,19 @@ const BrickBreakerGame: React.FC = () => {
       audioManager.playLevelComplete();
     } else if (screenState === 'gameover') {
       audioManager.playGameOver();
+    }
+  }, [screenState]);
+
+  useEffect(() => {
+    const shouldPlay = (screenState === 'playing' || screenState === 'paused') && !isAdActive();
+    if (shouldPlay) {
+      if (!audioManager.isMuted) {
+        audioManager.startBackgroundMusic();
+      } else {
+        audioManager.stopBackgroundMusic();
+      }
+    } else {
+      audioManager.stopBackgroundMusic();
     }
   }, [screenState]);
 
@@ -411,29 +555,35 @@ const BrickBreakerGame: React.FC = () => {
   const worldBg = getWorldBg(gameState.level);
   return (
     <div 
-      className="min-h-screen flex flex-col items-center justify-center p-2 select-none overflow-hidden"
-      style={{ background: worldBg.base }}
+      className="flex flex-col items-center justify-center p-0 select-none overflow-hidden"
+      style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundImage: `url(${spaceBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
+      }}
     >
-      <div className="fixed inset-0 bg-black/40 pointer-events-none" />
+      <div className="absolute inset-0 bg-black/20 pointer-events-none" />
       {showRatePopup && <RateUsPopup onClose={() => setShowRatePopup(false)} />}
-      
-      <AudioControls isPlaying={screenState === 'playing' || screenState === 'paused'} />
-      
-      {(screenState === 'playing' || screenState === 'paused') && (
-        <button
-          onClick={handleTogglePause}
-          className="fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-colors"
-        >
-          {screenState === 'paused' ? <Play className="w-5 h-5 text-neon-cyan" /> : <Pause className="w-5 h-5 text-neon-cyan" />}
-        </button>
-      )}
-      
-      <div className="relative z-10 mb-4 text-center">
-        <h1 className="font-display text-2xl font-bold text-glow-cyan text-foreground">NEON BREAKER</h1>
-      </div>
+      {showDaily && <DailyRewards onClose={(reward) => {
+        setShowDaily(false);
+        if (reward) {
+          const newTotal = persistentCoins + reward.amount;
+          setPersistentCoins(newTotal);
+          setStoredCoins(newTotal);
+          toast.success(`Daily Bonus: +${reward.amount} Coins!`);
+        }
+      }} />}
 
+      
       <div className="relative z-10">
-        <GameUI gameState={gameState} persistentCoins={persistentCoins} />
+        <GameUI gameState={gameState} persistentCoins={persistentCoins} onTogglePause={handleTogglePause} isPaused={screenState === 'paused'} isPlaying={screenState === 'playing' || screenState === 'paused'} shieldTimer={gameState.shieldTimer} ghostTimer={gameState.ghostTimer} />
       </div>
 
       <div className="relative z-10">
@@ -447,7 +597,7 @@ const BrickBreakerGame: React.FC = () => {
         />
 
         {screenState === 'playing' && (
-          <div className="absolute flex flex-col items-center z-30" style={{ right: '8px', bottom: '80px', gap: '10px' }}>
+          <div className="absolute flex flex-col items-center z-30" style={{ right: '6px', bottom: '80px', gap: '8px', opacity: 0.5 }}>
             {([
               { key: 'auto' as const, label: 'AUTO', isText: true },
               { key: 'shock' as const, label: '⚡', isText: false },
@@ -457,10 +607,10 @@ const BrickBreakerGame: React.FC = () => {
                 key={btn.key}
                 onPointerDown={(e) => { e.stopPropagation(); handleEmergencyPowerUp(btn.key); }}
                 disabled={emergencyCounts[btn.key] <= 0}
-                className="relative flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
+                className="relative flex items-center justify-center transition-all active:scale-90 disabled:opacity-20"
                 style={{
-                  width: '55px',
-                  height: '55px',
+                  width: '44px',
+                  height: '44px',
                   borderRadius: '50%',
                   background: emergencyCounts[btn.key] > 0
                     ? 'radial-gradient(circle at 40% 35%, hsl(200, 100%, 72%), hsl(210, 85%, 50%))'
@@ -472,17 +622,17 @@ const BrickBreakerGame: React.FC = () => {
                 }}
               >
                 {btn.label === null ? (
-                  <svg width="28" height="28" viewBox="0 0 28 28">
+                  <svg width="22" height="22" viewBox="0 0 28 28">
                     <circle cx="14" cy="8" r="5" fill="white" />
                     <circle cx="7" cy="20" r="5" fill="white" />
                     <circle cx="21" cy="20" r="5" fill="white" />
                   </svg>
                 ) : btn.isText ? (
-                  <span className="font-bold text-base leading-none" style={{ color: 'hsl(50, 100%, 55%)', textShadow: '0 0 10px hsla(50, 100%, 50%, 0.8), 0 1px 2px rgba(0,0,0,0.5)', fontFamily: 'Orbitron, sans-serif' }}>{btn.label}</span>
+                  <span className="font-bold text-sm leading-none" style={{ color: 'hsl(50, 100%, 55%)', textShadow: '0 0 10px hsla(50, 100%, 50%, 0.8), 0 1px 2px rgba(0,0,0,0.5)', fontFamily: 'Orbitron, sans-serif' }}>{btn.label}</span>
                 ) : (
-                  <span className="text-white font-bold text-2xl leading-none" style={{ textShadow: '0 0 10px hsla(200, 100%, 70%, 0.9), 0 1px 2px rgba(0,0,0,0.5)' }}>{btn.label}</span>
+                  <span className="text-white font-bold text-xl leading-none" style={{ textShadow: '0 0 10px hsla(200, 100%, 70%, 0.9), 0 1px 2px rgba(0,0,0,0.5)' }}>{btn.label}</span>
                 )}
-                <span className="absolute flex items-center justify-center" style={{ bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.75)', border: '1.5px solid hsla(200, 100%, 70%, 0.4)' }}>
+                <span className="absolute flex items-center justify-center" style={{ bottom: '-3px', right: '-3px', width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(0,0,0,0.75)', border: '1.5px solid hsla(200, 100%, 70%, 0.4)' }}>
                   <span className="text-white font-bold" style={{ fontSize: '11px' }}>{emergencyCounts[btn.key]}</span>
                 </span>
               </button>

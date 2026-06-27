@@ -13,6 +13,7 @@ export interface Ball {
   position: Position;
   velocity: Velocity;
   radius: number;
+  history?: Position[];
 }
 
 export interface Paddle {
@@ -134,6 +135,31 @@ export interface Explosion {
   life: number;
 }
 
+export interface AlienShip {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  hp: number;
+  maxHp: number;
+  speed: number;
+  direction: number;
+  type: 'small' | 'medium' | 'boss';
+  shootCooldown: number;
+  color: string;
+  hitFlash: number;
+}
+
+export interface AlienBullet {
+  id: string;
+  x: number;
+  y: number;
+  speed: number;
+  width: number;
+  height: number;
+}
+
 export interface GameState {
   status: 'menu' | 'playing' | 'paused' | 'gameover' | 'levelcomplete' | 'won';
   score: number;
@@ -144,6 +170,8 @@ export interface GameState {
   combo: number;
   maxCombo: number;
   autoTimer?: number;
+  shieldTimer?: number;
+  ghostTimer?: number;
 }
 
 export interface LevelConfig {

@@ -20,7 +20,7 @@ const PowerUpsPanel: React.FC<PowerUpsPanelProps> = ({ coins, onPurchase }) => {
       description: 'Paddle moves automatically for 10s',
       icon: Target,
       cost: POWER_UP_COSTS.autopaddle,
-      color: 'hsl(120, 70%, 50%)',
+      color: '#00cc66',
     },
     {
       id: 'shock' as const,
@@ -28,7 +28,7 @@ const PowerUpsPanel: React.FC<PowerUpsPanelProps> = ({ coins, onPurchase }) => {
       description: 'Chain lightning destroys nearby bricks',
       icon: Zap,
       cost: POWER_UP_COSTS.shock,
-      color: 'hsl(55, 100%, 50%)',
+      color: '#ffcc00',
     },
     {
       id: 'sevenball' as const,
@@ -36,13 +36,13 @@ const PowerUpsPanel: React.FC<PowerUpsPanelProps> = ({ coins, onPurchase }) => {
       description: 'Multiply all balls by 7',
       icon: Sparkles,
       cost: POWER_UP_COSTS.sevenball,
-      color: 'hsl(280, 80%, 60%)',
+      color: '#aa55ff',
     },
   ];
 
   return (
     <div className="w-full max-w-md mx-auto p-4">
-      <h3 className="font-display text-lg text-neon-cyan text-center mb-4">
+      <h3 className="font-display text-lg text-center mb-4" style={{ color: '#00ccff', textShadow: '0 0 10px rgba(0,200,255,0.4)' }}>
         POWER-UPS SHOP
       </h3>
       
@@ -56,38 +56,37 @@ const PowerUpsPanel: React.FC<PowerUpsPanelProps> = ({ coins, onPurchase }) => {
               key={powerUp.id}
               onClick={() => canAfford && onPurchase(powerUp.id)}
               disabled={!canAfford}
-              className={`
-                flex items-center gap-3 p-3 rounded-lg border transition-all
-                ${canAfford 
-                  ? 'bg-background/60 border-neon-cyan/30 hover:border-neon-cyan hover:bg-background/80' 
-                  : 'bg-background/30 border-muted-foreground/20 opacity-50 cursor-not-allowed'
-                }
-              `}
+              className="flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40"
+              style={{
+                background: 'linear-gradient(135deg, #0d1f3a 0%, #081428 100%)',
+                border: `1.5px solid ${canAfford ? `${powerUp.color}66` : 'rgba(40, 50, 70, 0.4)'}`,
+              }}
             >
               <div 
                 className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: `${powerUp.color}33` }}
+                style={{ background: `${powerUp.color}22`, border: `1px solid ${powerUp.color}44` }}
               >
-                <Icon 
-                  className="w-6 h-6" 
-                  style={{ color: powerUp.color }} 
-                />
+                <Icon className="w-5 h-5" style={{ color: powerUp.color }} />
               </div>
               
               <div className="flex-1 text-left">
-                <div className="font-display text-sm text-foreground">
+                <div className="font-display text-sm text-white">
                   {powerUp.name}
                 </div>
-                <div className="font-game text-xs text-muted-foreground">
+                <div className="text-xs" style={{ color: '#6688aa' }}>
                   {powerUp.description}
                 </div>
               </div>
               
-              <div className="flex items-center gap-1">
-                <span className={`font-display text-sm ${canAfford ? 'text-neon-yellow' : 'text-muted-foreground'}`}>
-                  {powerUp.cost}
-                </span>
-                <span className="text-xs text-neon-yellow">🪙</span>
+              <div 
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg"
+                style={{
+                  background: canAfford ? 'linear-gradient(180deg, #bb8800 0%, #886600 100%)' : '#222',
+                  border: `1px solid ${canAfford ? '#ffcc00' : '#444'}`,
+                }}
+              >
+                <span className="font-display text-xs text-white font-bold">{powerUp.cost}</span>
+                <span className="text-xs">🪙</span>
               </div>
             </button>
           );
@@ -95,10 +94,10 @@ const PowerUpsPanel: React.FC<PowerUpsPanelProps> = ({ coins, onPurchase }) => {
       </div>
       
       <div className="mt-4 text-center">
-        <p className="font-game text-xs text-muted-foreground">
-          Your coins: <span className="text-neon-yellow font-display">{coins}</span>
+        <p className="text-xs" style={{ color: '#5577aa' }}>
+          Your coins: <span className="font-display font-bold" style={{ color: '#ffdd44' }}>{coins}</span>
         </p>
-        <p className="font-game text-xs text-muted-foreground mt-1">
+        <p className="text-[10px] mt-1" style={{ color: '#334466' }}>
           Purchased power-ups are available at level start
         </p>
       </div>

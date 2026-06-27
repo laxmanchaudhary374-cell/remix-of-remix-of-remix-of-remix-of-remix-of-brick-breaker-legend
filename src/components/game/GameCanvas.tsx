@@ -73,6 +73,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [explosions, setExplosions] = useState<Explosion[]>([]);
   const [levelCoins, setLevelCoins] = useState<LevelCoin[]>([]);
   const [plane, setPlane] = useState<Plane | null>(null);
+  const [alienShips, setAlienShips] = useState<any[]>([]);
+  const [alienBullets, setAlienBullets] = useState<any[]>([]);
   const [ballSpeed, setBallSpeed] = useState(300);
   const [isFireball, setIsFireball] = useState(false);
   const [isShock, setIsShock] = useState(false);
@@ -85,6 +87,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [isBigBall, setIsBigBall] = useState(false);
   const [lastPowerUpTime, setLastPowerUpTime] = useState(0);
   const [isGhostPaddle, setIsGhostPaddle] = useState(false);
+  const [shieldEndTime, setShieldEndTime] = useState(0);
+  const [ghostEndTime, setGhostEndTime] = useState(0);
     
   const paddleTargetRef = useRef(paddle.x);
   const magnetBallRef = useRef<Ball | null>(null);
@@ -144,6 +148,8 @@ useEffect(() => {
       setExplosions([]);
       setParticles([]);
       setPlane(null);
+      setAlienShips([]);
+      setAlienBullets([]);
       setIsFireball(false);
       setIsBigBall(false);
       setIsShock(false);
@@ -199,7 +205,7 @@ useEffect(() => {
           x: 50 + Math.random() * (GAME_WIDTH - 100),
           y: 100 + Math.random() * 200,
           collected: false,
-          value: Math.min(3 + Math.floor(gameState.level / 20) * 2, 8),
+          value: 1,
         });
       }
       setLevelCoins(newLevelCoins);
@@ -226,6 +232,8 @@ useEffect(() => {
       setExplosions([]);
       setLevelCoins([]);
       setPlane(null);
+      setAlienShips([]);
+      setAlienBullets([]);
       magnetBallRef.current = null;
       aimAngleRef.current = -Math.PI / 2;
       levelCompletingRef.current = false;
@@ -248,6 +256,7 @@ useEffect(() => {
     // Update tracker FIRST so the next render has the correct baseline
     prevBrickCountRef.current = remainingBricks.length;
 
+    // Level completes when all bricks are destroyed (alien ships are bonus, not required)
     if (remainingBricks.length === 0 && hadBricks) {
       levelCompletingRef.current = true;
       setPaddle(prev => ({ ...prev, hasLaser: false }));
@@ -262,12 +271,13 @@ useEffect(() => {
       }
       setTimeout(() => onLevelComplete(), 300);
     }
-  }, [bricks, gameState.status, onLevelComplete]);
+  }, [bricks, alienShips, gameState.status, onLevelComplete]);
 
   // Create particles
   const createParticles = useCallback((x: number, y: number, color: string, count: number = 8) => {
+    const reducedCount = Math.ceil(count * 0.5); // Reduce particles by 50% for performance
     const newParticles: Particle[] = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < reducedCount; i++) {
       const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
       const speed = 100 + Math.random() * 150;
       newParticles.push({
@@ -281,7 +291,11 @@ useEffect(() => {
         size: 3 + Math.random() * 3,
       });
     }
-    setParticles(prev => [...prev, ...newParticles]);
+    setParticles(prev => {
+      // Limit max particles to 50 to prevent heating
+      const combined = [...prev, ...newParticles];
+      return combined.length > 50 ? combined.slice(-50) : combined;
+    });
   }, []);
 
   // Trigger screen shake
@@ -508,8 +522,8 @@ useEffect(() => {
      if (levelCompletingRef.current) {
     return;
   }
-    // Use fixed sub-steps for smoother physics
-    const numSteps = Math.max(1, Math.ceil(deltaTime / 0.008));
+    // Use fixed sub-steps for smoother physics (capped at 4 to prevent ball tunneling through bricks)
+    const numSteps = Math.min(4, Math.max(2, Math.ceil(deltaTime / 0.008)));
     const stepDt = deltaTime / numSteps;
     
     // Check emergency powerup activation
@@ -579,6 +593,34 @@ useEffect(() => {
     } else if (lastAutoTimerRef.current !== 0) {
       lastAutoTimerRef.current = 0;
       setGameState(prev => ({ ...prev, autoTimer: 0 }));
+    }
+
+    // Update shield timer in HUD
+    if (shieldEndTime > 0) {
+      const shieldRemaining = Math.max(0, Math.ceil(shieldEndTime - gameTime));
+      setGameState(prev => {
+        if (prev.shieldTimer !== shieldRemaining) return { ...prev, shieldTimer: shieldRemaining };
+        return prev;
+      });
+    } else {
+      setGameState(prev => {
+        if (prev.shieldTimer !== 0) return { ...prev, shieldTimer: 0 };
+        return prev;
+      });
+    }
+
+    // Update ghost timer in HUD
+    if (ghostEndTime > 0) {
+      const ghostRemaining = Math.max(0, Math.ceil(ghostEndTime - gameTime));
+      setGameState(prev => {
+        if (prev.ghostTimer !== ghostRemaining) return { ...prev, ghostTimer: ghostRemaining };
+        return prev;
+      });
+    } else {
+      setGameState(prev => {
+        if (prev.ghostTimer !== 0) return { ...prev, ghostTimer: 0 };
+        return prev;
+      });
     }
 
     // Spawn plane if no power-up dropped for 90 seconds
@@ -735,10 +777,16 @@ useEffect(() => {
           }
         }
 
+        // Track ball history for trail effect
+        const history = ball.history ? [...ball.history, { x, y }] : [{ x, y }];
+        // Keep last 12 positions for trail
+        const trimmedHistory = history.length > 12 ? history.slice(-12) : history;
+
         return {
           ...ball,
           position: { x, y },
           velocity: { dx, dy },
+          history: trimmedHistory,
         };
       });
 
@@ -913,10 +961,7 @@ setLasers(prevLasers => {
               return brick;
             }
             
-            // Vibrate on big ball hit
-            if (isBigBall) {
-              try { navigator.vibrate?.(250); } catch {}
-            }
+            // Vibration removed - was causing phone to vibrate excessively during gameplay
             
             const newHits = brick.hits - ((isFireball || isBigBall) ? brick.hits : 1);
             
@@ -1205,7 +1250,8 @@ explosions.forEach(explosion => {
               break;
             case 'fireball':
               setIsFireball(true);
-              setTimeout(() => setIsFireball(false), 10000);
+              if ((window as any).__fireballTimer) clearTimeout((window as any).__fireballTimer);
+              (window as any).__fireballTimer = setTimeout(() => setIsFireball(false), 10000);
               break;
             case 'laser':
               setPaddle(prev => ({ ...prev, hasLaser: true }));
@@ -1220,9 +1266,11 @@ explosions.forEach(explosion => {
                 clearTimeout(shieldTimerRef.current);
               }
               setPaddle(prev => ({ ...prev, hasShield: true }));
+              setShieldEndTime(gameTime + 15);
               shieldTimerRef.current = setTimeout(() => {
                 setPaddle(prev => ({ ...prev, hasShield: false }));
-              }, 10000);
+                setShieldEndTime(0);
+              }, 15000);
               break;
             case 'autopaddle':
               // Auto-paddle: starts instantly, lasts 15 seconds
@@ -1232,11 +1280,16 @@ explosions.forEach(explosion => {
               break;
             case 'shock':
               setIsShock(true);
-              setTimeout(() => setIsShock(false), 10000);
+              if ((window as any).__shockTimer) clearTimeout((window as any).__shockTimer);
+              (window as any).__shockTimer = setTimeout(() => setIsShock(false), 10000);
               break;
             case 'ghost':
               setIsGhostPaddle(true);
-              setTimeout(() => setIsGhostPaddle(false), 10000);
+              setGhostEndTime(gameTime + 15);
+              setTimeout(() => {
+                setIsGhostPaddle(false);
+                setGhostEndTime(0);
+              }, 15000);
               break;
           }
           
@@ -1307,7 +1360,106 @@ explosions.forEach(explosion => {
         }))
         .filter(particle => particle.life > 0);
     });
-  }, [paddle, balls, bricks, gameState.score, ballSpeed, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState, plane, lastPowerUpTime, gameTime, levelCoins]);
+
+    // Update alien ships
+    if (alienShips.length > 0 && !levelCompletingRef.current) {
+      setAlienShips(prev => {
+        let scoreToAdd = 0;
+        let updated = updateAlienShips(prev, deltaTime);
+
+        // Check ball-ship collisions
+        updated = updated.map(ship => {
+          if (ship.hp <= 0) return ship;
+          for (const ball of balls) {
+            if (checkBallShipCollision(ball.position.x, ball.position.y, ball.radius, ship)) {
+              const newHp = ship.hp - (isFireball ? 3 : 1);
+              createParticles(ship.x + ship.width / 2, ship.y + ship.height / 2, ship.color, 8);
+              if (newHp <= 0) {
+                scoreToAdd += getShipScore(ship);
+                createParticles(ship.x + ship.width / 2, ship.y + ship.height / 2, '#ffaa00', 15);
+                triggerScreenShake(ship.type === 'boss' ? 12 : 5);
+                // Drop a power-up from destroyed ship
+                const powerUp = createPowerUp(ship.x + ship.width / 2, ship.y + ship.height);
+                setPowerUps(p => [...p, powerUp]);
+              }
+              return { ...ship, hp: Math.max(0, newHp), hitFlash: 1 };
+            }
+          }
+          return ship;
+        });
+
+        // Check laser-ship collisions
+        setLasers(prevLasers => {
+          return prevLasers.filter(laser => {
+            for (let i = 0; i < updated.length; i++) {
+              const ship = updated[i];
+              if (ship.hp <= 0) continue;
+              if (checkLaserShipCollision(laser.x, laser.y, ship)) {
+                const newHp = ship.hp - 1;
+                createParticles(laser.x, laser.y, '#ff4444', 5);
+                if (newHp <= 0) {
+                  scoreToAdd += getShipScore(ship);
+                  createParticles(ship.x + ship.width / 2, ship.y + ship.height / 2, '#ffaa00', 15);
+                  triggerScreenShake(ship.type === 'boss' ? 12 : 5);
+                  const powerUp = createPowerUp(ship.x + ship.width / 2, ship.y + ship.height);
+                  setPowerUps(p => [...p, powerUp]);
+                }
+                updated[i] = { ...ship, hp: Math.max(0, newHp), hitFlash: 1 };
+                return false;
+              }
+            }
+            return true;
+          });
+        });
+
+        // Ships no longer shoot bullets - they are just obstacles to destroy
+
+        if (scoreToAdd > 0) {
+          onScoreChange(gameState.score + scoreToAdd);
+        }
+
+        // Remove destroyed ships (keep for a frame to render explosion)
+        return updated.filter(s => s.hp > 0 || s.hitFlash > 0);
+      });
+    }
+
+    // Update alien bullets
+    if (alienBullets.length > 0) {
+      setAlienBullets(prev => {
+        return prev.filter(bullet => {
+          bullet.y += bullet.speed * deltaTime;
+          if (bullet.y > GAME_HEIGHT) return false;
+
+          // Check if bullet hits paddle
+          if (
+            bullet.y + bullet.height >= paddle.y &&
+            bullet.y <= paddle.y + paddle.height &&
+            bullet.x + bullet.width >= paddle.x &&
+            bullet.x <= paddle.x + paddle.width
+          ) {
+            // Shield blocks bullets
+            if (paddle.hasShield) {
+              createParticles(bullet.x, bullet.y, 'hsl(200, 100%, 60%)', 5);
+              return false;
+            }
+            // Lose a life
+            createParticles(bullet.x, bullet.y, '#ff4444', 8);
+            triggerScreenShake(6);
+            setGameState(prev => {
+              const newLives = prev.lives - 1;
+              if (newLives <= 0) {
+                setTimeout(() => onGameOver(), 100);
+                return { ...prev, lives: 0, status: 'gameover' };
+              }
+              return { ...prev, lives: newLives };
+            });
+            return false;
+          }
+          return true;
+        });
+      });
+    }
+  }, [paddle, balls, bricks, alienShips, alienBullets, gameState.score, ballSpeed, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, shieldEndTime, ghostEndTime, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState, plane, lastPowerUpTime, gameTime, levelCoins]);
 
   useGameLoop(gameLoop, gameState.status === 'playing');
 
@@ -1325,134 +1477,45 @@ explosions.forEach(explosion => {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Per-world tinted base background â€” keeps night-sky readability for ball/bricks.
-    const wbg = getWorldBg(gameState.level);
-    const baseGrad = ctx.createRadialGradient(GAME_WIDTH / 2, GAME_HEIGHT * 0.3, 0, GAME_WIDTH / 2, GAME_HEIGHT * 0.5, GAME_WIDTH);
-    baseGrad.addColorStop(0, `hsl(${wbg.inner.hue}, ${wbg.inner.sat}%, ${wbg.inner.light + 4}%)`);
-    baseGrad.addColorStop(1, `hsl(${wbg.inner.hue}, ${wbg.inner.sat}%, ${wbg.inner.light}%)`);
-    ctx.fillStyle = baseGrad;
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    // World-tinted nebula overlays (subtle)
-    const wg1 = ctx.createRadialGradient(GAME_WIDTH * 0.2, GAME_HEIGHT * 0.2, 0, GAME_WIDTH * 0.2, GAME_HEIGHT * 0.2, GAME_WIDTH * 0.6);
-    wg1.addColorStop(0, wbg.glow1); wg1.addColorStop(1, 'transparent');
-    ctx.fillStyle = wg1; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    const wg2 = ctx.createRadialGradient(GAME_WIDTH * 0.85, GAME_HEIGHT * 0.75, 0, GAME_WIDTH * 0.85, GAME_HEIGHT * 0.75, GAME_WIDTH * 0.6);
-    wg2.addColorStop(0, wbg.glow2); wg2.addColorStop(1, 'transparent');
-    ctx.fillStyle = wg2; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    // Draw space background image (galaxy) to fill entire screen
+    const canvasWidth = ctx.canvas.width / dpr;
+    const canvasHeight = ctx.canvas.height / dpr;
+    
+    if (bgImageRef.current) {
+      const img = bgImageRef.current;
+      const canvasAspect = canvasWidth / canvasHeight;
+      const imgAspect = img.width / img.height;
+      
+      let drawW, drawH, drawX, drawY;
+      if (imgAspect > canvasAspect) {
+        drawH = canvasHeight;
+        drawW = canvasHeight * imgAspect;
+        drawX = (canvasWidth - drawW) / 2;
+        drawY = 0;
+      } else {
+        drawW = canvasWidth;
+        drawH = canvasWidth / imgAspect;
+        drawX = 0;
+        drawY = (canvasHeight - drawH) / 2;
+      }
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    } else {
+      ctx.fillStyle = '#0a0a1a';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    }
 
-    // Distant stars layer (tiny dots)
-    for (let i = 0; i < 80; i++) {
-      const starX = ((i * 137 + 17) % GAME_WIDTH);
-      const starY = ((i * 89 + 31) % GAME_HEIGHT);
-      const baseSize = (i % 3) * 0.3 + 0.2;
-      const twinkle = 1; // No twinkling - always full brightness
-      const alpha = 0.5; // Fixed alpha value
-      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    // Draw static white dot stars (no flickering)
+    ctx.fillStyle = 'white';
+    ctx.globalAlpha = 0.6;
+    for (let i = 0; i < 50; i++) {
+      const x = (Math.sin(i * 123.45) * 0.5 + 0.5) * canvasWidth;
+      const y = (Math.cos(i * 678.90) * 0.5 + 0.5) * canvasHeight;
+      const size = (i % 3) + 0.5;
       ctx.beginPath();
-      ctx.arc(starX, starY, baseSize, 0, Math.PI * 2);
+      ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
-      if (i % 10 === 0 && twinkle > 0.85) {
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(starX - 2, starY);
-        ctx.lineTo(starX + 2, starY);
-        ctx.moveTo(starX, starY - 2);
-        ctx.lineTo(starX, starY + 2);
-        ctx.stroke();
-      }
     }
-
-    // Static galaxy (no time-based animation) to prevent brightness flicker
-    const galaxyCX = GAME_WIDTH * 0.55;
-    const galaxyCY = GAME_HEIGHT * 0.58;
-    const galaxyRadius = GAME_WIDTH * 0.55;
-
-    // Outer glow halo
-    const haloGrad = ctx.createRadialGradient(galaxyCX, galaxyCY, 0, galaxyCX, galaxyCY, galaxyRadius * 1.1);
-    haloGrad.addColorStop(0, 'hsla(270, 60%, 50%, 0.08)');
-    haloGrad.addColorStop(0.3, 'hsla(250, 50%, 40%, 0.05)');
-    haloGrad.addColorStop(0.6, 'hsla(220, 40%, 30%, 0.03)');
-    haloGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = haloGrad;
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    // Spiral arms (static)
-    ctx.save();
-    ctx.translate(galaxyCX, galaxyCY);
-    const numArms = 2;
-    for (let arm = 0; arm < numArms; arm++) {
-      const armOffset = (arm / numArms) * Math.PI * 2;
-      for (let j = 0; j < 60; j++) {
-        const t = j / 60;
-        const angle = armOffset + t * Math.PI * 3.5;
-        const r = t * galaxyRadius * 0.9;
-        const sx = Math.cos(angle) * r;
-        const sy = Math.sin(angle) * r * 0.6;
-        const dotSize = (1 - t) * 8 + 1;
-        const hue = 260 + t * 60 + arm * 30;
-        const lightness = 45 + (1 - t) * 20;
-        const alpha = (1 - t * 0.8) * 0.15;
-
-        const spiralGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, dotSize);
-        spiralGrad.addColorStop(0, `hsla(${hue}, 60%, ${lightness}%, ${alpha * 1.5})`);
-        spiralGrad.addColorStop(0.5, `hsla(${hue}, 50%, ${lightness - 10}%, ${alpha * 0.7})`);
-        spiralGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = spiralGrad;
-        ctx.fillRect(sx - dotSize, sy - dotSize, dotSize * 2, dotSize * 2);
-      }
-    }
-
-    // Galaxy bright core
-    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
-    coreGrad.addColorStop(0, 'hsla(40, 80%, 85%, 0.25)');
-    coreGrad.addColorStop(0.3, 'hsla(280, 60%, 60%, 0.15)');
-    coreGrad.addColorStop(0.6, 'hsla(260, 50%, 45%, 0.08)');
-    coreGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = coreGrad;
-    ctx.beginPath();
-    ctx.arc(0, 0, 25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // Static ambient nebula clouds
-    const c1X = GAME_WIDTH * 0.8;
-    const c1Y = GAME_HEIGHT * 0.12;
-    const cGrad1 = ctx.createRadialGradient(c1X, c1Y, 0, c1X, c1Y, 100);
-    cGrad1.addColorStop(0, 'hsla(210, 50%, 35%, 0.08)');
-    cGrad1.addColorStop(0.5, 'hsla(220, 40%, 25%, 0.04)');
-    cGrad1.addColorStop(1, 'transparent');
-    ctx.fillStyle = cGrad1;
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    const c2X = GAME_WIDTH * 0.15;
-    const c2Y = GAME_HEIGHT * 0.85;
-    const cGrad2 = ctx.createRadialGradient(c2X, c2Y, 0, c2X, c2Y, 120);
-    cGrad2.addColorStop(0, 'hsla(200, 45%, 30%, 0.07)');
-    cGrad2.addColorStop(0.5, 'hsla(210, 35%, 20%, 0.03)');
-    cGrad2.addColorStop(1, 'transparent');
-    ctx.fillStyle = cGrad2;
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    // Dark planet silhouette (bottom-left, like in reference)
-    const planetX = GAME_WIDTH * 0.06;
-    const planetY = GAME_HEIGHT * 0.52;
-    const planetR = 22;
-    const planetGrad = ctx.createRadialGradient(planetX + 4, planetY - 4, 0, planetX, planetY, planetR);
-    planetGrad.addColorStop(0, 'hsl(220, 20%, 18%)');
-    planetGrad.addColorStop(0.6, 'hsl(220, 25%, 10%)');
-    planetGrad.addColorStop(1, 'hsl(220, 30%, 5%)');
-    ctx.fillStyle = planetGrad;
-    ctx.beginPath();
-    ctx.arc(planetX, planetY, planetR, 0, Math.PI * 2);
-    ctx.fill();
-    // Planet edge glow
-    ctx.strokeStyle = 'hsla(200, 60%, 50%, 0.15)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(planetX, planetY, planetR, -0.8, 0.8);
-    ctx.stroke();
-
+    ctx.globalAlpha = 1;
     // Apply screen shake ONLY to game elements (not background)
     ctx.save();
     if (screenShake > 0) {
@@ -1465,7 +1528,7 @@ explosions.forEach(explosion => {
     if (paddle.hasShield) {
       ctx.save();
       ctx.shadowColor = 'hsl(200, 100%, 60%)';
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = 6;
       ctx.strokeStyle = 'hsl(200, 100%, 70%)';
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -1749,6 +1812,8 @@ explosions.forEach(explosion => {
       ctx.fill();
     });
 
+    // Alien ships removed
+
     // Draw bricks with premium 3D rendering
     bricks.forEach(brick => {
       if (brick.destroyed) return;
@@ -1853,6 +1918,8 @@ explosions.forEach(explosion => {
 
     // Draw balls with premium 3D rendering
     balls.forEach(ball => {
+      // Ball trail removed - clean normal ball
+
       drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall);
       
       // Draw electric crackle effect when shock is active
@@ -1879,12 +1946,9 @@ explosions.forEach(explosion => {
     particles.forEach(particle => {
       ctx.globalAlpha = particle.life;
       ctx.fillStyle = particle.color;
-      ctx.shadowColor = particle.color;
-      ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size * particle.life, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
     });
 
@@ -1892,7 +1956,7 @@ explosions.forEach(explosion => {
     if (combo > 1) {
       ctx.fillStyle = 'hsl(50, 100%, 55%)';
       ctx.shadowColor = 'hsl(50, 100%, 55%)';
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 4;
       ctx.font = 'bold 20px Orbitron';
       ctx.textAlign = 'center';
       ctx.fillText(`${combo}x COMBO!`, GAME_WIDTH / 2, 35);
@@ -1906,7 +1970,7 @@ explosions.forEach(explosion => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo]);
+  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo]);
 
   // Set up HiDPI canvas rendering
   useEffect(() => {
@@ -1928,12 +1992,11 @@ explosions.forEach(explosion => {
   return (
     <div 
       ref={containerRef}
-      className="relative w-full max-w-[400px] mx-auto touch-none overflow-hidden"
-      style={{ borderRadius: '8px' }}
+      className="relative w-full h-full touch-none overflow-hidden flex items-center justify-center"
     >
       <canvas
         ref={canvasRef}
-        className="w-full h-auto block"
+        className="max-w-full max-h-full object-contain"
         style={{ 
           aspectRatio: `${GAME_WIDTH}/${GAME_HEIGHT}`,
         }}

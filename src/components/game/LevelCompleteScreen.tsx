@@ -1,6 +1,5 @@
 import React from 'react';
 import { ArrowRight, RotateCcw, Home, Star, PartyPopper, Trophy, Zap, Target } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { GameState } from '@/types/game';
 import { getTotalLevels } from '@/utils/levels/index';
 import { calculateStars } from '@/utils/starStorage';
@@ -12,14 +11,13 @@ interface LevelCompleteScreenProps {
   onMainMenu: () => void;
 }
 
-// Use shared calculateStars
 const getStars = (gameState: GameState): number => {
   return calculateStars(gameState.lives, gameState.maxCombo, gameState.score, gameState.level);
 };
 
-const StarRating: React.FC<{ stars: number; isGameWon: boolean }> = ({ stars, isGameWon }) => {
+const StarRating: React.FC<{ stars: number; isGameWon: boolean }> = ({ stars }) => {
   return (
-    <div className="flex items-end gap-1 mb-6">
+    <div className="flex items-end gap-2 mb-5">
       {[1, 2, 3].map((i) => {
         const isMiddle = i === 2;
         const earned = i <= stars;
@@ -27,20 +25,20 @@ const StarRating: React.FC<{ stars: number; isGameWon: boolean }> = ({ stars, is
           <div
             key={i}
             className={`transform transition-all duration-700 ${
-              earned ? 'scale-100 animate-bounce' : 'scale-75 opacity-30'
+              earned ? 'scale-100' : 'scale-75 opacity-30'
             }`}
             style={{
               animationDelay: `${i * 200}ms`,
-              animationDuration: '1.5s',
               marginBottom: isMiddle ? '8px' : '0',
             }}
           >
             <Star
-              className={`${isMiddle ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-10 h-10 sm:w-12 sm:h-12'} ${
-                earned
-                  ? 'text-yellow-400 fill-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.9)]'
-                  : 'text-muted-foreground/30 fill-muted-foreground/10'
-              }`}
+              className={`${isMiddle ? 'w-14 h-14' : 'w-10 h-10'}`}
+              style={{
+                color: earned ? '#ffcc00' : '#334455',
+                fill: earned ? '#ffcc00' : '#1a2233',
+                filter: earned ? 'drop-shadow(0 0 10px rgba(255, 200, 0, 0.7))' : 'none',
+              }}
             />
           </div>
         );
@@ -49,15 +47,19 @@ const StarRating: React.FC<{ stars: number; isGameWon: boolean }> = ({ stars, is
   );
 };
 
-const StatItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number }> = ({
-  icon,
-  label,
-  value,
+const StatItem: React.FC<{ icon: React.ReactNode; label: string; value: string | number; color: string }> = ({
+  icon, label, value, color,
 }) => (
-  <div className="flex items-center gap-2 px-4 py-2 bg-secondary/50 rounded-lg">
+  <div 
+    className="flex items-center gap-2 px-4 py-2.5 rounded-lg"
+    style={{
+      background: 'linear-gradient(135deg, #0d1f3a 0%, #081428 100%)',
+      border: `1px solid ${color}33`,
+    }}
+  >
     {icon}
-    <span className="font-game text-xs text-muted-foreground">{label}</span>
-    <span className="ml-auto font-display text-sm text-foreground">{value}</span>
+    <span className="text-xs" style={{ color: '#6688aa' }}>{label}</span>
+    <span className="ml-auto font-display text-sm text-white font-bold">{value}</span>
   </div>
 );
 
@@ -71,32 +73,48 @@ const LevelCompleteScreen: React.FC<LevelCompleteScreenProps> = ({
   const stars = getStars(gameState);
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/95 backdrop-blur-md z-10 p-4">
-      {/* Background effects */}
+    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4"
+      style={{ background: 'radial-gradient(ellipse at center, rgba(5, 15, 40, 0.97) 0%, rgba(3, 5, 15, 0.99) 100%)' }}
+    >
+      {/* Background glow effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-neon-cyan/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-neon-magenta/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '500ms' }} />
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full blur-3xl animate-pulse"
+          style={{ background: 'rgba(0, 200, 255, 0.1)' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 rounded-full blur-3xl animate-pulse"
+          style={{ background: 'rgba(0, 255, 100, 0.08)', animationDelay: '500ms' }} />
       </div>
 
       <div className="relative z-10 flex flex-col items-center max-w-sm w-full">
         {/* Header */}
         {isGameWon ? (
           <>
-            <PartyPopper className="w-16 h-16 sm:w-20 sm:h-20 text-neon-yellow mb-3 animate-bounce" />
-            <h2 className="font-display text-3xl sm:text-4xl font-black bg-gradient-to-r from-neon-yellow via-neon-orange to-neon-magenta bg-clip-text text-transparent mb-1">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
+              style={{ background: 'rgba(255, 200, 0, 0.15)', border: '2px solid rgba(255, 200, 0, 0.5)', boxShadow: '0 0 20px rgba(255, 200, 0, 0.3)' }}
+            >
+              <PartyPopper className="w-8 h-8 text-yellow-400" />
+            </div>
+            <h2 className="font-display text-3xl font-black mb-1"
+              style={{ color: '#ffcc00', textShadow: '0 0 20px rgba(255, 200, 0, 0.5)' }}
+            >
               VICTORY!
             </h2>
-            <p className="font-game text-sm text-muted-foreground mb-4">
+            <p className="text-sm mb-4" style={{ color: '#6688aa' }}>
               All {getTotalLevels()} levels completed!
             </p>
           </>
         ) : (
           <>
-            <Trophy className="w-14 h-14 sm:w-16 sm:h-16 text-neon-green mb-3" />
-            <h2 className="font-display text-3xl sm:text-4xl font-black text-neon-green mb-1">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
+              style={{ background: 'rgba(0, 200, 100, 0.15)', border: '2px solid rgba(0, 200, 100, 0.5)', boxShadow: '0 0 20px rgba(0, 200, 100, 0.3)' }}
+            >
+              <Trophy className="w-8 h-8" style={{ color: '#00cc66' }} />
+            </div>
+            <h2 className="font-display text-3xl font-black mb-1"
+              style={{ color: '#00cc66', textShadow: '0 0 20px rgba(0, 200, 100, 0.5)' }}
+            >
               LEVEL {gameState.level}
             </h2>
-            <p className="font-game text-sm text-muted-foreground mb-4">
+            <p className="text-sm mb-4" style={{ color: '#6688aa' }}>
               COMPLETE
             </p>
           </>
@@ -105,22 +123,25 @@ const LevelCompleteScreen: React.FC<LevelCompleteScreenProps> = ({
         {/* Star Rating */}
         <StarRating stars={stars} isGameWon={isGameWon} />
 
-        {/* Performance Stats */}
+        {/* Stats */}
         <div className="w-full space-y-2 mb-6">
           <StatItem
-            icon={<Target className="w-4 h-4 text-neon-cyan" />}
+            icon={<Target className="w-4 h-4" style={{ color: '#00ccff' }} />}
             label="Score"
             value={gameState.score.toLocaleString()}
+            color="#00ccff"
           />
           <StatItem
-            icon={<Zap className="w-4 h-4 text-neon-yellow" />}
+            icon={<Zap className="w-4 h-4" style={{ color: '#ffcc00' }} />}
             label="Max Combo"
             value={`${gameState.maxCombo || 0}x`}
+            color="#ffcc00"
           />
           <StatItem
-            icon={<Star className="w-4 h-4 text-neon-magenta" />}
+            icon={<Star className="w-4 h-4" style={{ color: '#cc33aa' }} />}
             label="Lives Left"
             value={gameState.lives}
+            color="#cc33aa"
           />
         </div>
 
@@ -128,48 +149,70 @@ const LevelCompleteScreen: React.FC<LevelCompleteScreenProps> = ({
         <div className="w-full space-y-3">
           {isGameWon ? (
             <>
-              <Button
+              <button
                 onClick={onReplay}
-                className="w-full py-5 font-display text-lg bg-gradient-to-r from-neon-green to-neon-cyan hover:opacity-90 transition-opacity"
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-display text-sm font-bold text-white transition-all hover:scale-105 active:scale-95"
+                style={{
+                  background: 'linear-gradient(180deg, #00bbcc 0%, #007788 100%)',
+                  border: '1.5px solid #00ddff',
+                  boxShadow: '0 4px 15px rgba(0, 200, 255, 0.3)',
+                }}
               >
-                <RotateCcw className="w-5 h-5 mr-2" />
+                <RotateCcw className="w-4 h-4" />
                 PLAY AGAIN
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={onMainMenu}
-                variant="outline"
-                className="w-full py-5 font-display text-lg border-muted-foreground/50 hover:bg-muted transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-display text-sm font-bold text-white transition-all hover:scale-105 active:scale-95"
+                style={{
+                  background: 'linear-gradient(180deg, #2255bb 0%, #1a3388 100%)',
+                  border: '1.5px solid #4488dd',
+                  boxShadow: '0 4px 15px rgba(50, 100, 200, 0.3)',
+                }}
               >
-                <Home className="w-5 h-5 mr-2" />
+                <Home className="w-4 h-4" />
                 MAIN MENU
-              </Button>
+              </button>
             </>
           ) : (
             <>
-              <Button
+              <button
                 onClick={onNextLevel}
-                className="w-full py-5 font-display text-lg bg-gradient-to-r from-neon-cyan to-neon-green hover:opacity-90 transition-opacity"
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-display text-sm font-bold text-white transition-all hover:scale-105 active:scale-95"
+                style={{
+                  background: 'linear-gradient(180deg, #00bb66 0%, #007744 100%)',
+                  border: '1.5px solid #00ff88',
+                  boxShadow: '0 4px 15px rgba(0, 255, 100, 0.3)',
+                }}
               >
                 NEXT LEVEL
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+                <ArrowRight className="w-4 h-4" />
+              </button>
               <div className="flex gap-3">
-                <Button
+                <button
                   onClick={onReplay}
-                  variant="outline"
-                  className="flex-1 py-4 font-display border-muted-foreground/50 hover:bg-muted transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-display text-xs font-bold text-white transition-all hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'linear-gradient(180deg, #2255bb 0%, #1a3388 100%)',
+                    border: '1.5px solid #4488dd',
+                    boxShadow: '0 2px 10px rgba(50, 100, 200, 0.3)',
+                  }}
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
+                  <RotateCcw className="w-3.5 h-3.5" />
                   REPLAY
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={onMainMenu}
-                  variant="outline"
-                  className="flex-1 py-4 font-display border-muted-foreground/50 hover:bg-muted transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-display text-xs font-bold text-white transition-all hover:scale-105 active:scale-95"
+                  style={{
+                    background: 'linear-gradient(180deg, #2255bb 0%, #1a3388 100%)',
+                    border: '1.5px solid #4488dd',
+                    boxShadow: '0 2px 10px rgba(50, 100, 200, 0.3)',
+                  }}
                 >
-                  <Home className="w-4 h-4 mr-2" />
+                  <Home className="w-3.5 h-3.5" />
                   MENU
-                </Button>
+                </button>
               </div>
             </>
           )}

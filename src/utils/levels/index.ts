@@ -1,7 +1,16 @@
 import { LevelConfig } from '@/types/game';
 import { generateAllLevels } from './levelGenerator';
 
-// Generate all 2000 levels dynamically
-export const levels: LevelConfig[] = generateAllLevels();
+let cachedLevels: LevelConfig[] | null = null;
 
-export const getTotalLevels = () => levels.length;
+export const getLevels = (): LevelConfig[] => {
+  if (!cachedLevels) {
+    cachedLevels = generateAllLevels();
+  }
+  return cachedLevels;
+};
+
+// Keep backward compat export
+export const levels: LevelConfig[] = getLevels();
+
+export const getTotalLevels = () => getLevels().length;

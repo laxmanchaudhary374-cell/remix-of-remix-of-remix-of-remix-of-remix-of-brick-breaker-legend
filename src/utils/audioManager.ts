@@ -10,6 +10,10 @@ class AudioManager {
   private musicBuffer: AudioBuffer | null = null;
   private isInitialized = false;
   private isMusicPlaying = false;
+  private lastBrickHitTime = 0;
+  private lastWallBounceTime = 0;
+  private lastBrickDestroyTime = 0;
+  private readonly SOUND_THROTTLE = 50; // minimum ms between same sound type
 
   // Volume settings (0-1)
   private _sfxVolume = 0.7;
@@ -49,14 +53,20 @@ class AudioManager {
   // Handle app minimize/tab switch
   private handleVisibilityChange(): void {
     if (document.hidden) {
-      // App is minimized/hidden - pause music
+      // App is minimized/hidden - suspend entire audio context
+      if (this.audioContext && this.audioContext.state === 'running') {
+        this.audioContext.suspend();
+      }
       if (this.backgroundMusic && this.isMusicPlaying) {
-        this.backgroundMusic.stop();
+        try { this.backgroundMusic.stop(); } catch(e) {}
         this.backgroundMusic = null;
       }
     } else {
-      // App is visible again - resume music if it was playing
-      if (this.isMusicPlaying && this._musicVolume > 0) {
+      // App is visible again - resume audio context
+      if (this.audioContext && this.audioContext.state === 'suspended' && this._masterVolume > 0) {
+        this.audioContext.resume();
+      }
+      if (this.isMusicPlaying && this._musicVolume > 0 && this._masterVolume > 0) {
         this.playMusicFromBuffer();
       }
     }
@@ -107,19 +117,23 @@ class AudioManager {
     this.playSynth(600, 0.06, 'sine', true, 10);
   }
 
-  // Sound: Ball hits brick
+  // Sound: Ball hits brick (throttled)
   playBrickHit(): void {
     if (!this.audioContext) return;
+    const now = performance.now();
+    if (now - this.lastBrickHitTime < this.SOUND_THROTTLE) return;
+    this.lastBrickHitTime = now;
     const pitch = 300 + Math.random() * 200;
     this.playSynth(pitch, 0.1, 'square', true);
   }
 
-  // Sound: Brick destroyed
+  // Sound: Brick destroyed (throttled)
   playBrickDestroy(): void {
     if (!this.audioContext) return;
+    const now = performance.now();
+    if (now - this.lastBrickDestroyTime < this.SOUND_THROTTLE) return;
+    this.lastBrickDestroyTime = now;
     this.playSynth(500, 0.15, 'sawtooth', true);
-    this.playSynth(700, 0.1, 'sine', true, 20);
-    setTimeout(() => this.playSynth(350, 0.1, 'triangle', true), 30);
   }
 
   // Sound: Power-up collected (positive)
@@ -155,9 +169,12 @@ class AudioManager {
     setTimeout(() => this.playSynth(100, 0.4, 'sawtooth', true), 200);
   }
 
-  // Sound: Wall bounce
+  // Sound: Wall bounce (throttled)
   playWallBounce(): void {
     if (!this.audioContext) return;
+    const now = performance.now();
+    if (now - this.lastWallBounceTime < this.SOUND_THROTTLE) return;
+    this.lastWallBounceTime = now;
     this.playSynth(250, 0.05, 'triangle', true);
   }
 
@@ -266,8 +283,8 @@ class AudioManager {
       this.playMusicFromBuffer();
     } catch (e) {
       console.warn('Failed to load background music:', e);
-      // Fallback to procedural music
-      this.playProceduralMusicLoop();
+      // Procedural fallback disabled to prevent phone heating
+      this.isMusicPlaying = false;
     }
   }
 
@@ -399,12 +416,36 @@ class AudioManager {
 
   toggleMute(): void {
     if (this._masterVolume > 0) {
-      this._masterVolume = 0;
+      this.mute();
     } else {
-      this._masterVolume = 1;
+      this.unmute();
     }
+  }
+
+  private _savedVolume: number = 1;
+
+  mute(): void {
+    if (this._masterVolume > 0) {
+      this._savedVolume = this._masterVolume;
+    }
+    this._masterVolume = 0;
+    if (this.masterGain) {
+      this.masterGain.gain.value = 0;
+    }
+    // Suspend audio context to stop ALL sound including SFX
+    if (this.audioContext && this.audioContext.state === 'running') {
+      this.audioContext.suspend();
+    }
+  }
+
+  unmute(): void {
+    this._masterVolume = this._savedVolume || 1;
     if (this.masterGain) {
       this.masterGain.gain.value = this._masterVolume;
+    }
+    // Resume audio context
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      this.audioContext.resume();
     }
   }
 }

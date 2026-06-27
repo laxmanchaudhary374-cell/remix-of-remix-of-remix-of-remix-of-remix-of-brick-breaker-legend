@@ -5,13 +5,13 @@ interface DailyRewardsProps {
 }
 
 const REWARDS = [
-  { day: 1, amount: 10 },
-  { day: 2, amount: 15 },
-  { day: 3, amount: 20 },
-  { day: 4, amount: 25 },
-  { day: 5, amount: 30 },
-  { day: 6, amount: 40 },
-  { day: 7, amount: 50 },
+  { day: 1, amount: 20 },
+  { day: 2, amount: 40 },
+  { day: 3, amount: 60 },
+  { day: 4, amount: 80 },
+  { day: 5, amount: 100 },
+  { day: 6, amount: 150 },
+  { day: 7, amount: 300 },
 ];
 
 const STORAGE_KEYS = {
@@ -35,7 +35,6 @@ export const checkDailyReward = (): { shouldShow: boolean; day: number } => {
     
     const lastDate = new Date(lastClaim);
     
-    // Clock manipulation detection: if lastClaim is in the future, reset
     if (lastDate > now) {
       localStorage.removeItem(STORAGE_KEYS.lastClaim);
       localStorage.removeItem(STORAGE_KEYS.streak);
@@ -81,27 +80,27 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md animate-fade-in">
       <div 
-        className="relative w-[340px] rounded-2xl overflow-hidden shadow-2xl"
+        className="relative w-[340px] rounded-2xl overflow-hidden"
         style={{
-          background: 'linear-gradient(160deg, hsl(210, 40%, 12%) 0%, hsl(220, 50%, 8%) 100%)',
-          border: '1px solid hsla(180, 100%, 50%, 0.2)',
+          background: 'linear-gradient(180deg, #0d1b3a 0%, #060d1f 100%)',
+          border: '2px solid rgba(60, 100, 200, 0.4)',
+          boxShadow: '0 0 60px rgba(50, 80, 200, 0.15)',
         }}
       >
-        {/* Gold ribbon banner */}
+        {/* Header banner */}
         <div 
           className="relative px-6 py-5 text-center overflow-hidden"
           style={{ 
-            background: 'linear-gradient(180deg, hsl(45, 90%, 50%) 0%, hsl(35, 90%, 40%) 100%)',
+            background: 'linear-gradient(180deg, #2255bb 0%, #1a3388 100%)',
+            borderBottom: '1px solid rgba(60, 120, 200, 0.5)',
           }}
         >
-          <div className="absolute inset-0 opacity-20" style={{
-            background: 'radial-gradient(circle at 50% 120%, hsl(200, 80%, 40%), transparent 70%)'
-          }} />
-          <h2 className="font-display text-2xl font-black text-white drop-shadow-lg" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+          <h2 className="font-display text-2xl font-black text-white" style={{ textShadow: '0 0 15px rgba(0, 200, 255, 0.5)' }}>
             DAILY BONUS
           </h2>
+          <p className="text-xs mt-1" style={{ color: '#88aacc' }}>Day {day} of 7</p>
         </div>
 
         {/* Day grid */}
@@ -114,20 +113,24 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {
               return (
                 <div key={r.day} className="flex flex-col items-center">
                   <div
-                    className={`w-20 h-20 rounded-lg flex flex-col items-center justify-center transition-all ${
-                      isActive ? 'ring-2 ring-neon-yellow scale-105' : ''
-                    }`}
+                    className="w-20 h-20 rounded-lg flex flex-col items-center justify-center transition-all"
                     style={{
                       background: isPast || isActive
-                        ? 'linear-gradient(135deg, hsla(150, 80%, 30%, 0.6), hsla(150, 60%, 20%, 0.6))'
-                        : 'hsla(220, 30%, 15%, 0.6)',
-                      border: `1px solid ${isPast || isActive ? 'hsla(150, 80%, 50%, 0.5)' : 'hsla(220, 30%, 30%, 0.3)'}`,
+                        ? 'linear-gradient(135deg, rgba(0, 150, 80, 0.3), rgba(0, 80, 40, 0.2))'
+                        : 'linear-gradient(135deg, #0d1f3a, #081428)',
+                      border: isActive 
+                        ? '2px solid #00ff88' 
+                        : isPast 
+                          ? '1.5px solid rgba(0, 200, 100, 0.4)' 
+                          : '1.5px solid rgba(40, 60, 100, 0.4)',
+                      boxShadow: isActive ? '0 0 15px rgba(0, 255, 100, 0.3)' : 'none',
+                      transform: isActive ? 'scale(1.05)' : 'scale(1)',
                     }}
                   >
-                    <span className="font-display text-sm text-neon-yellow font-bold">{r.amount}</span>
+                    <span className="font-display text-sm font-bold" style={{ color: '#ffdd44' }}>{r.amount}</span>
                     <span className="text-2xl mt-0.5">🪙</span>
                   </div>
-                  <span className="font-game text-[10px] text-muted-foreground mt-1">Day {r.day}</span>
+                  <span className="text-[10px] mt-1" style={{ color: '#5577aa' }}>Day {r.day}</span>
                 </div>
               );
             })}
@@ -141,20 +144,24 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {
               return (
                 <div key={r.day} className="flex flex-col items-center">
                   <div
-                    className={`w-[72px] h-20 rounded-lg flex flex-col items-center justify-center transition-all ${
-                      isActive ? 'ring-2 ring-neon-yellow scale-105' : ''
-                    }`}
+                    className="w-[72px] h-20 rounded-lg flex flex-col items-center justify-center transition-all"
                     style={{
                       background: isPast || isActive
-                        ? 'linear-gradient(135deg, hsla(150, 80%, 30%, 0.6), hsla(150, 60%, 20%, 0.6))'
-                        : 'hsla(220, 30%, 15%, 0.6)',
-                      border: `1px solid ${isPast || isActive ? 'hsla(150, 80%, 50%, 0.5)' : 'hsla(220, 30%, 30%, 0.3)'}`,
+                        ? 'linear-gradient(135deg, rgba(0, 150, 80, 0.3), rgba(0, 80, 40, 0.2))'
+                        : 'linear-gradient(135deg, #0d1f3a, #081428)',
+                      border: isActive 
+                        ? '2px solid #00ff88' 
+                        : isPast 
+                          ? '1.5px solid rgba(0, 200, 100, 0.4)' 
+                          : '1.5px solid rgba(40, 60, 100, 0.4)',
+                      boxShadow: isActive ? '0 0 15px rgba(0, 255, 100, 0.3)' : 'none',
+                      transform: isActive ? 'scale(1.05)' : 'scale(1)',
                     }}
                   >
-                    <span className="font-display text-sm text-neon-yellow font-bold">{r.amount}</span>
-                    <span className="text-2xl mt-0.5">{r.amount >= 500 ? '💰' : '🪙'}</span>
+                    <span className="font-display text-sm font-bold" style={{ color: '#ffdd44' }}>{r.amount}</span>
+                    <span className="text-2xl mt-0.5">{r.amount >= 200 ? '💰' : '🪙'}</span>
                   </div>
-                  <span className="font-game text-[10px] text-muted-foreground mt-1">Day {r.day}</span>
+                  <span className="text-[10px] mt-1" style={{ color: '#5577aa' }}>Day {r.day}</span>
                 </div>
               );
             })}
@@ -164,9 +171,9 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {
         {/* Status message */}
         <div className="px-6 pb-2 text-center">
           {claimed ? (
-            <p className="font-display text-sm text-neon-yellow">{reward.amount} Coin Received!</p>
+            <p className="font-display text-sm" style={{ color: '#00ff88' }}>{reward.amount} Coins Received!</p>
           ) : (
-            <p className="font-game text-xs text-muted-foreground">You can receive daily coins only once a day.</p>
+            <p className="text-xs" style={{ color: '#5577aa' }}>Claim your daily reward!</p>
           )}
         </div>
 
@@ -177,9 +184,9 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {
               onClick={handleClaim}
               className="w-full py-3 font-display text-base font-bold text-white rounded-xl transition-all hover:scale-105 active:scale-95"
               style={{
-                background: 'linear-gradient(180deg, hsl(180, 100%, 40%) 0%, hsl(190, 100%, 30%) 100%)',
-                boxShadow: '0 4px 20px hsla(180, 100%, 50%, 0.3)',
-                border: '1px solid hsla(180, 100%, 60%, 0.4)',
+                background: 'linear-gradient(180deg, #00bbcc 0%, #007788 100%)',
+                border: '1.5px solid #00ddff',
+                boxShadow: '0 4px 15px rgba(0, 200, 255, 0.3)',
               }}
             >
               CLAIM
@@ -189,11 +196,12 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ onClose }) => {
               onClick={() => onClose()}
               className="w-full py-3 font-display text-base font-bold text-white rounded-xl transition-all hover:scale-105"
               style={{
-                background: 'linear-gradient(180deg, hsl(180, 100%, 40%) 0%, hsl(190, 100%, 30%) 100%)',
-                border: '1px solid hsla(180, 100%, 60%, 0.4)',
+                background: 'linear-gradient(180deg, #2255bb 0%, #1a3388 100%)',
+                border: '1.5px solid #4488dd',
+                boxShadow: '0 4px 15px rgba(50, 100, 200, 0.3)',
               }}
             >
-              Ok
+              OK
             </button>
           )}
         </div>

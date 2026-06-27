@@ -1,7 +1,39 @@
 // Premium 3D Textured Brick Renderer
 // Creates realistic material-based bricks like copper, ice, metal, wood, diamond
+// Uses offscreen canvas caching to avoid recreating gradients every frame
 
 import { Brick, BrickColor, BrickType } from '@/types/game';
+
+// Sprite cache for bricks - key is "color_type_width_height_hits_maxHits"
+const brickSpriteCache = new Map<string, HTMLCanvasElement>();
+const MAX_CACHE_SIZE = 200;
+
+function getCachedBrickSprite(
+  key: string,
+  width: number,
+  height: number,
+  drawFn: (ctx: CanvasRenderingContext2D) => void
+): HTMLCanvasElement {
+  let cached = brickSpriteCache.get(key);
+  if (cached) return cached;
+  
+  // Evict old entries if cache is too large
+  if (brickSpriteCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = brickSpriteCache.keys().next().value;
+    if (firstKey) brickSpriteCache.delete(firstKey);
+  }
+  
+  const dpr = Math.max(window.devicePixelRatio || 1, 2); // Minimum 2x for HD
+  const offscreen = document.createElement('canvas');
+  offscreen.width = (Math.ceil(width) + 4) * dpr;
+  offscreen.height = (Math.ceil(height) + 4) * dpr;
+  const offCtx = offscreen.getContext('2d')!;
+  offCtx.scale(dpr, dpr);
+  offCtx.translate(2, 2); // padding for shadows
+  drawFn(offCtx);
+  brickSpriteCache.set(key, offscreen);
+  return offscreen;
+}
 
 // Material types that match the reference image
 type MaterialType = 'copper' | 'ice' | 'metal' | 'wood' | 'glass' | 'diamond';
@@ -534,32 +566,101 @@ export const drawPremiumBrick = (
   
   // Ghost bricks: flicker visible/invisible every 1 second
   if (type === 'ghost') {
-    const phase = Math.floor(gameTime) % 2; // 0 = visible, 1 = invisible
+    const phase = Math.floor(gameTime) % 2;
     if (phase === 1) {
-      // During invisible phase, show semi-transparent flicker
-      const transition = gameTime % 1; // 0 to 1 within each second
+      const transition = gameTime % 1;
       if (transition > 0.8) {
-        // Transitioning to visible - show fading in
         ctx.save();
-        ctx.globalAlpha = (transition - 0.8) * 5; // 0 to 1
+        ctx.globalAlpha = (transition - 0.8) * 5;
       } else if (transition < 0.2) {
-        // Just became invisible - show fading out
         ctx.save();
-        ctx.globalAlpha = 1 - transition * 5; // 1 to 0
+        ctx.globalAlpha = 1 - transition * 5;
       } else {
-        // Fully invisible - don't draw
         return;
       }
     }
   }
   
+  const damageRatio = hits / maxHits;
+  
+  // For static bricks (not ghost, not rainbow, not moving), use sprite cache
+  const isAnimated = type === 'ghost' || type === 'rainbow' || type === 'moving';
+  
+  if (!isAnimated) {
+    const cacheKey = `${color}_${type}_${width}_${height}_${hits}_${maxHits}`;
+    const sprite = getCachedBrickSprite(cacheKey, width, height, (offCtx) => {
+      // Draw the brick at origin (0,0) on the offscreen canvas
+      const material = getMaterialType(color, type);
+      const colors = getMaterialColors(material);
+      
+      if (type === 'coin') {
+        const borderRadius = 4;
+        const borderWidth = 3;
+        offCtx.fillStyle = 'hsl(35, 80%, 30%)';
+        offCtx.beginPath();
+        offCtx.roundRect(0, 0, width, height, borderRadius);
+        offCtx.fill();
+        const goldGrad = offCtx.createLinearGradient(0, 0, width, height);
+        goldGrad.addColorStop(0, 'hsl(45, 100%, 75%)');
+        goldGrad.addColorStop(0.2, 'hsl(42, 90%, 60%)');
+        goldGrad.addColorStop(0.5, 'hsl(48, 100%, 70%)');
+        goldGrad.addColorStop(0.8, 'hsl(40, 85%, 55%)');
+        goldGrad.addColorStop(1, 'hsl(45, 100%, 65%)');
+        offCtx.fillStyle = goldGrad;
+        offCtx.beginPath();
+        offCtx.roundRect(borderWidth, borderWidth, width - borderWidth * 2, height - borderWidth * 2, borderRadius - 1);
+        offCtx.fill();
+        offCtx.fillStyle = 'rgba(255, 255, 200, 0.5)';
+        offCtx.beginPath();
+        offCtx.roundRect(borderWidth + 2, borderWidth + 1, width - borderWidth * 2 - 4, height * 0.25, 2);
+        offCtx.fill();
+        offCtx.fillStyle = 'rgba(255, 220, 80, 0.95)';
+        offCtx.font = 'bold 12px sans-serif';
+        offCtx.textAlign = 'center';
+        offCtx.textBaseline = 'middle';
+        offCtx.fillText('$', width / 2, height / 2 + 1);
+      } else if (type === 'indestructible' || type === 'steel') {
+        drawSteelBrick(offCtx, 0, 0, width, height);
+        if (type === 'steel' && hits < maxHits && maxHits === 2) {
+          drawSteelCracks(offCtx, 0, 0, width, height);
+        }
+      } else {
+        switch (material) {
+          case 'copper': drawCopperBrick(offCtx, 0, 0, width, height, colors); break;
+          case 'ice': drawIceBrick(offCtx, 0, 0, width, height, colors); break;
+          case 'metal': drawMetalBrick(offCtx, 0, 0, width, height, colors); break;
+          case 'wood': drawWoodBrick(offCtx, 0, 0, width, height, colors); break;
+          case 'diamond': drawDiamondBrick(offCtx, 0, 0, width, height, colors); break;
+          default: drawGlassBrick(offCtx, 0, 0, width, height, colors);
+        }
+      }
+      
+      // Draw type indicator at origin
+      const fakeBrick = { ...brick, x: 0, y: 0 };
+      drawBrickTypeIndicator(offCtx, fakeBrick, 0);
+      
+      // Damage cracks
+      if (damageRatio < 0.7 && maxHits > 1 && type !== 'steel') {
+        drawDamageCracks(offCtx, fakeBrick, damageRatio);
+      }
+    });
+    
+    // Draw cached sprite at logical size (sprite is rendered at DPR resolution)
+    ctx.save();
+    if (damageRatio < 1 && maxHits > 1) {
+      ctx.globalAlpha = 0.6 + damageRatio * 0.4;
+    }
+    ctx.drawImage(sprite, x - 2, y - 2, width + 4, height + 4);
+    ctx.restore();
+    return;
+  }
+  
+  // Animated bricks - draw directly (ghost, rainbow, moving)
   const material = getMaterialType(color, type);
   const colors = getMaterialColors(material);
-  const damageRatio = hits / maxHits;
   
   ctx.save();
   
-  // Ghost brick: apply semi-transparent look when visible
   if (type === 'ghost') {
     const transition = gameTime % 1;
     const phase = Math.floor(gameTime) % 2;
@@ -570,24 +671,17 @@ export const drawPremiumBrick = (
     }
   }
   
-  // Apply damage effect
   if (damageRatio < 1 && maxHits > 1) {
     ctx.globalAlpha = Math.min(ctx.globalAlpha, 0.6 + damageRatio * 0.4);
   }
   
-  // Draw based on brick type and material
   if (type === 'coin') {
-    // Full gold brick - special golden rendering
     const borderRadius = 4;
     const borderWidth = 3;
-    
-    // Gold border
     ctx.fillStyle = 'hsl(35, 80%, 30%)';
     ctx.beginPath();
     ctx.roundRect(x, y, width, height, borderRadius);
     ctx.fill();
-    
-    // Main gold surface
     const goldGrad = ctx.createLinearGradient(x, y, x + width, y + height);
     goldGrad.addColorStop(0, 'hsl(45, 100%, 75%)');
     goldGrad.addColorStop(0.2, 'hsl(42, 90%, 60%)');
@@ -598,14 +692,10 @@ export const drawPremiumBrick = (
     ctx.beginPath();
     ctx.roundRect(x + borderWidth, y + borderWidth, width - borderWidth * 2, height - borderWidth * 2, borderRadius - 1);
     ctx.fill();
-    
-    // Top highlight
     ctx.fillStyle = 'rgba(255, 255, 200, 0.5)';
     ctx.beginPath();
     ctx.roundRect(x + borderWidth + 2, y + borderWidth + 1, width - borderWidth * 2 - 4, height * 0.25, 2);
     ctx.fill();
-    
-    // Gold shimmer glow
     ctx.shadowColor = 'hsl(45, 100%, 60%)';
     ctx.shadowBlur = 8;
     ctx.strokeStyle = 'hsla(45, 100%, 70%, 0.6)';
@@ -615,40 +705,23 @@ export const drawPremiumBrick = (
     ctx.stroke();
     ctx.shadowBlur = 0;
   } else if (type === 'indestructible' || type === 'steel') {
-    // Use special steel brick for indestructible and steel types
     drawSteelBrick(ctx, x, y, width, height);
-    
-    // Draw cracks on steel bricks when damaged (hits < maxHits)
     if (type === 'steel' && hits < maxHits && maxHits === 2) {
       drawSteelCracks(ctx, x, y, width, height);
     }
   } else {
-    // Draw based on material type
     switch (material) {
-      case 'copper':
-        drawCopperBrick(ctx, x, y, width, height, colors);
-        break;
-      case 'ice':
-        drawIceBrick(ctx, x, y, width, height, colors);
-        break;
-      case 'metal':
-        drawMetalBrick(ctx, x, y, width, height, colors);
-        break;
-      case 'wood':
-        drawWoodBrick(ctx, x, y, width, height, colors);
-        break;
-      case 'diamond':
-        drawDiamondBrick(ctx, x, y, width, height, colors);
-        break;
-      default:
-        drawGlassBrick(ctx, x, y, width, height, colors);
+      case 'copper': drawCopperBrick(ctx, x, y, width, height, colors); break;
+      case 'ice': drawIceBrick(ctx, x, y, width, height, colors); break;
+      case 'metal': drawMetalBrick(ctx, x, y, width, height, colors); break;
+      case 'wood': drawWoodBrick(ctx, x, y, width, height, colors); break;
+      case 'diamond': drawDiamondBrick(ctx, x, y, width, height, colors); break;
+      default: drawGlassBrick(ctx, x, y, width, height, colors);
     }
   }
   
-  // Draw special type indicators
   drawBrickTypeIndicator(ctx, brick, gameTime);
   
-  // Damage cracks overlay
   if (damageRatio < 0.7 && maxHits > 1 && type !== 'steel') {
     drawDamageCracks(ctx, brick, damageRatio);
   }
@@ -825,36 +898,70 @@ export const drawPremiumPaddle = (
 ): void => {
   ctx.save();
   
-  const h = 22;
-  const capR = 11;
+  const h = 18;
+  const capR = 10;
   const cx = x;
   const centerY = y + height / 2;
   
-  // Red left cap
+  // Red left cap with gradient (3D look)
+  const leftCapGrad = ctx.createRadialGradient(cx + capR - 2, centerY - 2, 1, cx + capR, centerY, capR);
+  leftCapGrad.addColorStop(0, '#ff4444');
+  leftCapGrad.addColorStop(0.5, '#cc1100');
+  leftCapGrad.addColorStop(1, '#880000');
   ctx.beginPath();
   ctx.arc(cx + capR, centerY, capR, 0, Math.PI * 2);
-  ctx.fillStyle = '#cc2200';
+  ctx.fillStyle = leftCapGrad;
+  ctx.fill();
+  // Cap highlight
+  ctx.beginPath();
+  ctx.arc(cx + capR - 2, centerY - 3, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 180, 180, 0.6)';
   ctx.fill();
   
-  // Red right cap
+  // Red right cap with gradient (3D look)
+  const rightCapGrad = ctx.createRadialGradient(cx + width - capR - 2, centerY - 2, 1, cx + width - capR, centerY, capR);
+  rightCapGrad.addColorStop(0, '#ff4444');
+  rightCapGrad.addColorStop(0.5, '#cc1100');
+  rightCapGrad.addColorStop(1, '#880000');
   ctx.beginPath();
   ctx.arc(cx + width - capR, centerY, capR, 0, Math.PI * 2);
-  ctx.fillStyle = '#cc2200';
+  ctx.fillStyle = rightCapGrad;
+  ctx.fill();
+  // Cap highlight
+  ctx.beginPath();
+  ctx.arc(cx + width - capR - 2, centerY - 3, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 180, 180, 0.6)';
   ctx.fill();
   
-  // Silver middle body
-  const grad = ctx.createLinearGradient(cx + capR, centerY - h / 2, cx + capR, centerY + h / 2);
-  grad.addColorStop(0, '#ffffff');
-  grad.addColorStop(1, '#999999');
-  ctx.fillStyle = grad;
+  // Chrome/silver middle body with 3D metallic gradient
+  const bodyGrad = ctx.createLinearGradient(cx + capR, centerY - h / 2, cx + capR, centerY + h / 2);
+  bodyGrad.addColorStop(0, '#e8e8e8');
+  bodyGrad.addColorStop(0.15, '#ffffff');
+  bodyGrad.addColorStop(0.3, '#d0d0d0');
+  bodyGrad.addColorStop(0.5, '#b8b8b8');
+  bodyGrad.addColorStop(0.7, '#a0a0a0');
+  bodyGrad.addColorStop(0.85, '#888888');
+  bodyGrad.addColorStop(1, '#666666');
+  ctx.fillStyle = bodyGrad;
   ctx.fillRect(cx + capR, centerY - h / 2, width - capR * 2, h);
   
-  // Cyan glow line
-  ctx.shadowColor = '#00ffff';
-  ctx.shadowBlur = 8;
-  ctx.fillStyle = '#00ffff';
-  ctx.fillRect(cx + capR, centerY - 1, width - capR * 2, 3);
-  ctx.shadowBlur = 0;
+  // Top edge highlight (thin white line for chrome reflection)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.fillRect(cx + capR, centerY - h / 2, width - capR * 2, 2);
+  
+  // Cyan glow line in the middle
+  const cyanGrad = ctx.createLinearGradient(cx + capR, centerY - 1, cx + width - capR, centerY - 1);
+  cyanGrad.addColorStop(0, 'rgba(0, 255, 255, 0.3)');
+  cyanGrad.addColorStop(0.3, 'rgba(0, 255, 255, 0.9)');
+  cyanGrad.addColorStop(0.5, 'rgba(200, 255, 255, 1)');
+  cyanGrad.addColorStop(0.7, 'rgba(0, 255, 255, 0.9)');
+  cyanGrad.addColorStop(1, 'rgba(0, 255, 255, 0.3)');
+  ctx.fillStyle = cyanGrad;
+  ctx.fillRect(cx + capR + 4, centerY - 1, width - capR * 2 - 8, 3);
+  
+  // Bottom edge shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.fillRect(cx + capR, centerY + h / 2 - 2, width - capR * 2, 2);
   
   // Laser turrets
   if (hasLaser) {

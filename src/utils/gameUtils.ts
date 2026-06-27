@@ -179,7 +179,7 @@ export const isNegativePowerUp = (type: PowerUpType): boolean => {
   return type === 'shrink' || type === 'speedup' || type === 'ghost';
 };
 
-export const createCoin = (x: number, y: number, value: number = 10): Coin => {
+export const createCoin = (x: number, y: number, value: number = 1): Coin => {
   return {
     id: generateId(),
     x,
