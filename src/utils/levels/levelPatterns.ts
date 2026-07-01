@@ -1308,4 +1308,3 @@ export const createAlternatingRows = (
   return bricks;
 };
 
-

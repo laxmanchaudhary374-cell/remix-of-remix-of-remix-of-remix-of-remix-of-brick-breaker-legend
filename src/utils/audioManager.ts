@@ -53,20 +53,14 @@ class AudioManager {
   // Handle app minimize/tab switch
   private handleVisibilityChange(): void {
     if (document.hidden) {
-      // App is minimized/hidden - suspend entire audio context
-      if (this.audioContext && this.audioContext.state === 'running') {
-        this.audioContext.suspend();
-      }
+      // App is minimized/hidden - pause music
       if (this.backgroundMusic && this.isMusicPlaying) {
-        try { this.backgroundMusic.stop(); } catch(e) {}
+        this.backgroundMusic.stop();
         this.backgroundMusic = null;
       }
     } else {
-      // App is visible again - resume audio context
-      if (this.audioContext && this.audioContext.state === 'suspended' && this._masterVolume > 0) {
-        this.audioContext.resume();
-      }
-      if (this.isMusicPlaying && this._musicVolume > 0 && this._masterVolume > 0) {
+      // App is visible again - resume music if it was playing
+      if (this.isMusicPlaying && this._musicVolume > 0) {
         this.playMusicFromBuffer();
       }
     }
@@ -432,20 +426,12 @@ class AudioManager {
     if (this.masterGain) {
       this.masterGain.gain.value = 0;
     }
-    // Suspend audio context to stop ALL sound including SFX
-    if (this.audioContext && this.audioContext.state === 'running') {
-      this.audioContext.suspend();
-    }
   }
 
   unmute(): void {
     this._masterVolume = this._savedVolume || 1;
     if (this.masterGain) {
       this.masterGain.gain.value = this._masterVolume;
-    }
-    // Resume audio context
-    if (this.audioContext && this.audioContext.state === 'suspended') {
-      this.audioContext.resume();
     }
   }
 }
