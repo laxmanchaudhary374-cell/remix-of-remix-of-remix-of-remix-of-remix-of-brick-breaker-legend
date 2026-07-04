@@ -1,5 +1,6 @@
 ﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { App } from '@capacitor/app';
+import { toast } from 'sonner';
 import { GameState } from '@/types/game';
 import { getTotalLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
@@ -30,11 +31,11 @@ const COINS_KEY = 'neon_breaker_coins';
 const LIVES_KEY = 'neon_breaker_lives';
 const LAST_LIFE_REGEN_KEY = 'neon_breaker_last_regen';
 
-const MAX_LIVES = 5;
+const MAX_LIVES = 3;
 const REGEN_TIME = 15 * 60 * 1000; // 15 minutes
 
 const getStoredLives = (): number => {
-  try { return parseInt(localStorage.getItem(LIVES_KEY) || '5', 10); } catch { return 5; }
+  try { return Math.min(MAX_LIVES, parseInt(localStorage.getItem(LIVES_KEY) || '3', 10)); } catch { return 3; }
 };
 const setStoredLives = (lives: number) => {
   try { localStorage.setItem(LIVES_KEY, lives.toString()); } catch {}
@@ -72,6 +73,7 @@ const EMERGENCY_PRICES: Record<string, { cost: number; label: string }> = {
   auto: { cost: 50, label: 'Auto Paddle' },
   shock: { cost: 75, label: 'Electric Shock' },
   multi: { cost: 100, label: 'Three-Ball' },
+  laser: { cost: 60, label: 'Laser Gun' },
 };
 
 const getEmergencyCounts = () => {
@@ -80,8 +82,9 @@ const getEmergencyCounts = () => {
       auto: parseInt(localStorage.getItem('neon_breaker_em_auto') || '5'),
       shock: parseInt(localStorage.getItem('neon_breaker_em_shock') || '5'),
       multi: parseInt(localStorage.getItem('neon_breaker_em_multi') || '4'),
+      laser: parseInt(localStorage.getItem('neon_breaker_em_laser') || '3'),
     };
-  } catch { return { auto: 5, shock: 5, multi: 4 }; }
+  } catch { return { auto: 5, shock: 5, multi: 4, laser: 3 }; }
 };
 
 const BrickBreakerGame: React.FC = () => {
