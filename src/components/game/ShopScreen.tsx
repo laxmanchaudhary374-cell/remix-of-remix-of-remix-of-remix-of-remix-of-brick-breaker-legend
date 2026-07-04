@@ -68,10 +68,12 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
 
   const handleWatchAd = async () => {
     const result = await showRewardedAd(() => {});
-    if (result.ok && result.reward > 0) {
-      onAddCoins?.(result.reward);
-      alert(`You earned ${result.reward} coins!`);
-    } else if (!result.ok) {
+    if (result.ok) {
+      if (result.reward > 0) {
+        onAddCoins?.(result.reward);
+        alert(`You earned ${result.reward} coins!`);
+      }
+    } else {
       alert(result.error);
     }
   };

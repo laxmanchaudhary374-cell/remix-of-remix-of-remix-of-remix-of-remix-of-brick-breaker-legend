@@ -117,14 +117,14 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
       let rewardGranted = false;
 
       // Listen for reward
-      const l1 = await AdMob.addListener('onRewardedVideoAdReward', (reward: any) => {
+      const l1 = await AdMob.addListener('onRewardedVideoAdReward' as any, (reward: any) => {
         console.log('[AdMob] Reward:', reward);
         rewardGranted = true;
       });
       listeners.push(l1);
 
       // Listen for dismiss
-      const l2 = await AdMob.addListener('onRewardedVideoAdDismissed', () => {
+      const l2 = await AdMob.addListener('onRewardedVideoAdDismissed' as any, () => {
         console.log('[AdMob] Dismissed, reward:', rewardGranted);
         clearTimeout(timeout);
         finish({ ok: true, reward: rewardGranted ? 50 : 0 });
@@ -132,7 +132,7 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
       listeners.push(l2);
 
       // Listen for failed to load
-      const l3 = await AdMob.addListener('onRewardedVideoAdFailedToLoad', (error: any) => {
+      const l3 = await AdMob.addListener('onRewardedVideoAdFailedToLoad' as any, (error: any) => {
         console.error('[AdMob] Failed to load:', error);
         clearTimeout(timeout);
         finish({ ok: false, error: 'No ads available. Try again later.' });
@@ -140,7 +140,7 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
       listeners.push(l3);
 
       // Listen for failed to show
-      const l4 = await AdMob.addListener('onRewardedVideoAdFailedToShow', (error: any) => {
+      const l4 = await AdMob.addListener('onRewardedVideoAdFailedToShow' as any, (error: any) => {
         console.error('[AdMob] Failed to show:', error);
         clearTimeout(timeout);
         finish({ ok: false, error: 'Ad could not be displayed.' });
@@ -182,7 +182,7 @@ export async function showBannerAd(): Promise<void> {
     console.log('[AdMob] Banner shown');
     
     // Listen for events to ensure it stays visible
-    AdMob.addListener('onBannerAdLoaded', () => {
+    AdMob.addListener('onBannerAdLoaded' as any, () => {
       console.log('[AdMob] Banner loaded');
     });
 
@@ -245,14 +245,14 @@ export async function showInterstitialAd(onShow?: () => void, onDismiss?: () => 
       listeners.length = 0;
     };
 
-    const l1 = await AdMob.addListener('onInterstitialAdShowed', () => {
+    const l1 = await AdMob.addListener('onInterstitialAdShowed' as any, () => {
       console.log('[AdMob] Interstitial showed');
       adActive = true;
       if (onShow) onShow();
     });
     listeners.push(l1);
 
-    const l2 = await AdMob.addListener('onInterstitialAdDismissed', () => {
+    const l2 = await AdMob.addListener('onInterstitialAdDismissed' as any, () => {
       console.log('[AdMob] Interstitial dismissed');
       adActive = false;
       cleanup();
@@ -263,7 +263,7 @@ export async function showInterstitialAd(onShow?: () => void, onDismiss?: () => 
     });
     listeners.push(l2);
 
-    const l3 = await AdMob.addListener('onInterstitialAdFailedToShow', (err) => {
+    const l3 = await AdMob.addListener('onInterstitialAdFailedToShow' as any, (err) => {
       console.error('[AdMob] Interstitial failed to show:', err);
       cleanup();
       interstitialReady = false;
