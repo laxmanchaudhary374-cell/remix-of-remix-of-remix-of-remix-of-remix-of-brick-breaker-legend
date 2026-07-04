@@ -50,16 +50,21 @@ class AudioManager {
     }
   }
   
-  // Handle app minimize/tab switch
+  // Handle app minimize/tab switch — #8 fully silence audio when hidden.
   private handleVisibilityChange(): void {
     if (document.hidden) {
-      // App is minimized/hidden - pause music
       if (this.backgroundMusic && this.isMusicPlaying) {
-        this.backgroundMusic.stop();
+        try { this.backgroundMusic.stop(); } catch {}
         this.backgroundMusic = null;
       }
+      // Suspend the whole audio context so no queued SFX can play in background.
+      if (this.audioContext && this.audioContext.state === 'running') {
+        this.audioContext.suspend().catch(() => {});
+      }
     } else {
-      // App is visible again - resume music if it was playing
+      if (this.audioContext && this.audioContext.state === 'suspended') {
+        this.audioContext.resume().catch(() => {});
+      }
       if (this.isMusicPlaying && this._musicVolume > 0) {
         this.playMusicFromBuffer();
       }

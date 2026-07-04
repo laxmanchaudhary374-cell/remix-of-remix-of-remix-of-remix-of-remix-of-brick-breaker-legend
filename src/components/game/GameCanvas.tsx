@@ -562,6 +562,11 @@ useEffect(() => {
             return newBalls;
           });
           break;
+        case 'laser':
+          // #12 Laser Gun emergency: 10 seconds of auto-firing lasers.
+          setPaddle(prev => ({ ...prev, hasLaser: true }));
+          setTimeout(() => setPaddle(prev => ({ ...prev, hasLaser: false })), 10000);
+          break;
       }
     }
 
@@ -1823,15 +1828,18 @@ explosions.forEach(explosion => {
     // Draw bricks with premium 3D rendering
     bricks.forEach(brick => {
       if (brick.destroyed) return;
-      
+
+      // #6 Ghost brick flicker is isolated in save/restore so it can never
+      // leak globalAlpha (or any transform) onto the background/other layers.
       if (brick.type === 'ghost') {
+        ctx.save();
         const visibility = (Math.sin(gameTime * 3) + 1) / 2;
         ctx.globalAlpha = 0.3 + visibility * 0.7;
+        drawPremiumBrick(ctx, brick, gameTime);
+        ctx.restore();
+      } else {
+        drawPremiumBrick(ctx, brick, gameTime);
       }
-      
-      drawPremiumBrick(ctx, brick, gameTime);
-      
-      ctx.globalAlpha = 1;
     });
 
     // Draw coins

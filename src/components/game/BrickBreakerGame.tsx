@@ -632,6 +632,7 @@ const BrickBreakerGame: React.FC = () => {
               { key: 'auto' as const, label: 'AUTO', isText: true },
               { key: 'shock' as const, label: '⚡', isText: false },
               { key: 'multi' as const, label: null, isText: false },
+              { key: 'laser' as const, label: '🔫', isText: false },
             ]).map((btn) => (
               <button
                 key={btn.key}
