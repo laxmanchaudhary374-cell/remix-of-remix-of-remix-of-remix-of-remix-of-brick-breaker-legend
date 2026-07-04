@@ -675,7 +675,7 @@ export const drawPremiumBrick = (
     ctx.globalAlpha = Math.min(ctx.globalAlpha, 0.6 + damageRatio * 0.4);
   }
   
-  if (type === 'coin') {
+  if ((type as string) === 'coin') {
     const borderRadius = 4;
     const borderWidth = 3;
     ctx.fillStyle = 'hsl(35, 80%, 30%)';
@@ -704,9 +704,9 @@ export const drawPremiumBrick = (
     ctx.roundRect(x + 1, y + 1, width - 2, height - 2, borderRadius);
     ctx.stroke();
     ctx.shadowBlur = 0;
-  } else if (type === 'indestructible' || type === 'steel') {
+  } else if ((type as string) === 'indestructible' || (type as string) === 'steel') {
     drawSteelBrick(ctx, x, y, width, height);
-    if (type === 'steel' && hits < maxHits && maxHits === 2) {
+    if ((type as string) === 'steel' && hits < maxHits && maxHits === 2) {
       drawSteelCracks(ctx, x, y, width, height);
     }
   } else {
@@ -722,7 +722,7 @@ export const drawPremiumBrick = (
   
   drawBrickTypeIndicator(ctx, brick, gameTime);
   
-  if (damageRatio < 0.7 && maxHits > 1 && type !== 'steel') {
+  if (damageRatio < 0.7 && maxHits > 1 && (type as string) !== 'steel') {
     drawDamageCracks(ctx, brick, damageRatio);
   }
   
