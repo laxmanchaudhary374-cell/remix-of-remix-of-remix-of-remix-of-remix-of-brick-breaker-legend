@@ -4,7 +4,7 @@ import { purchaseCoinPackage } from '@/utils/billing';
 import { showRewardedAd } from '@/utils/admob';
 import { setAdsRemoved } from '@/utils/admob';
 
-interface ShopItem {
+export interface ShopItem {
   id: string;
   name: string;
   description: string;
@@ -40,10 +40,11 @@ const COIN_PACKAGES = [
 interface ShopScreenProps {
   coins: number;
   onPurchase: (item: ShopItem) => void;
+  onAddCoins?: (amount: number) => void;
   onClose: () => void;
 }
 
-const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onClose }) => {
+const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, onClose }) => {
   const [activeTab, setActiveTab] = useState<'emergency' | 'powerup' | 'coins'>('coins');
   const [purchasing, setPurchasing] = useState(false);
 
@@ -67,8 +68,11 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onClose }) =
 
   const handleWatchAd = async () => {
     const result = await showRewardedAd(() => {});
-    if (result.reward > 0) {
-      alert('You earned 50 coins!');
+    if ('error' in result) {
+      alert(result.error);
+    } else if (result.reward > 0) {
+      onAddCoins?.(result.reward);
+      alert(`You earned ${result.reward} coins!`);
     }
   };
 

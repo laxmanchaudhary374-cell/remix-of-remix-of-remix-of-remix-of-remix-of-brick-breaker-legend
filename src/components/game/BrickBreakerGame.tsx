@@ -1,5 +1,6 @@
 ﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { App } from '@capacitor/app';
+import { toast } from 'sonner';
 import { GameState } from '@/types/game';
 import { getTotalLevels } from '@/utils/levels/index';
 import GameCanvas from './GameCanvas';
@@ -30,11 +31,11 @@ const COINS_KEY = 'neon_breaker_coins';
 const LIVES_KEY = 'neon_breaker_lives';
 const LAST_LIFE_REGEN_KEY = 'neon_breaker_last_regen';
 
-const MAX_LIVES = 5;
+const MAX_LIVES = 3;
 const REGEN_TIME = 15 * 60 * 1000; // 15 minutes
 
 const getStoredLives = (): number => {
-  try { return parseInt(localStorage.getItem(LIVES_KEY) || '5', 10); } catch { return 5; }
+  try { return Math.min(MAX_LIVES, parseInt(localStorage.getItem(LIVES_KEY) || '3', 10)); } catch { return 3; }
 };
 const setStoredLives = (lives: number) => {
   try { localStorage.setItem(LIVES_KEY, lives.toString()); } catch {}
@@ -72,6 +73,7 @@ const EMERGENCY_PRICES: Record<string, { cost: number; label: string }> = {
   auto: { cost: 50, label: 'Auto Paddle' },
   shock: { cost: 75, label: 'Electric Shock' },
   multi: { cost: 100, label: 'Three-Ball' },
+  laser: { cost: 60, label: 'Laser Gun' },
 };
 
 const getEmergencyCounts = () => {
@@ -80,8 +82,9 @@ const getEmergencyCounts = () => {
       auto: parseInt(localStorage.getItem('neon_breaker_em_auto') || '5'),
       shock: parseInt(localStorage.getItem('neon_breaker_em_shock') || '5'),
       multi: parseInt(localStorage.getItem('neon_breaker_em_multi') || '4'),
+      laser: parseInt(localStorage.getItem('neon_breaker_em_laser') || '3'),
     };
-  } catch { return { auto: 5, shock: 5, multi: 4 }; }
+  } catch { return { auto: 5, shock: 5, multi: 4, laser: 3 }; }
 };
 
 const BrickBreakerGame: React.FC = () => {
@@ -95,7 +98,7 @@ const BrickBreakerGame: React.FC = () => {
   const [emergencyCounts, setEmergencyCounts] = useState(getEmergencyCounts);
   const emergencyRef = useRef<string | null>(null);
   const pendingNextLevelRef = useRef<number | null>(null);
-  const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | null>(null);
+  const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | 'laser' | null>(null);
   const [lives, setLives] = useState(getStoredLives);
   const [lastRegen, setLastRegen] = useState(getStoredLastRegen);
   const [showDaily, setShowDaily] = useState(false);
@@ -137,6 +140,25 @@ const BrickBreakerGame: React.FC = () => {
     });
     return () => { backListener.then(l => l.remove()); };
   }, [screenState]);
+
+  // #8 Pause everything when app is minimized / screen locked (Capacitor + web fallback)
+  useEffect(() => {
+    const pauseAll = () => {
+      try { audioManager.mute(); } catch {}
+      try { audioManager.stopBackgroundMusic(); } catch {}
+      setScreenState(prev => (prev === 'playing' ? 'paused' : prev));
+      setGameState(prev => (prev.status === 'playing' ? { ...prev, status: 'paused' } : prev));
+    };
+    const stateSub = App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) pauseAll();
+    });
+    const onVis = () => { if (document.hidden) pauseAll(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stateSub.then(l => l.remove());
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
 
   const [gameState, setGameState] = useState<GameState>({
     status: 'menu',
@@ -330,7 +352,15 @@ const BrickBreakerGame: React.FC = () => {
     }
     const nextLevel = gameState.level + 1;
 
-    if (nextLevel >= 15 && !isAdsRemoved()) {
+    // #2 Show interstitial only every 3 levels.
+    // #9 Skip ad entirely when offline so next level starts instantly.
+    const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+    const shouldShowAd = nextLevel >= 15
+      && nextLevel % 3 === 0
+      && online
+      && !isAdsRemoved();
+
+    if (shouldShowAd) {
       // Store the pending level in ref so ad dismiss can access it
       pendingNextLevelRef.current = nextLevel;
       audioManager.mute();
@@ -371,7 +401,7 @@ const BrickBreakerGame: React.FC = () => {
         }
       }, 6000);
     } else {
-      // No ad - just start next level
+      // No ad - just start next level (instant, also when offline)
       setGameState(prev => ({
         ...prev,
         status: 'playing',
@@ -379,7 +409,7 @@ const BrickBreakerGame: React.FC = () => {
         lives: lives,
       }));
       setScreenState('playing');
-      preloadInterstitial();
+      if (online) preloadInterstitial();
     }
   }, [lives, gameState.level]);
 
@@ -471,7 +501,7 @@ const BrickBreakerGame: React.FC = () => {
     }
   }, [screenState]);
 
-  const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi') => {
+  const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi' | 'laser') => {
     if (screenState !== 'playing') return;
     if (emergencyCounts[type] <= 0) {
       setBuyPrompt(type);
@@ -495,7 +525,7 @@ const BrickBreakerGame: React.FC = () => {
     const newCoins = persistentCoins - price;
     setPersistentCoins(newCoins);
     setStoredCoins(newCoins);
-    const key = buyPrompt as 'auto' | 'shock' | 'multi';
+    const key = buyPrompt as 'auto' | 'shock' | 'multi' | 'laser';
     setEmergencyCounts(prev => {
       const newVal = prev[key] + 1;
       const updated = { ...prev, [key]: newVal };
@@ -602,6 +632,7 @@ const BrickBreakerGame: React.FC = () => {
               { key: 'auto' as const, label: 'AUTO', isText: true },
               { key: 'shock' as const, label: '⚡', isText: false },
               { key: 'multi' as const, label: null, isText: false },
+              { key: 'laser' as const, label: '🔫', isText: false },
             ]).map((btn) => (
               <button
                 key={btn.key}
