@@ -42,7 +42,9 @@ const getDifficultyParams = (level: number) => {
   const worldIndex = worldBreakpoints.filter(b => level > b).length;
 
   return {
-    ballSpeed: Math.min(280 + level * 0.4 + tier * 8 + worldIndex * 6, 400),
+    // Slower ramp: sub-linear curve so peak speed is reached around L~1500, not L~140.
+    // Base 280, add ~2.2 * level^0.55 (+ small world bonus). Hard cap 400.
+    ballSpeed: Math.min(280 + Math.pow(level, 0.55) * 2.2 + worldIndex * 2, 400),
     maxHits: Math.min(1 + Math.floor(tier / 2) + Math.floor(worldIndex / 3), 4),
     explosiveChance: 0.05 + tier * 0.02 + worldIndex * 0.005,
     steelChance: Math.min(0.02 + tier * 0.015 + worldIndex * 0.01, 0.15),
