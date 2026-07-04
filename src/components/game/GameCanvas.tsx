@@ -30,6 +30,12 @@ import { audioManager } from '@/utils/audioManager';
 import spaceBackground from '@/assets/space-background.jpg';
 import { getWorldBg } from '@/utils/worldBackgrounds';
 
+// Alien ship system is currently disabled — these stubs keep dead references compiling.
+const updateAlienShips = (ships: any[], _dt: number) => ships;
+const checkBallShipCollision = (_x: number, _y: number, _r: number, _s: any) => false;
+const checkLaserShipCollision = (_x: number, _y: number, _s: any) => false;
+const getShipScore = (_s: any) => 0;
+
 interface GameCanvasProps {
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
