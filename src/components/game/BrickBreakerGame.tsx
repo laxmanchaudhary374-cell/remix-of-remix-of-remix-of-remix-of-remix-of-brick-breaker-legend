@@ -98,7 +98,7 @@ const BrickBreakerGame: React.FC = () => {
   const [emergencyCounts, setEmergencyCounts] = useState(getEmergencyCounts);
   const emergencyRef = useRef<string | null>(null);
   const pendingNextLevelRef = useRef<number | null>(null);
-  const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | null>(null);
+  const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | 'laser' | null>(null);
   const [lives, setLives] = useState(getStoredLives);
   const [lastRegen, setLastRegen] = useState(getStoredLastRegen);
   const [showDaily, setShowDaily] = useState(false);
@@ -501,7 +501,7 @@ const BrickBreakerGame: React.FC = () => {
     }
   }, [screenState]);
 
-  const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi') => {
+  const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi' | 'laser') => {
     if (screenState !== 'playing') return;
     if (emergencyCounts[type] <= 0) {
       setBuyPrompt(type);
@@ -525,7 +525,7 @@ const BrickBreakerGame: React.FC = () => {
     const newCoins = persistentCoins - price;
     setPersistentCoins(newCoins);
     setStoredCoins(newCoins);
-    const key = buyPrompt as 'auto' | 'shock' | 'multi';
+    const key = buyPrompt as 'auto' | 'shock' | 'multi' | 'laser';
     setEmergencyCounts(prev => {
       const newVal = prev[key] + 1;
       const updated = { ...prev, [key]: newVal };
