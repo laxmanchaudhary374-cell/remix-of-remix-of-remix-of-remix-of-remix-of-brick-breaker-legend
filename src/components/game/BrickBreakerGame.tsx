@@ -141,6 +141,25 @@ const BrickBreakerGame: React.FC = () => {
     return () => { backListener.then(l => l.remove()); };
   }, [screenState]);
 
+  // #8 Pause everything when app is minimized / screen locked (Capacitor + web fallback)
+  useEffect(() => {
+    const pauseAll = () => {
+      try { audioManager.mute(); } catch {}
+      try { audioManager.stopBackgroundMusic(); } catch {}
+      setScreenState(prev => (prev === 'playing' ? 'paused' : prev));
+      setGameState(prev => (prev.status === 'playing' ? { ...prev, status: 'paused' } : prev));
+    };
+    const stateSub = App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) pauseAll();
+    });
+    const onVis = () => { if (document.hidden) pauseAll(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stateSub.then(l => l.remove());
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
+
   const [gameState, setGameState] = useState<GameState>({
     status: 'menu',
     score: 0,
@@ -333,7 +352,15 @@ const BrickBreakerGame: React.FC = () => {
     }
     const nextLevel = gameState.level + 1;
 
-    if (nextLevel >= 15 && !isAdsRemoved()) {
+    // #2 Show interstitial only every 3 levels.
+    // #9 Skip ad entirely when offline so next level starts instantly.
+    const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+    const shouldShowAd = nextLevel >= 15
+      && nextLevel % 3 === 0
+      && online
+      && !isAdsRemoved();
+
+    if (shouldShowAd) {
       // Store the pending level in ref so ad dismiss can access it
       pendingNextLevelRef.current = nextLevel;
       audioManager.mute();
@@ -374,7 +401,7 @@ const BrickBreakerGame: React.FC = () => {
         }
       }, 6000);
     } else {
-      // No ad - just start next level
+      // No ad - just start next level (instant, also when offline)
       setGameState(prev => ({
         ...prev,
         status: 'playing',
@@ -382,7 +409,7 @@ const BrickBreakerGame: React.FC = () => {
         lives: lives,
       }));
       setScreenState('playing');
-      preloadInterstitial();
+      if (online) preloadInterstitial();
     }
   }, [lives, gameState.level]);
 
