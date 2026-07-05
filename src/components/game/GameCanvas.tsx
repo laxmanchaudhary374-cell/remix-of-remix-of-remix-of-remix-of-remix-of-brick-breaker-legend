@@ -1825,25 +1825,13 @@ explosions.forEach(explosion => {
 
     // Alien ships removed
 
-    // Draw bricks with premium 3D rendering
+    // Draw bricks with premium 3D rendering.
+    // #1/#5: Ghost bricks always render fully — no alpha oscillation — so the
+    // background stays visually stable. Collision toggling (pass-through) is
+    // handled separately in the physics step.
     bricks.forEach(brick => {
       if (brick.destroyed) return;
-
-      // #6 Ghost brick flicker is isolated in save/restore so it can never
-      // leak globalAlpha (or any transform) onto the background/other layers.
-      if (brick.type === 'ghost') {
-        ctx.save();
-        // Narrow alpha window (0.6 → 1.0) with no shadow so the fade is subtle
-        // and can't visually pump the background darker/lighter.
-        const visibility = (Math.sin(gameTime * 2) + 1) / 2;
-        ctx.globalAlpha = 0.6 + visibility * 0.4;
-        ctx.shadowBlur = 0;
-        ctx.shadowColor = 'transparent';
-        drawPremiumBrick(ctx, brick, gameTime);
-        ctx.restore();
-      } else {
-        drawPremiumBrick(ctx, brick, gameTime);
-      }
+      drawPremiumBrick(ctx, brick, gameTime);
     });
 
     // Draw coins
