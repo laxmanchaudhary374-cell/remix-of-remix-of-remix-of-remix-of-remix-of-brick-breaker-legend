@@ -135,12 +135,17 @@ useEffect(() => {
       const levelIndex = Math.min(gameState.level - 1, levels.length - 1);
       const level = levels[levelIndex];
       
-      const newBricks: Brick[] = level.bricks.map((brick) => ({
-        ...brick,
-        id: generateId(),
-        destroyed: false,
-        originalX: brick.x,
-      }));
+      // #4 Keep the bottom ~35% of the play area brick-free so the paddle can
+      // move freely. Bricks whose bottom would enter that zone are dropped.
+      const BRICK_FREE_TOP = GAME_HEIGHT * 0.65;
+      const newBricks: Brick[] = level.bricks
+        .filter(brick => (brick.y + brick.height) <= BRICK_FREE_TOP)
+        .map((brick) => ({
+          ...brick,
+          id: generateId(),
+          destroyed: false,
+          originalX: brick.x,
+        }));
       
       setBricks(newBricks);
       
