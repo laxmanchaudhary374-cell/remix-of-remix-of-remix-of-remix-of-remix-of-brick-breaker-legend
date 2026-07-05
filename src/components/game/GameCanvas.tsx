@@ -59,7 +59,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   
   const [paddle, setPaddle] = useState<Paddle>({
     x: GAME_WIDTH / 2 - PADDLE_WIDTH / 2,
-    y: GAME_HEIGHT - 40,
+    y: GAME_HEIGHT - 70,
     width: PADDLE_WIDTH,
     height: PADDLE_HEIGHT,
     hasLaser: false,
