@@ -294,17 +294,12 @@ const BrickBreakerGame: React.FC = () => {
   }, []);
 
   const handleStartGame = useCallback((level: number = 1) => {
-    if (lives <= 0) {
-      setActiveModal('shop');
-      toast.error("No lives left! Get more in shop or wait.");
-      return;
-    }
-    
+    // Lives are per-level: always start a new level with 3 lives.
     setIsNewHighScore(false);
     setGameState({
       status: 'playing',
       score: 0,
-      lives: lives,
+      lives: 3,
       level: level,
       highScore: getStoredHighScore(),
       coins: 0,
@@ -312,7 +307,7 @@ const BrickBreakerGame: React.FC = () => {
       maxCombo: 0,
     });
     setScreenState('playing');
-  }, [lives]);
+  }, []);
 
   const handleGameOver = useCallback(() => {
     const newLives = Math.max(0, lives - 1);
