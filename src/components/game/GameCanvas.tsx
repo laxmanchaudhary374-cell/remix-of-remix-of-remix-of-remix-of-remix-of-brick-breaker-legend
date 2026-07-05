@@ -1833,8 +1833,12 @@ explosions.forEach(explosion => {
       // leak globalAlpha (or any transform) onto the background/other layers.
       if (brick.type === 'ghost') {
         ctx.save();
-        const visibility = (Math.sin(gameTime * 3) + 1) / 2;
-        ctx.globalAlpha = 0.3 + visibility * 0.7;
+        // Narrow alpha window (0.6 → 1.0) with no shadow so the fade is subtle
+        // and can't visually pump the background darker/lighter.
+        const visibility = (Math.sin(gameTime * 2) + 1) / 2;
+        ctx.globalAlpha = 0.6 + visibility * 0.4;
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
         drawPremiumBrick(ctx, brick, gameTime);
         ctx.restore();
       } else {
