@@ -19,12 +19,12 @@ const SHOP_ITEMS: ShopItem[] = [
   { id: 'em_auto', name: 'Auto Paddle', description: 'Paddle moves automatically for 10s', cost: 100, category: 'emergency', type: 'auto', emoji: '' },
   { id: 'em_shock', name: 'Electric Shock', description: 'Chain lightning destroys bricks', cost: 150, category: 'emergency', type: 'shock', emoji: '' },
   { id: 'em_multi', name: 'Three-Ball', description: 'Multiplies all balls by 3', cost: 200, category: 'emergency', type: 'multi', emoji: '' },
+  { id: 'em_laser', name: 'Laser Gun', description: 'Paddle auto-fires lasers for 10s', cost: 200, category: 'emergency', type: 'laser', emoji: '' },
   // Standard Power-ups
   { id: 'pu_shield', name: 'Shield', description: 'Safety net for 10 seconds', cost: 80, category: 'powerup', type: 'shield', emoji: '' },
   { id: 'pu_fireball', name: 'Fireball', description: 'Ball destroys all bricks in one hit', cost: 120, category: 'powerup', type: 'fireball', emoji: '' },
   { id: 'pu_multiball', name: 'Multiball', description: 'Doubles all your balls', cost: 90, category: 'powerup', type: 'multiball', emoji: '' },
   { id: 'pu_extralife', name: 'Extra Life', description: 'Gain +1 life', cost: 150, category: 'powerup', type: 'extralife', emoji: '' },
-  { id: 'pu_laser', name: 'Laser Gun', description: 'Paddle auto-fires lasers for 7s', cost: 100, category: 'powerup', type: 'laser', emoji: '' },
   { id: 'pu_magnet', name: 'Magnet', description: 'Ball sticks to paddle for aiming', cost: 70, category: 'powerup', type: 'magnet', emoji: '' },
   { id: 'pu_widen', name: 'Wide Paddle', description: 'Widens your paddle for 10s', cost: 50, category: 'powerup', type: 'widen', emoji: '' },
   { id: 'pu_sevenball', name: 'Seven Ball', description: 'Multiplies balls by 7!', cost: 200, category: 'powerup', type: 'sevenball', emoji: '' },

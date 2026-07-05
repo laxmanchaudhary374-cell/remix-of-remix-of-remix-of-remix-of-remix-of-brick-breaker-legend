@@ -115,32 +115,32 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, persistentCoins, onTogglePau
         </div>
       )}
 
-      {/* #11 Power-up timers — absolutely positioned under the pause button so
-          the game canvas below never shifts up/down when a countdown appears. */}
+      {/* #2 Power-up timers — positioned above the brick area, centered so the
+          game canvas layout below never shifts up/down when a countdown appears. */}
       {isPlaying && (gameState.autoTimer || shieldTimer || ghostTimer) ? (
         <div
-          className="absolute flex flex-col items-start gap-0.5 pointer-events-none animate-pulse"
-          style={{ top: '96px', left: '10px', zIndex: 40 }}
+          className="absolute flex flex-row items-center justify-center gap-1.5 pointer-events-none animate-pulse"
+          style={{ top: '96px', left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}
         >
           {gameState.autoTimer && gameState.autoTimer > 0 && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md"
-              style={{ background: 'rgba(0, 200, 100, 0.25)', border: '1px solid rgba(0, 200, 100, 0.5)' }}>
-              <span className="text-[9px]">🎯</span>
-              <span className="font-display text-[9px] font-bold" style={{ color: '#00ff88' }}>AUTO {gameState.autoTimer}s</span>
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md"
+              style={{ background: 'rgba(0, 200, 100, 0.35)', border: '1px solid rgba(0, 200, 100, 0.7)' }}>
+              <span className="text-[10px]">🎯</span>
+              <span className="font-display text-[10px] font-bold" style={{ color: '#00ff88' }}>AUTO {gameState.autoTimer}s</span>
             </div>
           )}
           {shieldTimer && shieldTimer > 0 && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md"
-              style={{ background: 'rgba(0, 150, 255, 0.25)', border: '1px solid rgba(0, 150, 255, 0.5)' }}>
-              <span className="text-[9px]">🛡️</span>
-              <span className="font-display text-[9px] font-bold" style={{ color: '#00aaff' }}>SHIELD {shieldTimer}s</span>
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md"
+              style={{ background: 'rgba(0, 150, 255, 0.35)', border: '1px solid rgba(0, 150, 255, 0.7)' }}>
+              <span className="text-[10px]">🛡️</span>
+              <span className="font-display text-[10px] font-bold" style={{ color: '#00aaff' }}>SHIELD {shieldTimer}s</span>
             </div>
           )}
           {ghostTimer && ghostTimer > 0 && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md"
-              style={{ background: 'rgba(150, 0, 200, 0.25)', border: '1px solid rgba(150, 0, 200, 0.5)' }}>
-              <span className="text-[9px]">👻</span>
-              <span className="font-display text-[9px] font-bold" style={{ color: '#cc66ff' }}>GHOST {ghostTimer}s</span>
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md"
+              style={{ background: 'rgba(150, 0, 200, 0.35)', border: '1px solid rgba(150, 0, 200, 0.7)' }}>
+              <span className="text-[10px]">👻</span>
+              <span className="font-display text-[10px] font-bold" style={{ color: '#cc66ff' }}>GHOST {ghostTimer}s</span>
             </div>
           )}
         </div>
