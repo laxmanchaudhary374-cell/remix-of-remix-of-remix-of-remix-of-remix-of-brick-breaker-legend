@@ -277,7 +277,7 @@ const BrickBreakerGame: React.FC = () => {
     setPersistentCoins(newTotal);
     setStoredCoins(newTotal);
     if (item.category === 'emergency') {
-      const key = item.type as 'auto' | 'shock' | 'multi';
+      const key = item.type as 'auto' | 'shock' | 'multi' | 'laser';
       setEmergencyCounts(prev => {
         const newVal = prev[key] + 1;
         const updated = { ...prev, [key]: newVal };
