@@ -564,22 +564,8 @@ export const drawPremiumBrick = (
 ): void => {
   const { x, y, width, height, color, type, hits, maxHits } = brick;
   
-  // Ghost bricks: flicker visible/invisible every 1 second
-  if (type === 'ghost') {
-    const phase = Math.floor(gameTime) % 2;
-    if (phase === 1) {
-      const transition = gameTime % 1;
-      if (transition > 0.8) {
-        ctx.save();
-        ctx.globalAlpha = (transition - 0.8) * 5;
-      } else if (transition < 0.2) {
-        ctx.save();
-        ctx.globalAlpha = 1 - transition * 5;
-      } else {
-        return;
-      }
-    }
-  }
+  // Ghost bricks: ALWAYS render fully visible (background stays stable).
+  // Pass-through collision behavior is handled in GameCanvas via isGhostInvisible.
   
   const damageRatio = hits / maxHits;
   

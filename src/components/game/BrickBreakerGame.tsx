@@ -603,10 +603,10 @@ const BrickBreakerGame: React.FC = () => {
         {screenState === 'playing' && (
           <div className="absolute flex flex-col items-center z-30" style={{ right: '6px', bottom: '80px', gap: '8px', opacity: 0.5 }}>
             {([
-              { key: 'auto' as const, label: 'AUTO', isText: true },
-              { key: 'shock' as const, label: '⚡', isText: false },
-              { key: 'multi' as const, label: null, isText: false },
-              { key: 'laser' as const, label: '🔫', isText: false },
+              { key: 'auto' as const, label: 'AUTO', isText: true, kind: 'text' as const },
+              { key: 'shock' as const, label: '⚡', isText: false, kind: 'emoji' as const },
+              { key: 'multi' as const, label: null, isText: false, kind: 'multi' as const },
+              { key: 'laser' as const, label: null, isText: false, kind: 'laser' as const },
             ]).map((btn) => (
               <button
                 key={btn.key}
@@ -626,11 +626,24 @@ const BrickBreakerGame: React.FC = () => {
                   border: '3px solid hsla(195, 100%, 75%, 0.6)',
                 }}
               >
-                {btn.label === null ? (
+                {btn.kind === 'multi' ? (
                   <svg width="22" height="22" viewBox="0 0 28 28">
                     <circle cx="14" cy="8" r="5" fill="white" />
                     <circle cx="7" cy="20" r="5" fill="white" />
                     <circle cx="21" cy="20" r="5" fill="white" />
+                  </svg>
+                ) : btn.kind === 'laser' ? (
+                  // Laser icon: white paddle with two red laser beams (matches
+                  // the in-game laser power-up icon in powerUpRenderer).
+                  <svg width="24" height="24" viewBox="0 0 28 28">
+                    {/* red laser beams shooting up */}
+                    <rect x="6.5" y="4" width="2.2" height="10" rx="1" fill="#ff2a2a" />
+                    <rect x="19.3" y="4" width="2.2" height="10" rx="1" fill="#ff2a2a" />
+                    {/* beam tips */}
+                    <polygon points="6.5,4 7.6,1.5 8.7,4" fill="#ff2a2a" />
+                    <polygon points="19.3,4 20.4,1.5 21.5,4" fill="#ff2a2a" />
+                    {/* white paddle */}
+                    <rect x="4" y="16" width="20" height="5" rx="2.5" fill="white" />
                   </svg>
                 ) : btn.isText ? (
                   <span className="font-bold text-sm leading-none" style={{ color: 'hsl(50, 100%, 55%)', textShadow: '0 0 10px hsla(50, 100%, 50%, 0.8), 0 1px 2px rgba(0,0,0,0.5)', fontFamily: 'Orbitron, sans-serif' }}>{btn.label}</span>
