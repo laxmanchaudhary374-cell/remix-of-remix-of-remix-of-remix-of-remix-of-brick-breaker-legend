@@ -854,7 +854,7 @@ useEffect(() => {
         
         magnetBallRef.current = {
           id: generateId(),
-          position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 60 },
+          position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 90 },
           velocity: { dx: 0, dy: 0 },
           radius: BALL_RADIUS,
         };
