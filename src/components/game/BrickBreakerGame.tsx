@@ -310,17 +310,10 @@ const BrickBreakerGame: React.FC = () => {
   }, []);
 
   const handleGameOver = useCallback(() => {
-    const newLives = Math.max(0, lives - 1);
-    setLives(newLives);
-    setStoredLives(newLives);
-    if (newLives < MAX_LIVES && lives === MAX_LIVES) {
-      setLastRegen(Date.now());
-      setStoredLastRegen(Date.now());
-    }
-    
+    // Lives are per-level only — no persistent life system, no shop gating.
     setScreenState('gameover');
-    setGameState(prev => ({ ...prev, status: 'gameover', lives: newLives }));
-  }, [lives]);
+    setGameState(prev => ({ ...prev, status: 'gameover' }));
+  }, []);
 
   const handleLevelComplete = useCallback(() => {
     const totalLevels = getTotalLevels();
