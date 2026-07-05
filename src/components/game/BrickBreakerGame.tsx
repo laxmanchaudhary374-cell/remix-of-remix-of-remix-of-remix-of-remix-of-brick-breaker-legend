@@ -333,11 +333,6 @@ const BrickBreakerGame: React.FC = () => {
   }, [gameState.level]);
 
   const handleNextLevel = useCallback(() => {
-    if (lives <= 0) {
-      setActiveModal('shop');
-      toast.error("No lives left! Get more in shop or wait.");
-      return;
-    }
     const nextLevel = gameState.level + 1;
 
     // #2 Show interstitial only every 3 levels.
@@ -349,14 +344,12 @@ const BrickBreakerGame: React.FC = () => {
       && !isAdsRemoved();
 
     if (shouldShowAd) {
-      // Store the pending level in ref so ad dismiss can access it
       pendingNextLevelRef.current = nextLevel;
       audioManager.mute();
       audioManager.stopBackgroundMusic();
       showInterstitialAd(
         () => { /* ad is showing */ },
         () => {
-          // Ad dismissed - start the pending level
           const lvl = pendingNextLevelRef.current;
           pendingNextLevelRef.current = null;
           audioManager.unmute();
@@ -365,14 +358,13 @@ const BrickBreakerGame: React.FC = () => {
               ...prev,
               status: 'playing',
               level: lvl,
-              lives: lives,
+              lives: 3,
             }));
             setScreenState('playing');
             preloadInterstitial();
           }
         }
       );
-      // Fallback: if ad doesn't dismiss in 6 seconds, force start
       setTimeout(() => {
         if (pendingNextLevelRef.current) {
           const lvl = pendingNextLevelRef.current;
@@ -382,31 +374,25 @@ const BrickBreakerGame: React.FC = () => {
             ...prev,
             status: 'playing',
             level: lvl,
-            lives: lives,
+            lives: 3,
           }));
           setScreenState('playing');
           preloadInterstitial();
         }
       }, 6000);
     } else {
-      // No ad - just start next level (instant, also when offline)
       setGameState(prev => ({
         ...prev,
         status: 'playing',
         level: nextLevel,
-        lives: lives,
+        lives: 3,
       }));
       setScreenState('playing');
       if (online) preloadInterstitial();
     }
-  }, [lives, gameState.level]);
+  }, [gameState.level]);
 
   const handleReplayLevel = useCallback(() => {
-    if (lives <= 0) {
-      setActiveModal('shop');
-      toast.error("No lives left! Get more in shop or wait.");
-      return;
-    }
     setIsNewHighScore(false);
     const currentLevel = gameState.level;
     const currentHighScore = gameState.highScore;
@@ -416,7 +402,7 @@ const BrickBreakerGame: React.FC = () => {
         setGameState({
           status: 'playing',
           score: 0,
-          lives: lives,
+          lives: 3,
           level: currentLevel,
           highScore: currentHighScore,
           coins: 0,
@@ -426,7 +412,7 @@ const BrickBreakerGame: React.FC = () => {
         setScreenState('playing');
       }, 100);
     });
-  }, [gameState.level, gameState.highScore, lives]);
+  }, [gameState.level, gameState.highScore]);
 
   const handleMainMenu = useCallback(() => {
     setScreenState('menu');
