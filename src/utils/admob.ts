@@ -147,17 +147,31 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
       });
       listeners.push(l4);
 
-      // Prepare and show
+      // Prepare and show — retry prepare up to 3 times before giving up
+      // so a single transient "no fill" doesn't block the user.
       console.log('[AdMob] Preparing rewarded ad...');
-      await AdMob.prepareRewardVideoAd({
-        adId: AD_UNIT_IDS.REWARDED_COINS,
-        isTesting: false,
-      });
+      let prepared = false;
+      let lastErr: any = null;
+      for (let attempt = 1; attempt <= 3 && !prepared; attempt++) {
+        try {
+          await AdMob.prepareRewardVideoAd({
+            adId: AD_UNIT_IDS.REWARDED_COINS,
+            isTesting: false,
+          });
+          prepared = true;
+        } catch (e) {
+          lastErr = e;
+          console.log(`[AdMob] Rewarded prepare attempt ${attempt} failed, retrying...`);
+          await new Promise(r => setTimeout(r, 1200));
+        }
+      }
+      if (!prepared) throw lastErr || new Error('prepare failed');
 
       console.log('[AdMob] Showing rewarded ad...');
       adActive = true;
       if (onShow) onShow();
       await AdMob.showRewardVideoAd();
+
 
     } catch (err: any) {
       clearTimeout(timeout);
