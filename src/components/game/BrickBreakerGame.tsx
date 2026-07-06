@@ -338,7 +338,8 @@ const BrickBreakerGame: React.FC = () => {
     // #2 Show interstitial only every 3 levels.
     // #9 Skip ad entirely when offline so next level starts instantly.
     const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
-    const shouldShowAd = nextLevel >= 15 && nextLevel % 3 === 0
+    const shouldShowAd = nextLevel % 3 === 0
+
 
       && online
       && !isAdsRemoved();
