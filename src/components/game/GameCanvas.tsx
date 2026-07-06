@@ -1515,10 +1515,24 @@ explosions.forEach(explosion => {
         drawY = (canvasHeight - drawH) / 2;
       }
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+      // #3 Non-uniform darkening: strongest at the bright galaxy core,
+      // fading out toward the edges so darker regions stay untouched.
+      // Overall shift ~35 -> ~40 out of 100 darkness.
+      const cx = canvasWidth / 2;
+      const cy = canvasHeight / 2;
+      const rMax = Math.hypot(cx, cy);
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rMax);
+      grad.addColorStop(0.0, 'rgba(0, 0, 0, 0.32)');
+      grad.addColorStop(0.35, 'rgba(0, 0, 0, 0.18)');
+      grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.05)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     } else {
       ctx.fillStyle = '#0a0a1a';
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     }
+
 
     // Draw static white dot stars (no flickering)
     ctx.fillStyle = 'white';
