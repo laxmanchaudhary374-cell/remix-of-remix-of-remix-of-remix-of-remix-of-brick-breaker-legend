@@ -587,7 +587,7 @@ const BrickBreakerGame: React.FC = () => {
 
       
       <div className="relative z-10">
-        <GameUI gameState={gameState} persistentCoins={persistentCoins} onTogglePause={handleTogglePause} isPaused={screenState === 'paused'} isPlaying={screenState === 'playing' || screenState === 'paused'} shieldTimer={gameState.shieldTimer} ghostTimer={gameState.ghostTimer} />
+        <GameUI gameState={gameState} persistentCoins={persistentCoins} onTogglePause={handleTogglePause} isPaused={screenState === 'paused'} isPlaying={screenState === 'playing' || screenState === 'paused'} />
       </div>
 
       <div className="relative z-10">
@@ -599,6 +599,31 @@ const BrickBreakerGame: React.FC = () => {
           onScoreChange={handleScoreChange}
           emergencyRef={emergencyRef}
         />
+
+        {screenState === 'playing' && (gameState.autoTimer || gameState.shieldTimer || gameState.ghostTimer) ? (
+          <div
+            className="absolute left-0 top-2 z-40 flex max-w-[230px] flex-wrap items-center gap-1 pointer-events-none animate-pulse"
+          >
+            {gameState.autoTimer && gameState.autoTimer > 0 ? (
+              <div className="flex items-center gap-1 rounded-md px-2 py-0.5" style={{ background: 'rgba(0, 20, 30, 0.88)', border: '1px solid rgba(0, 200, 100, 0.9)', boxShadow: '0 0 8px rgba(0,200,100,0.5)' }}>
+                <span className="text-[10px]">🎯</span>
+                <span className="font-display text-[10px] font-bold leading-none" style={{ color: '#00ff88' }}>AUTO {gameState.autoTimer}s</span>
+              </div>
+            ) : null}
+            {gameState.shieldTimer && gameState.shieldTimer > 0 ? (
+              <div className="flex items-center gap-1 rounded-md px-2 py-0.5" style={{ background: 'rgba(0, 20, 30, 0.88)', border: '1px solid rgba(0, 150, 255, 0.9)', boxShadow: '0 0 8px rgba(0,150,255,0.5)' }}>
+                <span className="text-[10px]">🛡️</span>
+                <span className="font-display text-[10px] font-bold leading-none" style={{ color: '#00aaff' }}>SHIELD {gameState.shieldTimer}s</span>
+              </div>
+            ) : null}
+            {gameState.ghostTimer && gameState.ghostTimer > 0 ? (
+              <div className="flex items-center gap-1 rounded-md px-2 py-0.5" style={{ background: 'rgba(0, 20, 30, 0.88)', border: '1px solid rgba(200, 100, 255, 0.9)', boxShadow: '0 0 8px rgba(200,100,255,0.5)' }}>
+                <span className="text-[10px]">👻</span>
+                <span className="font-display text-[10px] font-bold leading-none" style={{ color: '#cc66ff' }}>GHOST {gameState.ghostTimer}s</span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {screenState === 'playing' && (
           <div className="absolute flex flex-col items-center z-30" style={{ right: '6px', bottom: '80px', gap: '8px', opacity: 0.5 }}>
