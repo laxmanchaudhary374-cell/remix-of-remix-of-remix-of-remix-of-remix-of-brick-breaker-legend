@@ -120,9 +120,10 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, persistentCoins, onTogglePau
           Absolute so it never pushes the canvas. Blinks via animate-pulse. */}
       {isPlaying && (gameState.autoTimer || shieldTimer || ghostTimer) ? (
         <div
-          className="absolute flex flex-row items-center justify-center gap-1.5 pointer-events-none animate-pulse"
-          style={{ top: '94px', left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}
+          className="absolute flex flex-row items-center gap-1 pointer-events-none animate-pulse"
+          style={{ top: '94px', left: '10px', zIndex: 40 }}
         >
+
           {gameState.autoTimer && gameState.autoTimer > 0 && (
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-md"
               style={{ background: 'rgba(0, 20, 30, 0.85)', border: '1px solid rgba(0, 200, 100, 0.9)', boxShadow: '0 0 8px rgba(0,200,100,0.5)' }}>
