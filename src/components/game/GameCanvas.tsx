@@ -1495,59 +1495,87 @@ explosions.forEach(explosion => {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Draw space background image (galaxy) to fill entire screen
+    // Draw cached background (image + darkening gradient + static stars).
+    // Rebuilt only when size/dpr changes or the image finishes loading —
+    // avoids per-frame gradient allocation and 50-arc star loop that was
+    // spiking CPU and heating the phone.
     const canvasWidth = ctx.canvas.width / dpr;
     const canvasHeight = ctx.canvas.height / dpr;
-    
-    if (bgImageRef.current) {
-      const img = bgImageRef.current;
-      const canvasAspect = canvasWidth / canvasHeight;
-      const imgAspect = img.width / img.height;
-      
-      let drawW, drawH, drawX, drawY;
-      if (imgAspect > canvasAspect) {
-        drawH = canvasHeight;
-        drawW = canvasHeight * imgAspect;
-        drawX = (canvasWidth - drawW) / 2;
-        drawY = 0;
-      } else {
-        drawW = canvasWidth;
-        drawH = canvasWidth / imgAspect;
-        drawX = 0;
-        drawY = (canvasHeight - drawH) / 2;
-      }
-      ctx.drawImage(img, drawX, drawY, drawW, drawH);
 
-      // #3 Non-uniform darkening: strongest at the bright galaxy core,
-      // fading out toward the edges so darker regions stay untouched.
-      // Overall shift ~35 -> ~40 out of 100 darkness.
-      const cx = canvasWidth / 2;
-      const cy = canvasHeight / 2;
-      const rMax = Math.hypot(cx, cy);
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rMax);
-      grad.addColorStop(0.0, 'rgba(0, 0, 0, 0.32)');
-      grad.addColorStop(0.35, 'rgba(0, 0, 0, 0.18)');
-      grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.05)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    const cache = bgCacheRef.current;
+    const cacheSize = bgCacheSizeRef.current;
+    const needsRebuild =
+      !cache ||
+      !cacheSize ||
+      cacheSize.w !== canvasWidth ||
+      cacheSize.h !== canvasHeight ||
+      cacheSize.dpr !== dpr ||
+      (cache && !cache.dataset?.hasImage && bgImageRef.current);
+
+    if (needsRebuild) {
+      const off = document.createElement('canvas');
+      off.width = Math.max(1, Math.floor(canvasWidth * dpr));
+      off.height = Math.max(1, Math.floor(canvasHeight * dpr));
+      const octx = off.getContext('2d');
+      if (octx) {
+        octx.scale(dpr, dpr);
+        if (bgImageRef.current) {
+          const img = bgImageRef.current;
+          const canvasAspect = canvasWidth / canvasHeight;
+          const imgAspect = img.width / img.height;
+          let drawW, drawH, drawX, drawY;
+          if (imgAspect > canvasAspect) {
+            drawH = canvasHeight;
+            drawW = canvasHeight * imgAspect;
+            drawX = (canvasWidth - drawW) / 2;
+            drawY = 0;
+          } else {
+            drawW = canvasWidth;
+            drawH = canvasWidth / imgAspect;
+            drawX = 0;
+            drawY = (canvasHeight - drawH) / 2;
+          }
+          octx.drawImage(img, drawX, drawY, drawW, drawH);
+
+          const cx = canvasWidth / 2;
+          const cy = canvasHeight / 2;
+          const rMax = Math.hypot(cx, cy);
+          const grad = octx.createRadialGradient(cx, cy, 0, cx, cy, rMax);
+          grad.addColorStop(0.0, 'rgba(0, 0, 0, 0.32)');
+          grad.addColorStop(0.35, 'rgba(0, 0, 0, 0.18)');
+          grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.05)');
+          octx.fillStyle = grad;
+          octx.fillRect(0, 0, canvasWidth, canvasHeight);
+          off.dataset.hasImage = '1';
+        } else {
+          octx.fillStyle = '#0a0a1a';
+          octx.fillRect(0, 0, canvasWidth, canvasHeight);
+        }
+
+        octx.fillStyle = 'white';
+        octx.globalAlpha = 0.6;
+        for (let i = 0; i < 50; i++) {
+          const x = (Math.sin(i * 123.45) * 0.5 + 0.5) * canvasWidth;
+          const y = (Math.cos(i * 678.90) * 0.5 + 0.5) * canvasHeight;
+          const size = (i % 3) + 0.5;
+          octx.beginPath();
+          octx.arc(x, y, size, 0, Math.PI * 2);
+          octx.fill();
+        }
+        octx.globalAlpha = 1;
+      }
+      bgCacheRef.current = off;
+      bgCacheSizeRef.current = { w: canvasWidth, h: canvasHeight, dpr };
+    }
+
+    const bg = bgCacheRef.current;
+    if (bg) {
+      ctx.drawImage(bg, 0, 0, canvasWidth, canvasHeight);
     } else {
       ctx.fillStyle = '#0a0a1a';
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     }
 
-
-    // Draw static white dot stars (no flickering)
-    ctx.fillStyle = 'white';
-    ctx.globalAlpha = 0.6;
-    for (let i = 0; i < 50; i++) {
-      const x = (Math.sin(i * 123.45) * 0.5 + 0.5) * canvasWidth;
-      const y = (Math.cos(i * 678.90) * 0.5 + 0.5) * canvasHeight;
-      const size = (i % 3) + 0.5;
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
     // Apply screen shake ONLY to game elements (not background)
     ctx.save();
     if (screenShake > 0) {
