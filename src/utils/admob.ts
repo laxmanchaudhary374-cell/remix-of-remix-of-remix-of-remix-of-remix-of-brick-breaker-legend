@@ -11,7 +11,7 @@
  * - Remove ads purchase support
  */
 import { Capacitor } from '@capacitor/core';
-import { AdMob } from '@capacitor-community/admob';
+import { AdMob, RewardAdPluginEvents } from '@capacitor-community/admob';
 
 export const AD_UNIT_IDS = {
   REWARDED_COINS: 'ca-app-pub-6637721495380199/7860262690',
