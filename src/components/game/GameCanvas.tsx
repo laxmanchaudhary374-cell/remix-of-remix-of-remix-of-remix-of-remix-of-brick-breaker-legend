@@ -55,6 +55,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bgImageRef = useRef<HTMLImageElement | null>(null);
+  const bgCacheRef = useRef<HTMLCanvasElement | null>(null);
+  const bgCacheSizeRef = useRef<{ w: number; h: number; dpr: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const [paddle, setPaddle] = useState<Paddle>({
