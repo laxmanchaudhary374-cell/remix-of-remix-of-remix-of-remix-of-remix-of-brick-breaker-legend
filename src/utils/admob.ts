@@ -89,97 +89,84 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
     if (!ok) return { ok: false, error: 'Ad service not available.' };
   }
 
-  return new Promise(async (resolve) => {
-    let settled = false;
-    const finish = (r: RewardedAdResult) => {
-      if (!settled) {
-        settled = true;
-        cleanup();
-        resolve(r);
-      }
-    };
-
-    const listeners: any[] = [];
-    const cleanup = () => {
-      adActive = false;
-      for (const l of listeners) {
-        try { l.remove(); } catch (e) { /* ignore */ }
-      }
-      listeners.length = 0;
-    };
-
-    // Timeout after 30s
-    const timeout = setTimeout(() => {
-      finish({ ok: false, error: 'Ad took too long. Check internet and try again.' });
-    }, 30000);
-
-    try {
-      let rewardGranted = false;
-
-      // Listen for reward
-      const l1 = await AdMob.addListener('onRewardedVideoAdReward' as any, (reward: any) => {
-        console.log('[AdMob] Reward:', reward);
-        rewardGranted = true;
-      });
-      listeners.push(l1);
-
-      // Listen for dismiss
-      const l2 = await AdMob.addListener('onRewardedVideoAdDismissed' as any, () => {
-        console.log('[AdMob] Dismissed, reward:', rewardGranted);
-        clearTimeout(timeout);
-        finish({ ok: true, reward: rewardGranted ? 50 : 0 });
-      });
-      listeners.push(l2);
-
-      // Listen for failed to load
-      const l3 = await AdMob.addListener('onRewardedVideoAdFailedToLoad' as any, (error: any) => {
-        console.error('[AdMob] Failed to load:', error);
-        clearTimeout(timeout);
-        finish({ ok: false, error: 'No ads available. Try again later.' });
-      });
-      listeners.push(l3);
-
-      // Listen for failed to show
-      const l4 = await AdMob.addListener('onRewardedVideoAdFailedToShow' as any, (error: any) => {
-        console.error('[AdMob] Failed to show:', error);
-        clearTimeout(timeout);
-        finish({ ok: false, error: 'Ad could not be displayed.' });
-      });
-      listeners.push(l4);
-
-      // Prepare and show — retry prepare up to 3 times before giving up
-      // so a single transient "no fill" doesn't block the user.
-      console.log('[AdMob] Preparing rewarded ad...');
-      let prepared = false;
-      let lastErr: any = null;
-      for (let attempt = 1; attempt <= 3 && !prepared; attempt++) {
-        try {
-          await AdMob.prepareRewardVideoAd({
-            adId: AD_UNIT_IDS.REWARDED_COINS,
-            isTesting: false,
-          });
-          prepared = true;
-        } catch (e) {
-          lastErr = e;
-          console.log(`[AdMob] Rewarded prepare attempt ${attempt} failed, retrying...`);
-          await new Promise(r => setTimeout(r, 1200));
-        }
-      }
-      if (!prepared) throw lastErr || new Error('prepare failed');
-
-      console.log('[AdMob] Showing rewarded ad...');
-      adActive = true;
-      if (onShow) onShow();
-      await AdMob.showRewardVideoAd();
-
-
-    } catch (err: any) {
-      clearTimeout(timeout);
-      const msg = err?.message || String(err);
-      console.error('[AdMob] Error:', msg);
-      finish({ ok: false, error: 'Ad failed to load. Try again later.' });
+  const listeners: any[] = [];
+  const removeListeners = () => {
+    for (const l of listeners) {
+      try { l.remove(); } catch { /* ignore */ }
     }
-  });
+    listeners.length = 0;
+  };
+
+  try {
+    return await new Promise<RewardedAdResult>(async (resolve) => {
+      let settled = false;
+      let rewardGranted = false;
+      const finish = (r: RewardedAdResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        resolve(r);
+      };
+
+      const timeout = setTimeout(() => {
+        finish({ ok: false, error: 'Ad took too long. Check internet and try again.' });
+      }, 30000);
+
+      try {
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
+          console.log('[AdMob] Reward:', reward);
+          rewardGranted = true;
+        }));
+
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+          console.log('[AdMob] Dismissed, reward:', rewardGranted);
+          finish({ ok: true, reward: rewardGranted ? 50 : 0 });
+        }));
+
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (error: any) => {
+          console.error('[AdMob] Failed to load:', error);
+          finish({ ok: false, error: 'No ads available. Try again later.' });
+        }));
+
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, (error: any) => {
+          console.error('[AdMob] Failed to show:', error);
+          finish({ ok: false, error: 'Ad could not be displayed.' });
+        }));
+
+        // Prepare fully before showing — retry a few times on transient no-fill.
+        console.log('[AdMob] Preparing rewarded ad...');
+        let prepared = false;
+        let lastErr: any = null;
+        for (let attempt = 1; attempt <= 3 && !prepared; attempt++) {
+          try {
+            await AdMob.prepareRewardVideoAd({
+              adId: AD_UNIT_IDS.REWARDED_COINS,
+              isTesting: false,
+            });
+            prepared = true;
+          } catch (e) {
+            lastErr = e;
+            console.log(`[AdMob] Rewarded prepare attempt ${attempt} failed, retrying...`);
+            await new Promise(r => setTimeout(r, 1200));
+          }
+        }
+        if (!prepared) throw lastErr || new Error('prepare failed');
+
+        console.log('[AdMob] Showing rewarded ad...');
+        adActive = true;
+        if (onShow) onShow();
+        await AdMob.showRewardVideoAd();
+      } catch (err: any) {
+        const msg = err?.message || String(err);
+        console.error('[AdMob] Error:', msg);
+        finish({ ok: false, error: 'Ad failed to load. Try again later.' });
+      }
+    });
+  } finally {
+    // Emergency unlock — always release adActive and listeners even if something crashed.
+    adActive = false;
+    removeListeners();
+  }
 }
 
 export async function showBannerAd(): Promise<void> {
