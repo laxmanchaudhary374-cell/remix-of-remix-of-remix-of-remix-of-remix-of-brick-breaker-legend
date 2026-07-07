@@ -10,8 +10,14 @@
  * - Rewarded ads
  * - Remove ads purchase support
  */
-import { Capacitor } from '@capacitor/core';
-import { AdMob, RewardAdPluginEvents } from '@capacitor-community/admob';
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
+import {
+  AdMob,
+  RewardAdPluginEvents,
+  type AdLoadInfo,
+  type AdMobError,
+  type AdMobRewardItem,
+} from '@capacitor-community/admob';
 
 export const AD_UNIT_IDS = {
   REWARDED_COINS: 'ca-app-pub-6637721495380199/7860262690',
@@ -23,6 +29,7 @@ const ADS_REMOVED_KEY = 'neon_breaker_ads_removed';
 
 let initialized = false;
 let adActive = false;
+let rewardedAdInProgress = false;
 let bannerRetryTimer: any = null;
 
 export function isAdActive(): boolean {
@@ -84,12 +91,13 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
     return { ok: false, error: 'Ads only work in the installed app.' };
   }
 
-  if (!initialized) {
-    const ok = await initAdMob();
-    if (!ok) return { ok: false, error: 'Ad service not available.' };
+  if (rewardedAdInProgress) {
+    return { ok: false, error: 'Ad is already opening.' };
   }
 
-  const listeners: any[] = [];
+  rewardedAdInProgress = true;
+
+  const listeners: PluginListenerHandle[] = [];
   const removeListeners = () => {
     for (const l of listeners) {
       try { l.remove(); } catch { /* ignore */ }
@@ -98,40 +106,65 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
   };
 
   try {
+    if (!initialized) {
+      const ok = await initAdMob();
+      if (!ok) return { ok: false, error: 'Ad service not available.' };
+    }
+
+    // Do not keep a banner under a full-screen rewarded ad on Android.
+    await hideBannerAd();
+
     return await new Promise<RewardedAdResult>(async (resolve) => {
       let settled = false;
+      let shown = false;
       let rewardGranted = false;
+      let loadTimeout: ReturnType<typeof setTimeout> | null = null;
       const finish = (r: RewardedAdResult) => {
         if (settled) return;
         settled = true;
-        clearTimeout(timeout);
+        if (loadTimeout) clearTimeout(loadTimeout);
         resolve(r);
       };
 
-      const timeout = setTimeout(() => {
-        finish({ ok: false, error: 'Ad took too long. Check internet and try again.' });
-      }, 30000);
-
       try {
-        listeners.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.Loaded, (info: AdLoadInfo) => {
+          console.log('[AdMob] Rewarded loaded:', info.adUnitId);
+        }));
+
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.Showed, () => {
+          console.log('[AdMob] Rewarded showed');
+          shown = true;
+          adActive = true;
+          if (loadTimeout) clearTimeout(loadTimeout);
+        }));
+
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: AdMobRewardItem) => {
           console.log('[AdMob] Reward:', reward);
           rewardGranted = true;
         }));
 
         listeners.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
           console.log('[AdMob] Dismissed, reward:', rewardGranted);
+          adActive = false;
           finish({ ok: true, reward: rewardGranted ? 50 : 0 });
         }));
 
-        listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (error: any) => {
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (error: AdMobError) => {
           console.error('[AdMob] Failed to load:', error);
-          finish({ ok: false, error: 'No ads available. Try again later.' });
+          if (!shown) finish({ ok: false, error: 'No ads available. Try again later.' });
         }));
 
-        listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, (error: any) => {
+        listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, (error: AdMobError) => {
           console.error('[AdMob] Failed to show:', error);
+          adActive = false;
           finish({ ok: false, error: 'Ad could not be displayed.' });
         }));
+
+        // Timeout only while loading/opening. Never timeout while the ad is visible,
+        // because resolving early can put app popups over the native ad and freeze it.
+        loadTimeout = setTimeout(() => {
+          if (!shown) finish({ ok: false, error: 'Ad took too long. Check internet and try again.' });
+        }, 20000);
 
         // Prepare fully before showing — retry a few times on transient no-fill.
         console.log('[AdMob] Preparing rewarded ad...');
@@ -142,6 +175,7 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
             await AdMob.prepareRewardVideoAd({
               adId: AD_UNIT_IDS.REWARDED_COINS,
               isTesting: false,
+              immersiveMode: true,
             });
             prepared = true;
           } catch (e) {
@@ -151,11 +185,13 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
           }
         }
         if (!prepared) throw lastErr || new Error('prepare failed');
+        if (settled) return;
 
         console.log('[AdMob] Showing rewarded ad...');
         adActive = true;
         if (onShow) onShow();
-        await AdMob.showRewardVideoAd();
+        const reward = await AdMob.showRewardVideoAd();
+        if (reward?.amount) rewardGranted = true;
       } catch (err: any) {
         const msg = err?.message || String(err);
         console.error('[AdMob] Error:', msg);
@@ -165,7 +201,11 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
   } finally {
     // Emergency unlock — always release adActive and listeners even if something crashed.
     adActive = false;
+    rewardedAdInProgress = false;
     removeListeners();
+    setTimeout(() => {
+      if (Capacitor.isNativePlatform() && !isAdsRemoved()) showBannerAd();
+    }, 1000);
   }
 }
 
