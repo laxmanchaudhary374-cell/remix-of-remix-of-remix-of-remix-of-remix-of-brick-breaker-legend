@@ -119,12 +119,10 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
       let shown = false;
       let rewardGranted = false;
       let loadTimeout: ReturnType<typeof setTimeout> | null = null;
-      let rewardFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
       const finish = (r: RewardedAdResult) => {
         if (settled) return;
         settled = true;
         if (loadTimeout) clearTimeout(loadTimeout);
-        if (rewardFallbackTimeout) clearTimeout(rewardFallbackTimeout);
         resolve(r);
       };
 
@@ -194,13 +192,6 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
         if (onShow) onShow();
         const reward = await AdMob.showRewardVideoAd();
         if (reward?.amount) rewardGranted = true;
-
-        // Some Android builds resolve showRewardVideoAd when the reward is earned,
-        // before the dismiss event reaches JS. Keep Dismissed as the normal close
-        // signal, but release safely after a short delay if that event is missed.
-        rewardFallbackTimeout = setTimeout(() => {
-          if (rewardGranted) finish({ ok: true, reward: 50 });
-        }, 2500);
       } catch (err: any) {
         const msg = err?.message || String(err);
         console.error('[AdMob] Error:', msg);
@@ -212,6 +203,9 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
     adActive = false;
     rewardedAdInProgress = false;
     removeListeners();
+    setTimeout(() => {
+      if (Capacitor.isNativePlatform() && !isAdsRemoved()) showBannerAd();
+    }, 1000);
   }
 }
 
