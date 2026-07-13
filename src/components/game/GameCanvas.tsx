@@ -734,7 +734,7 @@ useEffect(() => {
     });
 
     // Update moving bricks
-    setBricks(prev => updateMovingBricks(prev, deltaTime));
+    //setBricks(prev => updateMovingBricks(prev, deltaTime));
 
     // Update balls with sub-stepping for smoothness
     setBalls(prevBalls => {
