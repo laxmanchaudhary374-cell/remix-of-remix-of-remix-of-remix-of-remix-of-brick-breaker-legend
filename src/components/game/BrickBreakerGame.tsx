@@ -339,7 +339,7 @@ const BrickBreakerGame: React.FC = () => {
     // #9 Skip ad entirely when offline so next level starts instantly.
     const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
     const shouldShowAd = nextLevel >= 15
-      && nextLevel % 3 === 0
+      && nextLevel % 5 === 0
       && online
       && !isAdsRemoved();
 
