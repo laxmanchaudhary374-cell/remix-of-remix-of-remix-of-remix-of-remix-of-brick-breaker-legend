@@ -1,9 +1,6 @@
 /**
  * AdMob integration via @capacitor-community/admob
  * 
- * FIX: Using static import instead of dynamic import() because
- * dynamic import causes "AdMob.then() is not implemented on android" error.
- * 
  * Features:
  * - Banner ad with auto-retry to always show
  * - Interstitial with game pause support
@@ -57,7 +54,7 @@ export async function hideBannerAd(): Promise<void> {
     await AdMob.hideBanner();
   } catch {}
   if (bannerRetryTimer) {
-    clearInterval(bannerRetryTimer);
+    clearTimeout(bannerRetryTimer);
     bannerRetryTimer = null;
   }
 }
@@ -75,6 +72,27 @@ export async function initAdMob(): Promise<boolean> {
     });
     initialized = true;
     console.log('[AdMob] Initialized OK');
+
+    // REGISTER BANNER LISTENERS GLOBALLY ONCE TO PREVENT MEMORY LEAKS
+    AdMob.addListener('onBannerAdLoaded' as any, () => {
+      console.log('[AdMob] Banner loaded successfully');
+      if (bannerRetryTimer) {
+        clearTimeout(bannerRetryTimer);
+        bannerRetryTimer = null;
+      }
+    });
+
+    AdMob.addListener('onBannerAdFailedToLoad' as any, (info: any) => {
+      console.log('[AdMob] Banner failed to load asynchronously:', info);
+      // If it fails, attempt a clean retry in 10 seconds (only if player hasn't paid to remove ads)
+      if (!isAdsRemoved()) {
+        if (bannerRetryTimer) clearTimeout(bannerRetryTimer);
+        bannerRetryTimer = setTimeout(() => {
+          showBannerAd();
+        }, 10000);
+      }
+    });
+
     return true;
   } catch (err) {
     console.error('[AdMob] Init failed:', err);
@@ -160,13 +178,10 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
           finish({ ok: false, error: 'Ad could not be displayed.' });
         }));
 
-        // Timeout only while loading/opening. Never timeout while the ad is visible,
-        // because resolving early can put app popups over the native ad and freeze it.
         loadTimeout = setTimeout(() => {
           if (!shown) finish({ ok: false, error: 'Ad took too long. Check internet and try again.' });
         }, 20000);
 
-        // Prepare fully before showing — retry a few times on transient no-fill.
         console.log('[AdMob] Preparing rewarded ad...');
         let prepared = false;
         let lastErr: any = null;
@@ -199,7 +214,6 @@ export async function showRewardedAd(onShow?: () => void): Promise<RewardedAdRes
       }
     });
   } finally {
-    // Emergency unlock — always release adActive and listeners even if something crashed.
     adActive = false;
     rewardedAdInProgress = false;
     removeListeners();
@@ -220,42 +234,18 @@ export async function showBannerAd(): Promise<void> {
       position: 'TOP_CENTER' as any,
       isTesting: false,
     });
-    console.log('[AdMob] Banner shown');
-    
-    // Listen for events to ensure it stays visible
-    AdMob.addListener('onBannerAdLoaded' as any, () => {
-      console.log('[AdMob] Banner loaded');
-    });
-
-    // Auto-retry banner every 30 seconds to ensure it stays visible
-    if (bannerRetryTimer) clearInterval(bannerRetryTimer);
-    bannerRetryTimer = setInterval(async () => {
-      if (isAdsRemoved()) {
-        hideBannerAd();
-        return;
-      }
-      try {
-        await AdMob.showBanner({
-          adId: AD_UNIT_IDS.BANNER,
-          adSize: 'BANNER' as any,
-          position: 'TOP_CENTER' as any,
-          isTesting: false,
-        });
-      } catch (e) {
-        console.log('[AdMob] Banner retry failed, will try again');
-      }
-    }, 30000);
+    console.log('[AdMob] Banner show requested successfully');
   } catch (err) {
-    console.error('[AdMob] Banner error:', err);
-    // Retry after 10 seconds if initial show fails
-    setTimeout(() => showBannerAd(), 10000);
+    console.error('[AdMob] Banner immediate call error:', err);
+    // If the initial show command itself fails, retry in 10 seconds safely
+    if (bannerRetryTimer) clearTimeout(bannerRetryTimer);
+    bannerRetryTimer = setTimeout(() => showBannerAd(), 10000);
   }
 }
 
 let lastInterstitialTime = 0;
 let interstitialReady = false;
 
-// Pre-load interstitial ad so it shows instantly when needed
 export async function preloadInterstitial(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   if (isAdsRemoved()) return;
@@ -298,7 +288,6 @@ export async function showInterstitialAd(onShow?: () => void, onDismiss?: () => 
       adActive = false;
       cleanup();
       interstitialReady = false;
-      // Pre-load next ad for future use
       preloadInterstitial();
       if (onDismiss) onDismiss();
     });
@@ -312,7 +301,6 @@ export async function showInterstitialAd(onShow?: () => void, onDismiss?: () => 
     });
     listeners.push(l3);
 
-    // If not preloaded, load now
     if (!interstitialReady) {
       await AdMob.prepareInterstitial({
         adId: AD_UNIT_IDS.INTERSTITIAL,
