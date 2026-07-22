@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,6 +9,7 @@ import { I18nProvider } from "@/utils/i18n";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { showBannerAd, initAdMob } from "./utils/admob";
+import Chartboost from "./utils/chartboost";
 
 const queryClient = new QueryClient();
 

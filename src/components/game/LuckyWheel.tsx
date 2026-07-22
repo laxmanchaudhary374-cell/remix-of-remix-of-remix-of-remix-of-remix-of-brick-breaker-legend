@@ -242,7 +242,7 @@ const LuckyWheel: React.FC<LuckyWheelProps> = ({ onClose }) => {
 
   const handleAdSpin = async () => {
     if (isSpinning) return;
-    const result = await showRewardedAd(() => {});
+    const result = await showRewardedAd("Lucky_Wheel_Spin", () => {});
     if (result.ok === false) {
       alert(result.error || 'Ad not available');
     } else if (result.reward > 0) {

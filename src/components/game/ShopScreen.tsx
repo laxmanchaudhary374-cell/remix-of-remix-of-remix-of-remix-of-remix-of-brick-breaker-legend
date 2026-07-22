@@ -67,7 +67,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ coins, onPurchase, onAddCoins, 
   };
 
   const handleWatchAd = async () => {
-    const result = await showRewardedAd(() => {});
+    const result = await showRewardedAd("Shop_50_Coins", () => {});
     if ('error' in result) {
       alert(result.error);
     } else if (result.reward > 0) {
