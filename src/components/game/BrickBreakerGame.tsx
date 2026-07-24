@@ -348,9 +348,10 @@ const BrickBreakerGame: React.FC = () => {
       pendingNextLevelRef.current = nextLevel;
       audioManager.mute();
       audioManager.stopBackgroundMusic();
-      showInterstitialAd(
-        () => { /* ad is showing */ },
-        () => {
+     showInterstitialAd(
+  "Between_Levels",
+  () => { /* ad is showing */ },
+  () => {
           const lvl = pendingNextLevelRef.current;
           pendingNextLevelRef.current = null;
           audioManager.unmute();
