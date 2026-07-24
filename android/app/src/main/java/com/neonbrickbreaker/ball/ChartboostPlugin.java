@@ -26,6 +26,7 @@ import com.chartboost.sdk.events.RewardEvent;
 import com.chartboost.sdk.events.ShowError;
 import com.chartboost.sdk.events.ShowEvent;
 import com.chartboost.sdk.events.StartError;
+import com.chartboost.sdk.events.ExpirationEvent; // ADDED THIS IMPORT
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -58,7 +59,7 @@ public class ChartboostPlugin extends Plugin {
                     call.resolve();
                 } else {
                     Log.e(TAG, "Chartboost failed to initialize: " + startError.toString());
-                    call.reject("Chartboost failed to initialize");
+                    call.reject("Chartboost failed to initialize: " + startError.toString());
                 }
             }
         });
@@ -72,10 +73,16 @@ public class ChartboostPlugin extends Plugin {
             if (chartboostBanner != null) removeBanner();
 
             chartboostBanner = new Banner(getContext(), location, Banner.BannerSize.STANDARD, new BannerCallback() {
+                @Override
                 public void onAdLoaded(@NonNull CacheEvent event, @Nullable CacheError error) {
-                    if (error == null) chartboostBanner.show();
+                    if (error == null) {
+                        chartboostBanner.show();
+                    } else {
+                        Log.e(TAG, "Banner cache error: " + error.toString());
+                    }
                 }
 
+                @Override
                 public void onAdShown(@NonNull ShowEvent event, @Nullable ShowError error) {
                     if (error == null) {
                         JSObject ret = new JSObject();
@@ -84,10 +91,18 @@ public class ChartboostPlugin extends Plugin {
                     }
                 }
 
-                public void onAdClicked(@NonNull ClickEvent event, @Nullable ClickError error) {}
-                public void onImpressionRecorded(@NonNull ImpressionEvent event) {}
-                public void onAdRequested(@NonNull CacheEvent event) {}
+                @Override
                 public void onAdRequestedToShow(@NonNull ShowEvent event) {}
+
+                @Override
+                public void onAdClicked(@NonNull ClickEvent event, @Nullable ClickError error) {}
+
+                @Override
+                public void onImpressionRecorded(@NonNull ImpressionEvent event) {}
+
+                // ADDED THIS METHOD
+                @Override
+                public void onAdExpired(@NonNull ExpirationEvent event) {}
             }, null);
 
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
@@ -120,18 +135,17 @@ public class ChartboostPlugin extends Plugin {
         String location = call.getString("location", "Default");
         getActivity().runOnUiThread(() -> {
             chartboostInterstitial = new Interstitial(location, new InterstitialCallback() {
+                @Override
                 public void onAdLoaded(@NonNull CacheEvent event, @Nullable CacheError error) {
                     if (error == null) {
                         chartboostInterstitial.show();
                     } else {
                         Log.e(TAG, "Interstitial cache error: " + error.toString());
-                        JSObject ret = new JSObject();
-                        ret.put("event", "onAdDisplayFailed");
-                        ret.put("message", "Cache failed: " + error.toString());
-                        notifyListeners("interstitialEvent", ret);
+                        call.reject("Interstitial failed to load: " + error.toString());
                     }
                 }
 
+                @Override
                 public void onAdShown(@NonNull ShowEvent event, @Nullable ShowError error) {
                     if (error == null) {
                         JSObject ret = new JSObject();
@@ -140,16 +154,25 @@ public class ChartboostPlugin extends Plugin {
                     }
                 }
 
+                @Override
                 public void onAdDismiss(@NonNull DismissEvent event) {
                     JSObject ret = new JSObject();
                     ret.put("event", "onAdDismissed");
                     notifyListeners("interstitialEvent", ret);
                 }
 
-                public void onAdClicked(@NonNull ClickEvent event, @Nullable ClickError error) {}
-                public void onImpressionRecorded(@NonNull ImpressionEvent event) {}
-                public void onAdRequested(@NonNull CacheEvent event) {}
+                @Override
                 public void onAdRequestedToShow(@NonNull ShowEvent event) {}
+
+                @Override
+                public void onAdClicked(@NonNull ClickEvent event, @Nullable ClickError error) {}
+
+                @Override
+                public void onImpressionRecorded(@NonNull ImpressionEvent event) {}
+
+                // ADDED THIS METHOD
+                @Override
+                public void onAdExpired(@NonNull ExpirationEvent event) {}
             }, null);
             chartboostInterstitial.cache();
             call.resolve();
@@ -161,35 +184,47 @@ public class ChartboostPlugin extends Plugin {
         String location = call.getString("location", "Default");
         getActivity().runOnUiThread(() -> {
             chartboostRewarded = new Rewarded(location, new RewardedCallback() {
+                @Override
                 public void onAdLoaded(@NonNull CacheEvent event, @Nullable CacheError error) {
                     if (error == null) {
                         chartboostRewarded.show();
                     } else {
                         Log.e(TAG, "Rewarded cache error: " + error.toString());
-                        call.reject("Rewarded ad failed to load");
+                        call.reject("Rewarded ad failed to load: " + error.toString());
                     }
                 }
 
+                @Override
                 public void onAdShown(@NonNull ShowEvent event, @Nullable ShowError error) {
                     if (error == null) call.resolve();
                 }
 
+                @Override
                 public void onRewardEarned(@NonNull RewardEvent event) {
                     JSObject ret = new JSObject();
                     ret.put("event", "onRewardDerived");
                     notifyListeners("rewardedEvent", ret);
                 }
 
+                @Override
                 public void onAdDismiss(@NonNull DismissEvent event) {
                     JSObject ret = new JSObject();
                     ret.put("event", "onAdDismissed");
                     notifyListeners("rewardedEvent", ret);
                 }
 
-                public void onAdClicked(@NonNull ClickEvent event, @Nullable ClickError error) {}
-                public void onImpressionRecorded(@NonNull ImpressionEvent event) {}
-                public void onAdRequested(@NonNull CacheEvent event) {}
+                @Override
                 public void onAdRequestedToShow(@NonNull ShowEvent event) {}
+
+                @Override
+                public void onAdClicked(@NonNull ClickEvent event, @Nullable ClickError error) {}
+
+                @Override
+                public void onImpressionRecorded(@NonNull ImpressionEvent event) {}
+
+                // ADDED THIS METHOD
+                @Override
+                public void onAdExpired(@NonNull ExpirationEvent event) {}
             }, null);
             chartboostRewarded.cache();
         });

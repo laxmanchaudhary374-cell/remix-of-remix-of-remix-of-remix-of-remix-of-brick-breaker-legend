@@ -30,7 +30,10 @@ repositories {
 }
 
 dependencies {
-    implementation "com.chartboost:chartboost-sdk:9.7.0"
+    implementation "com.chartboost:chartboost-sdk:9.13.0"
+implementation "com.google.android.gms:play-services-base:18.5.0"
+implementation "com.google.android.gms:play-services-ads-identifier:18.1.0"
+
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
