@@ -68,12 +68,13 @@ export async function initAdMob(): Promise<boolean> {
   // Initialize Chartboost FIRST (primary ad network)
   try {
     await Chartboost.initialize(CHARTBOOST_CONFIG);
-    chartboostReady = true;
     console.log('[Chartboost] SDK initialized successfully');
   } catch (e) {
-    console.error('[Chartboost] Init failed:', e);
-    chartboostReady = false;
+    console.warn('[Chartboost] Init reported error (will still attempt ads):', e);
   }
+  // Always set chartboostReady to true so we attempt Chartboost ads
+  // The SDK may report init failure but still serve ads once approved
+  chartboostReady = true;
 
   // Initialize AdMob as backup (will fail silently if suspended)
   try {
