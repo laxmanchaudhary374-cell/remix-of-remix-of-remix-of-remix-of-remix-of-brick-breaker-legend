@@ -89,32 +89,43 @@ public class ChartboostPlugin extends Plugin {
                 }
 
                 @Override
-                public void onAdRequestedToShow(@NonNull ShowEvent showEvent) {}
+                public void onAdRequestedToShow(@NonNull ShowEvent showEvent) {
+                    Log.d(TAG, "Banner requested to show");
+                }
 
                 @Override
                 public void onAdShown(@NonNull ShowEvent showEvent, @Nullable ShowError showError) {
                     if (showError == null) {
+                        Log.d(TAG, "Banner shown successfully");
                         JSObject ret = new JSObject();
                         ret.put("event", "onAdShown");
                         notifyListeners("bannerEvent", ret);
+                    } else {
+                        Log.e(TAG, "Banner show error: " + showError.getCode().name());
                     }
                 }
 
                 @Override
-                public void onAdClicked(@NonNull ClickEvent clickEvent, @Nullable ClickError clickError) {}
+                public void onAdClicked(@NonNull ClickEvent clickEvent, @Nullable ClickError clickError) {
+                    Log.d(TAG, "Banner clicked");
+                }
 
                 @Override
-                public void onImpressionRecorded(@NonNull ImpressionEvent impressionEvent) {}
+                public void onImpressionRecorded(@NonNull ImpressionEvent impressionEvent) {
+                    Log.d(TAG, "Banner impression recorded");
+                }
 
                 @Override
-                public void onAdExpired(@NonNull ExpirationEvent expirationEvent) {}
+                public void onAdExpired(@NonNull ExpirationEvent expirationEvent) {
+                    Log.d(TAG, "Banner ad expired");
+                }
             }, null);
 
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            params.gravity = Gravity.BOTTOM;
+            params.gravity = Gravity.TOP;
             getActivity().addContentView(chartboostBanner, params);
             chartboostBanner.cache();
             call.resolve();
@@ -158,32 +169,44 @@ public class ChartboostPlugin extends Plugin {
                 }
 
                 @Override
-                public void onAdRequestedToShow(@NonNull ShowEvent showEvent) {}
+                public void onAdRequestedToShow(@NonNull ShowEvent showEvent) {
+                    Log.d(TAG, "Interstitial requested to show");
+                }
 
                 @Override
                 public void onAdShown(@NonNull ShowEvent showEvent, @Nullable ShowError showError) {
                     if (showError == null) {
+                        Log.d(TAG, "Interstitial shown");
                         JSObject ret = new JSObject();
                         ret.put("event", "onAdShown");
                         notifyListeners("interstitialEvent", ret);
+                    } else {
+                        Log.e(TAG, "Interstitial show error: " + showError.getCode().name());
                     }
                 }
 
                 @Override
-                public void onAdClicked(@NonNull ClickEvent clickEvent, @Nullable ClickError clickError) {}
+                public void onAdClicked(@NonNull ClickEvent clickEvent, @Nullable ClickError clickError) {
+                    Log.d(TAG, "Interstitial clicked");
+                }
 
                 @Override
-                public void onImpressionRecorded(@NonNull ImpressionEvent impressionEvent) {}
+                public void onImpressionRecorded(@NonNull ImpressionEvent impressionEvent) {
+                    Log.d(TAG, "Interstitial impression recorded");
+                }
 
                 @Override
                 public void onAdDismiss(@NonNull DismissEvent dismissEvent) {
+                    Log.d(TAG, "Interstitial dismissed");
                     JSObject ret = new JSObject();
                     ret.put("event", "onAdDismissed");
                     notifyListeners("interstitialEvent", ret);
                 }
 
                 @Override
-                public void onAdExpired(@NonNull ExpirationEvent expirationEvent) {}
+                public void onAdExpired(@NonNull ExpirationEvent expirationEvent) {
+                    Log.d(TAG, "Interstitial ad expired");
+                }
             }, null);
 
             chartboostInterstitial.cache();
@@ -210,7 +233,9 @@ public class ChartboostPlugin extends Plugin {
                 }
 
                 @Override
-                public void onAdRequestedToShow(@NonNull ShowEvent showEvent) {}
+                public void onAdRequestedToShow(@NonNull ShowEvent showEvent) {
+                    Log.d(TAG, "Rewarded requested to show");
+                }
 
                 @Override
                 public void onAdShown(@NonNull ShowEvent showEvent, @Nullable ShowError showError) {
@@ -218,18 +243,24 @@ public class ChartboostPlugin extends Plugin {
                         Log.d(TAG, "Rewarded shown");
                         call.resolve();
                     } else {
+                        Log.e(TAG, "Rewarded show error: " + showError.getCode().name());
                         call.reject("Rewarded show failed: " + showError.getCode().name());
                     }
                 }
 
                 @Override
-                public void onAdClicked(@NonNull ClickEvent clickEvent, @Nullable ClickError clickError) {}
+                public void onAdClicked(@NonNull ClickEvent clickEvent, @Nullable ClickError clickError) {
+                    Log.d(TAG, "Rewarded clicked");
+                }
 
                 @Override
-                public void onImpressionRecorded(@NonNull ImpressionEvent impressionEvent) {}
+                public void onImpressionRecorded(@NonNull ImpressionEvent impressionEvent) {
+                    Log.d(TAG, "Rewarded impression recorded");
+                }
 
                 @Override
                 public void onRewardEarned(@NonNull RewardEvent rewardEvent) {
+                    Log.d(TAG, "Reward earned!");
                     JSObject ret = new JSObject();
                     ret.put("event", "onRewardEarned");
                     notifyListeners("rewardedEvent", ret);
@@ -237,13 +268,16 @@ public class ChartboostPlugin extends Plugin {
 
                 @Override
                 public void onAdDismiss(@NonNull DismissEvent dismissEvent) {
+                    Log.d(TAG, "Rewarded dismissed");
                     JSObject ret = new JSObject();
                     ret.put("event", "onAdDismissed");
                     notifyListeners("rewardedEvent", ret);
                 }
 
                 @Override
-                public void onAdExpired(@NonNull ExpirationEvent expirationEvent) {}
+                public void onAdExpired(@NonNull ExpirationEvent expirationEvent) {
+                    Log.d(TAG, "Rewarded ad expired");
+                }
             }, null);
 
             chartboostRewarded.cache();

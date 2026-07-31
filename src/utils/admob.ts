@@ -104,7 +104,7 @@ export async function showRewardedAd(location: string = "Default", onShow?: () =
   }
 
   rewardedAdInProgress = true;
-  await hideBannerAd();
+  // DO NOT hide banner during rewarded - keep banner always visible
 
   try {
     // 1. TRY CHARTBOOST FIRST (primary)
@@ -127,9 +127,6 @@ export async function showRewardedAd(location: string = "Default", onShow?: () =
     return { ok: false, error: 'No ads available. Try again later.' };
   } finally {
     rewardedAdInProgress = false;
-    setTimeout(() => {
-      if (Capacitor.isNativePlatform() && !isAdsRemoved()) showBannerAd();
-    }, 1000);
   }
 }
 
@@ -146,7 +143,7 @@ async function tryChartboostRewarded(location: string, onShow?: () => void): Pro
 
     Chartboost.addListener('rewardedEvent', (data) => {
       if (settled) return;
-      if (data.event === 'onRewardDerived') {
+      if (data.event === 'onRewardEarned') {
         settled = true;
         clearTimeout(timeout);
         adActive = false;
@@ -220,12 +217,12 @@ export async function showBannerAd(location: string = "Main_Menu_Banner"): Promi
     }
   }
 
-  // 2. FALLBACK TO ADMOB
+  // 2. FALLBACK TO ADMOB (position TOP_CENTER)
   try {
     await AdMob.showBanner({
       adId: AD_UNIT_IDS.BANNER,
       adSize: 'BANNER' as any,
-      position: 'BOTTOM_CENTER' as any,
+      position: 'TOP_CENTER' as any,
       isTesting: false,
     });
     console.log('[AdMob] Banner shown');
