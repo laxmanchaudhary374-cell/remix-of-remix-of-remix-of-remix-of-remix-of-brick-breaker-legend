@@ -14,6 +14,7 @@ async function getPlugin() {
 export async function initDailyReminder(): Promise<void> {
   const plugin = await getPlugin();
   if (!plugin) return;
+
   try {
     const perm = await plugin.checkPermissions();
     if (perm.display !== 'granted') {
@@ -21,29 +22,38 @@ export async function initDailyReminder(): Promise<void> {
       if (req.display !== 'granted') return;
     }
 
-    // Cancel existing then schedule daily 9 AM
     try {
-      const pending = await plugin.getPending();
-      if (pending?.notifications?.length) {
-        await plugin.cancel({ notifications: pending.notifications.map((n: any) => ({ id: n.id })) });
-      }
+      await plugin.cancel({ notifications: [{ id: 1001 }] });
     } catch {}
 
-    const at = new Date();
-    at.setHours(9, 0, 0, 0);
-    if (at.getTime() < Date.now()) at.setDate(at.getDate() + 1);
+    const MESSAGES = [
+      "Missing you! Are you bored? Come break some bricks!",
+      "Your high score is in danger... Play now!",
+      "Ready for a quick game? Just 2 minutes!",
+      "Don't forget your coins! Come collect more.",
+      "One more level? You can do it!",
+      "Feeling bored? Let's destroy some bricks!",
+      "Your paddle misses you. Come back!",
+      "New challenge waiting for you!",
+      "Still the champion? Prove it!",
+      "Quick game time! Open now."
+    ];
+
+    const randomMessage = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
 
     await plugin.schedule({
       notifications: [
         {
           id: 1001,
-          title: '🎮 Your daily reward is ready!',
-          body: 'Come collect your coins!',
-          schedule: { at, repeats: true, every: 'day' },
-        },
-      ],
+          title: "Brick Breaker Legend",
+          body: randomMessage,
+          schedule: {
+            at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+          }
+        }
+      ]
     });
   } catch (err) {
-    console.error('[Notifications] Failed:', err);
+    console.warn('[Notifications] Failed:', err);
   }
 }

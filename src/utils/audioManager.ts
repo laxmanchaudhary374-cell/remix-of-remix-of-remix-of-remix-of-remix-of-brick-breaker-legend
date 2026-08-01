@@ -13,12 +13,12 @@ class AudioManager {
   private lastBrickHitTime = 0;
   private lastWallBounceTime = 0;
   private lastBrickDestroyTime = 0;
-  private readonly SOUND_THROTTLE = 50; // minimum ms between same sound type
+  private readonly SOUND_THROTTLE = 50;
 
-  // Volume settings (0-1)
   private _sfxVolume = 0.7;
   private _musicVolume = 0.4;
   private _masterVolume = 1.0;
+  private _savedVolume: number = 1;
 
   async init(): Promise<void> {
     if (this.isInitialized) return;
@@ -26,38 +26,40 @@ class AudioManager {
     try {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
-      // Create gain nodes for volume control
       this.masterGain = this.audioContext.createGain();
       this.sfxGain = this.audioContext.createGain();
       this.musicGain = this.audioContext.createGain();
 
-      // Connect: sfx/music -> master -> destination
       this.sfxGain.connect(this.masterGain);
       this.musicGain.connect(this.masterGain);
       this.masterGain.connect(this.audioContext.destination);
 
-      // Set initial volumes
       this.masterGain.gain.value = this._masterVolume;
       this.sfxGain.gain.value = this._sfxVolume;
       this.musicGain.gain.value = this._musicVolume;
 
+      // Load saved mute state
+      try {
+        if (localStorage.getItem('neon_breaker_muted') === 'true') {
+          this._masterVolume = 0;
+          if (this.masterGain) this.masterGain.gain.value = 0;
+        }
+      } catch (e) {}
+
       this.isInitialized = true;
       
-      // Listen for visibility changes to pause/resume music
       document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
     } catch (e) {
       console.warn('Web Audio API not supported:', e);
     }
   }
   
-  // Handle app minimize/tab switch — #8 fully silence audio when hidden.
   private handleVisibilityChange(): void {
     if (document.hidden) {
       if (this.backgroundMusic && this.isMusicPlaying) {
         try { this.backgroundMusic.stop(); } catch {}
         this.backgroundMusic = null;
       }
-      // Suspend the whole audio context so no queued SFX can play in background.
       if (this.audioContext && this.audioContext.state === 'running') {
         this.audioContext.suspend().catch(() => {});
       }
@@ -65,20 +67,18 @@ class AudioManager {
       if (this.audioContext && this.audioContext.state === 'suspended') {
         this.audioContext.resume().catch(() => {});
       }
-      if (this.isMusicPlaying && this._musicVolume > 0) {
+      if (this.isMusicPlaying && this._musicVolume > 0 && this._masterVolume > 0) {
         this.playMusicFromBuffer();
       }
     }
   }
 
-  // Resume audio context (needed after user interaction)
   async resume(): Promise<void> {
     if (this.audioContext?.state === 'suspended') {
       await this.audioContext.resume();
     }
   }
 
-  // Generate synthetic sound effects
   private playSynth(
     frequency: number,
     duration: number,
@@ -109,14 +109,12 @@ class AudioManager {
     oscillator.stop(now + duration);
   }
 
-  // Sound: Ball hits paddle
   playPaddleHit(): void {
     if (!this.audioContext) return;
     this.playSynth(400, 0.08, 'square', true);
     this.playSynth(600, 0.06, 'sine', true, 10);
   }
 
-  // Sound: Ball hits brick (throttled)
   playBrickHit(): void {
     if (!this.audioContext) return;
     const now = performance.now();
@@ -126,7 +124,6 @@ class AudioManager {
     this.playSynth(pitch, 0.1, 'square', true);
   }
 
-  // Sound: Brick destroyed (throttled)
   playBrickDestroy(): void {
     if (!this.audioContext) return;
     const now = performance.now();
@@ -135,7 +132,6 @@ class AudioManager {
     this.playSynth(500, 0.15, 'sawtooth', true);
   }
 
-  // Sound: Power-up collected (positive)
   playPowerUp(): void {
     if (!this.audioContext) return;
     this.playSynth(500, 0.1, 'sine', true);
@@ -143,7 +139,6 @@ class AudioManager {
     setTimeout(() => this.playSynth(900, 0.15, 'sine', true), 100);
   }
 
-  // Sound: Power-up collected (negative)
   playPowerDown(): void {
     if (!this.audioContext) return;
     this.playSynth(400, 0.1, 'square', true);
@@ -151,16 +146,14 @@ class AudioManager {
     setTimeout(() => this.playSynth(200, 0.15, 'square', true), 100);
   }
 
-  // Sound: Extra life
   playExtraLife(): void {
     if (!this.audioContext) return;
-    const melody = [523, 659, 784, 1047]; // C5, E5, G5, C6
+    const melody = [523, 659, 784, 1047];
     melody.forEach((freq, i) => {
       setTimeout(() => this.playSynth(freq, 0.15, 'sine', true), i * 80);
     });
   }
 
-  // Sound: Ball lost
   playBallLost(): void {
     if (!this.audioContext) return;
     this.playSynth(300, 0.2, 'sawtooth', true);
@@ -168,7 +161,6 @@ class AudioManager {
     setTimeout(() => this.playSynth(100, 0.4, 'sawtooth', true), 200);
   }
 
-  // Sound: Wall bounce (throttled)
   playWallBounce(): void {
     if (!this.audioContext) return;
     const now = performance.now();
@@ -177,11 +169,9 @@ class AudioManager {
     this.playSynth(250, 0.05, 'triangle', true);
   }
 
-  // Sound: Explosion
   playExplosion(): void {
     if (!this.audioContext || !this.sfxGain) return;
     
-    // White noise burst for explosion
     const bufferSize = this.audioContext.sampleRate * 0.3;
     const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
     const data = buffer.getChannelData(0);
@@ -206,37 +196,32 @@ class AudioManager {
     
     noise.start();
     
-    // Add low frequency rumble
     this.playSynth(60, 0.3, 'sine', true);
     this.playSynth(100, 0.2, 'triangle', true);
   }
 
-  // Sound: Laser shot
   playLaser(): void {
     if (!this.audioContext) return;
     this.playSynth(1000, 0.08, 'sawtooth', true);
     this.playSynth(800, 0.06, 'square', true, 50);
   }
 
-  // Sound: Level complete
   playLevelComplete(): void {
     if (!this.audioContext) return;
-    const melody = [523, 659, 784, 880, 1047, 1319]; // Victory fanfare
+    const melody = [523, 659, 784, 880, 1047, 1319];
     melody.forEach((freq, i) => {
       setTimeout(() => this.playSynth(freq, 0.2, 'sine', true), i * 100);
     });
   }
 
-  // Sound: Game over
   playGameOver(): void {
     if (!this.audioContext) return;
-    const melody = [440, 392, 349, 330, 294, 262]; // Descending
+    const melody = [440, 392, 349, 330, 294, 262];
     melody.forEach((freq, i) => {
       setTimeout(() => this.playSynth(freq, 0.3, 'sawtooth', true), i * 150);
     });
   }
 
-  // Sound: Combo hit
   playCombo(comboLevel: number): void {
     if (!this.audioContext) return;
     const baseFreq = 400 + comboLevel * 50;
@@ -244,35 +229,30 @@ class AudioManager {
     this.playSynth(baseFreq * 1.5, 0.08, 'triangle', true);
   }
 
-  // Sound: Coin collected
   playCoinCollect(): void {
     if (!this.audioContext) return;
     this.playSynth(1200, 0.05, 'sine', true);
     setTimeout(() => this.playSynth(1500, 0.08, 'sine', true), 30);
   }
 
-  // Sound: Magnet catch
   playMagnetCatch(): void {
     if (!this.audioContext) return;
     this.playSynth(600, 0.1, 'sine', true);
     this.playSynth(500, 0.15, 'sine', true);
   }
 
-  // Sound: Magnet release
   playMagnetRelease(): void {
     if (!this.audioContext) return;
     this.playSynth(400, 0.08, 'triangle', true);
     this.playSynth(600, 0.1, 'sine', true);
   }
 
-  // Start background music from MP3 file
   async startBackgroundMusic(): Promise<void> {
     if (!this.audioContext || !this.musicGain || this.isMusicPlaying) return;
 
     this.isMusicPlaying = true;
 
     try {
-      // Load the MP3 file if not already loaded
       if (!this.musicBuffer) {
         const response = await fetch('/audio/background-music.mp3');
         const arrayBuffer = await response.arrayBuffer();
@@ -282,7 +262,6 @@ class AudioManager {
       this.playMusicFromBuffer();
     } catch (e) {
       console.warn('Failed to load background music:', e);
-      // Procedural fallback disabled to prevent phone heating
       this.isMusicPlaying = false;
     }
   }
@@ -290,7 +269,6 @@ class AudioManager {
   private playMusicFromBuffer(): void {
     if (!this.audioContext || !this.musicGain || !this.musicBuffer || !this.isMusicPlaying) return;
 
-    // Stop any existing music
     if (this.backgroundMusic) {
       this.backgroundMusic.stop();
     }
@@ -302,57 +280,6 @@ class AudioManager {
     this.backgroundMusic.start();
   }
 
-  private playProceduralMusicLoop(): void {
-    if (!this.audioContext || !this.musicGain || !this.isMusicPlaying) return;
-
-    // Simple procedural bass and melody pattern (fallback)
-    const bassNotes = [65, 82, 73, 87];
-    const melodyNotes = [262, 330, 294, 349, 392, 330, 294, 262];
-
-    const bpm = 120;
-    const beatDuration = 60 / bpm;
-
-    bassNotes.forEach((freq, i) => {
-      setTimeout(() => {
-        if (this.isMusicPlaying && this.audioContext && this.musicGain) {
-          const osc = this.audioContext.createOscillator();
-          const gain = this.audioContext.createGain();
-          osc.type = 'triangle';
-          osc.frequency.value = freq;
-          osc.connect(gain);
-          gain.connect(this.musicGain);
-          gain.gain.setValueAtTime(0.15, this.audioContext.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + beatDuration * 0.8);
-          osc.start();
-          osc.stop(this.audioContext.currentTime + beatDuration);
-        }
-      }, i * beatDuration * 1000);
-    });
-
-    melodyNotes.forEach((freq, i) => {
-      setTimeout(() => {
-        if (this.isMusicPlaying && this.audioContext && this.musicGain) {
-          const osc = this.audioContext.createOscillator();
-          const gain = this.audioContext.createGain();
-          osc.type = 'square';
-          osc.frequency.value = freq;
-          osc.connect(gain);
-          gain.connect(this.musicGain);
-          gain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + beatDuration * 0.4);
-          osc.start();
-          osc.stop(this.audioContext.currentTime + beatDuration * 0.5);
-        }
-      }, i * beatDuration * 500);
-    });
-
-    setTimeout(() => {
-      if (this.isMusicPlaying) {
-        this.playProceduralMusicLoop();
-      }
-    }, bassNotes.length * beatDuration * 1000);
-  }
-
   stopBackgroundMusic(): void {
     this.isMusicPlaying = false;
     if (this.backgroundMusic) {
@@ -361,7 +288,6 @@ class AudioManager {
     }
   }
 
-  // Volume controls
   get sfxVolume(): number {
     return this._sfxVolume;
   }
@@ -382,18 +308,12 @@ class AudioManager {
     if (this.musicGain) {
       this.musicGain.gain.value = this._musicVolume;
     }
-    // Stop music completely when volume is 0 or very low
     if (this._musicVolume <= 0.01) {
       if (this.backgroundMusic) {
-        try {
-          this.backgroundMusic.stop();
-        } catch (e) {
-          // Ignore if already stopped
-        }
+        try { this.backgroundMusic.stop(); } catch (e) {}
         this.backgroundMusic = null;
       }
     } else if (this._musicVolume > 0.01 && this.isMusicPlaying && !this.backgroundMusic && !document.hidden) {
-      // Restart music if volume goes back up and app is visible
       this.playMusicFromBuffer();
     }
   }
@@ -421,8 +341,6 @@ class AudioManager {
     }
   }
 
-  private _savedVolume: number = 1;
-
   mute(): void {
     if (this._masterVolume > 0) {
       this._savedVolume = this._masterVolume;
@@ -431,6 +349,8 @@ class AudioManager {
     if (this.masterGain) {
       this.masterGain.gain.value = 0;
     }
+    localStorage.setItem('neon_breaker_muted', 'true');
+    this.stopBackgroundMusic();
   }
 
   unmute(): void {
@@ -438,8 +358,8 @@ class AudioManager {
     if (this.masterGain) {
       this.masterGain.gain.value = this._masterVolume;
     }
+    localStorage.setItem('neon_breaker_muted', 'false');
   }
 }
 
-// Singleton instance
 export const audioManager = new AudioManager();
