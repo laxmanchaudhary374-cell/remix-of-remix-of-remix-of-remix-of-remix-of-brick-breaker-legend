@@ -459,7 +459,9 @@ const CANON_ROWS = 8;
 
 const build = (rows: number, familyIndex: number, variant: number, seed: number) => {
   const fam = FAMILIES[familyIndex % FAMILIES.length];
-  let g = fam.fn(CANON_ROWS, variant);
+  const flip = variant >= 6;
+  let g = fam.fn(CANON_ROWS, variant % 6);
+  if (flip) g = g.slice().reverse();
   if (fam.symmetric) g = mirror(g);
   g = repairDensity(g);
   g = deIsolate(g);
@@ -484,24 +486,16 @@ export const getProPattern = (
   const baseIndex = (level * 7 + cycle * 3) % FAMILIES.length;
 
   // Keep the intended family; only its variant changes if quality fails.
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const variant = (cycle + attempt) % 6;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const variant = (cycle + attempt) % 12;
     const built = build(safeRows, baseIndex, variant, level * 31 + attempt);
     if (isGoodPattern(built.grid)) return built;
   }
   for (let attempt = 1; attempt < FAMILIES.length; attempt++) {
     const idx = (baseIndex + attempt) % FAMILIES.length;
-    const built = build(safeRows, idx, cycle % 6, level * 31 + attempt);
+    const built = build(safeRows, idx, cycle % 12, level * 31 + attempt);
     if (isGoodPattern(built.grid)) return built;
   }
   // Guaranteed-good fallback: classic double frame
   return build(safeRows, 0, 1, level);
-};
-
-/** @internal debug helper: raw canonical grid before repair. */
-export const __debugRaw = (familyIndex: number, variant: number) => {
-  const fam = FAMILIES[familyIndex % FAMILIES.length];
-  let g = fam.fn(8, variant);
-  if (fam.symmetric) g = mirror(g);
-  return { grid: g, name: fam.name };
 };
