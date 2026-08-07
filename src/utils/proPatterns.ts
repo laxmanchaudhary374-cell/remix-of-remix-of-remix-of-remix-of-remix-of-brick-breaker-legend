@@ -500,3 +500,11 @@ export const getProPattern = (
   // Guaranteed-good fallback: classic double frame
   return build(safeRows, 0, 1, level);
 };
+
+/** @internal debug helper: raw canonical grid before repair. */
+export const __debugRaw = (familyIndex: number, variant: number) => {
+  const fam = FAMILIES[familyIndex % FAMILIES.length];
+  let g = fam.fn(8, variant);
+  if (fam.symmetric) g = mirror(g);
+  return { grid: g, name: fam.name };
+};
