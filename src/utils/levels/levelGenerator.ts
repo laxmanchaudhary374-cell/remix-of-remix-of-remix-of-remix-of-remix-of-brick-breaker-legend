@@ -16,6 +16,26 @@ import { GRID_PATTERNS } from '../gridPatterns';
 import { ALL_SHAPES, SHAPE_NAMES } from '../shapeLibrary';
 import { CUSTOM_LEVEL_PATTERNS } from '../customLevelPatterns';
 import { getShapeForLevel, ALL_BASE_SHAPES } from '../shapes';
+import { isGoodPattern, getCleanPattern } from '../cleanPatterns';
+
+/**
+ * Quality gate for generated grids (levels 12+).
+ * If a pattern is too dense (>70%), too empty (<30%) or looks noisy,
+ * try a few nearby alternatives, then fall back to a curated clean pattern.
+ */
+const ensureGoodPattern = (
+  level: number,
+  candidate: number[][],
+  alternatives: (i: number) => number[][] | undefined,
+): number[][] => {
+  if (isGoodPattern(candidate)) return candidate;
+  for (let i = 1; i <= 8; i++) {
+    const alt = alternatives(i);
+    if (alt && isGoodPattern(alt)) return alt;
+  }
+  return getCleanPattern(level);
+};
+
 
 // Pattern types for variety
 type PatternType = 'custom_level' | 'rows' | 'pyramid' | 'checker' | 'diamond' | 'fortress' | 'spiral' | 'wave' | 'cross' | 'heart' | 'star' | 'zigzag' | 'random' | 'arrow' | 'circle' | 'boss' | 'spaceship' | 'robot' | 'castle' | 'bars' | 'xshape' | 'frame' | 'hourglass' | 'butterfly' | 'crown' | 'skull' | 'tree' | 'diagonal' | 'towers' | 'bridge' | 'letter_e' | 'letter_h' | 'steps_lr' | 'steps_rl' | 'pillars' | 'maze' | 'tetris_l' | 'tetris_t' | 'wings' | 'anchor' | 'mushroom' | 'cup' | 'city_skyline' | 'letter_f' | 'letter_t' | 'invader' | 'cactus' | 'umbrella' | 'rocket' | 'wave_solid' | 'grid_holes' | 'corner_blocks' | 'staircase' | 'reverse_staircase' | 'wings_outlaw' | 'columns_gaps' | 'inverted_pyramid' | 'maze_outlaw' | 'hourglass_outlaw' | 'cross_wings' | 'alternating_rows'
@@ -1229,18 +1249,25 @@ case 'castle_wall': bricks = generateCastleWallPattern(level, params); break;
 case 'rocket_shape': bricks = generateRocketShapePattern(level, params); break;
 case 'ring': bricks = generateRingPattern(level, params); break;
     case 'shape_library': {
-      // Use the new 57-shape library with transformations
+      // Use the new 57-shape library with transformations, quality-checked
       const { shape } = getShapeForLevel(level);
-      bricks = generateShapePattern(level, params, shape);
+      const good = ensureGoodPattern(level, shape, (i) => getShapeForLevel(level + i * 7).shape);
+      bricks = generateShapePattern(level, params, good);
       break;
     }
     case 'grid': {
-      // Use one of 530 grid patterns, indexed by level so each level differs
+      // Use one of 530 grid patterns, indexed by level, quality-checked
       const idx = (level - 11) % GRID_PATTERNS.length;
       const gridShape = GRID_PATTERNS[idx] || GRID_PATTERNS[0];
-      bricks = generateShapePattern(level, params, gridShape);
+      const good = ensureGoodPattern(
+        level,
+        gridShape,
+        (i) => GRID_PATTERNS[(idx + i * 31) % GRID_PATTERNS.length],
+      );
+      bricks = generateShapePattern(level, params, good);
       break;
     }
+
     default: bricks = generateFortressPattern(level, params);
   }
   

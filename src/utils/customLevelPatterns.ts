@@ -29,33 +29,34 @@ export const LEVEL2_GEMINI_PATTERN_1: number[][] = [
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// Level 3: GEMINI PATTERN 2 - DIAMOND PYRAMID
+// Level 3: OPEN COLUMNS - clean columns with open center
 export const LEVEL3_GEMINI_PATTERN_2: number[][] = [
-  [0, 1, 1, 0, 0, 1, 1, 0],
   [1, 1, 1, 1, 1, 1, 1, 1],
-  [1, 1, 1, 1, 1, 1, 1, 1],
-  [0, 1, 1, 1, 1, 1, 1, 0],
-  [0, 0, 1, 1, 1, 1, 0, 0],
-  [0, 0, 2, 1, 1, 2, 0, 0],
-  [0, 0, 0, 1, 1, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [1, 1, 0, 2, 2, 0, 1, 1],
+  [1, 1, 0, 2, 2, 0, 1, 1],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [1, 1, 1, 1, 1, 1, 1, 1],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// Level 4: GEMINI PATTERN 3 - CRYSTAL DIAMOND
+// Level 4: OPEN DIAMOND - clean symmetric diamond with open middle
 export const LEVEL4_GEMINI_PATTERN_3: number[][] = [
-  [0, 0, 0, 2, 2, 0, 0, 0],
-  [0, 0, 2, 2, 2, 2, 0, 0],
-  [0, 2, 2, 3, 3, 2, 2, 0],
-  [2, 2, 3, 3, 3, 3, 2, 2],
-  [2, 2, 3, 3, 3, 3, 2, 2],
-  [0, 2, 2, 3, 3, 2, 2, 0],
-  [0, 0, 2, 2, 2, 2, 0, 0],
-  [0, 0, 0, 2, 2, 0, 0, 0],
+  [1, 1, 1, 1, 1, 1, 1, 1],
+  [0, 0, 0, 1, 1, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 0, 0],
+  [0, 1, 1, 0, 0, 1, 1, 0],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [0, 1, 1, 0, 0, 1, 1, 0],
+  [0, 0, 1, 1, 1, 1, 0, 0],
+  [0, 0, 0, 1, 1, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
+
 
 // Level 5: GEMINI PATTERN 4 - STAR BURST
 export const LEVEL5_GEMINI_PATTERN_4: number[][] = [
@@ -71,19 +72,20 @@ export const LEVEL5_GEMINI_PATTERN_4: number[][] = [
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// Level 6: GEMINI PATTERN 5 - CROSS PATTERN
+// Level 6: CLEAN X - symmetric X with open corners
 export const LEVEL6_GEMINI_PATTERN_5: number[][] = [
-  [3, 0, 0, 0, 0, 0, 0, 3],
-  [0, 3, 0, 0, 0, 0, 3, 0],
-  [0, 0, 3, 0, 0, 3, 0, 0],
-  [0, 0, 0, 1, 1, 0, 0, 0],
-  [0, 0, 0, 1, 1, 0, 0, 0],
-  [0, 0, 3, 0, 0, 3, 0, 0],
-  [0, 3, 0, 0, 0, 0, 3, 0],
-  [3, 0, 0, 0, 0, 0, 0, 3],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [0, 1, 1, 0, 0, 1, 1, 0],
+  [0, 0, 1, 1, 1, 1, 0, 0],
+  [0, 0, 0, 3, 3, 0, 0, 0],
+  [0, 0, 0, 3, 3, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 0, 0],
+  [0, 1, 1, 0, 0, 1, 1, 0],
+  [1, 1, 0, 0, 0, 0, 1, 1],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
+
 
 // Level 7: GEMINI PATTERN 6 - HOLLOW FRAME
 export const LEVEL7_GEMINI_PATTERN_6: number[][] = [
@@ -99,19 +101,20 @@ export const LEVEL7_GEMINI_PATTERN_6: number[][] = [
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// Level 8: GEMINI PATTERN 7 - PYRAMID LAYERS
+// Level 8: GATEWAY - clean arch with twin side towers
 export const LEVEL8_GEMINI_PATTERN_7: number[][] = [
-  [0, 0, 0, 1, 1, 0, 0, 0],
-  [0, 0, 1, 1, 1, 1, 0, 0],
-  [0, 1, 1, 2, 2, 1, 1, 0],
-  [1, 1, 2, 2, 2, 2, 1, 1],
-  [2, 2, 2, 3, 3, 2, 2, 2],
-  [2, 2, 3, 3, 3, 3, 2, 2],
-  [3, 3, 3, 3, 3, 3, 3, 3],
+  [0, 1, 1, 1, 1, 1, 1, 0],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [1, 1, 0, 2, 2, 0, 1, 1],
+  [1, 1, 0, 2, 2, 0, 1, 1],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [0, 1, 1, 1, 1, 1, 1, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
+
 
 // Level 9: GEMINI PATTERN 8 - NESTED FRAMES
 export const LEVEL9_GEMINI_PATTERN_8: number[][] = [
