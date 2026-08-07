@@ -1249,18 +1249,25 @@ case 'castle_wall': bricks = generateCastleWallPattern(level, params); break;
 case 'rocket_shape': bricks = generateRocketShapePattern(level, params); break;
 case 'ring': bricks = generateRingPattern(level, params); break;
     case 'shape_library': {
-      // Use the new 57-shape library with transformations
+      // Use the new 57-shape library with transformations, quality-checked
       const { shape } = getShapeForLevel(level);
-      bricks = generateShapePattern(level, params, shape);
+      const good = ensureGoodPattern(level, shape, (i) => getShapeForLevel(level + i * 7).shape);
+      bricks = generateShapePattern(level, params, good);
       break;
     }
     case 'grid': {
-      // Use one of 530 grid patterns, indexed by level so each level differs
+      // Use one of 530 grid patterns, indexed by level, quality-checked
       const idx = (level - 11) % GRID_PATTERNS.length;
       const gridShape = GRID_PATTERNS[idx] || GRID_PATTERNS[0];
-      bricks = generateShapePattern(level, params, gridShape);
+      const good = ensureGoodPattern(
+        level,
+        gridShape,
+        (i) => GRID_PATTERNS[(idx + i * 31) % GRID_PATTERNS.length],
+      );
+      bricks = generateShapePattern(level, params, good);
       break;
     }
+
     default: bricks = generateFortressPattern(level, params);
   }
   
