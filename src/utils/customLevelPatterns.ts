@@ -101,19 +101,20 @@ export const LEVEL7_GEMINI_PATTERN_6: number[][] = [
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// Level 8: GEMINI PATTERN 7 - PYRAMID LAYERS
+// Level 8: GATEWAY - clean arch with twin side towers
 export const LEVEL8_GEMINI_PATTERN_7: number[][] = [
-  [0, 0, 0, 1, 1, 0, 0, 0],
-  [0, 0, 1, 1, 1, 1, 0, 0],
-  [0, 1, 1, 2, 2, 1, 1, 0],
-  [1, 1, 2, 2, 2, 2, 1, 1],
-  [2, 2, 2, 3, 3, 2, 2, 2],
-  [2, 2, 3, 3, 3, 3, 2, 2],
-  [3, 3, 3, 3, 3, 3, 3, 3],
+  [0, 1, 1, 1, 1, 1, 1, 0],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [1, 1, 0, 2, 2, 0, 1, 1],
+  [1, 1, 0, 2, 2, 0, 1, 1],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [0, 1, 1, 1, 1, 1, 1, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
+
 
 // Level 9: GEMINI PATTERN 8 - NESTED FRAMES
 export const LEVEL9_GEMINI_PATTERN_8: number[][] = [
