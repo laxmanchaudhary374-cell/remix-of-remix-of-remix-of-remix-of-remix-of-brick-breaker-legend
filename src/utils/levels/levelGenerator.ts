@@ -17,6 +17,7 @@ import { ALL_SHAPES, SHAPE_NAMES } from '../shapeLibrary';
 import { CUSTOM_LEVEL_PATTERNS } from '../customLevelPatterns';
 import { getShapeForLevel, ALL_BASE_SHAPES } from '../shapes';
 import { isGoodPattern, getCleanPattern } from '../cleanPatterns';
+import { getProPattern } from '../proPatterns';
 
 /**
  * Quality gate for generated grids (levels 12+).
@@ -43,7 +44,7 @@ type PatternType = 'custom_level' | 'rows' | 'pyramid' | 'checker' | 'diamond' |
 | 'complex_arrow' | 'complex_diamond_frame' | 'complex_towers' | 'complex_wave'
 | 'complex_star' | 'maze_complex' | 'l_shape' | 't_shape' | 'u_shape'
 | 'e_shape' | 'explosion_burst' | 'constellation' | 'shield'
-| 'castle_wall' | 'rocket_shape' | 'ring' | 'grid' | 'shape_library';
+| 'castle_wall' | 'rocket_shape' | 'ring' | 'grid' | 'shape_library' | 'pro';
 
 // Get difficulty parameters based on level
 const getDifficultyParams = (level: number) => {
@@ -176,7 +177,8 @@ shield: ['SHIELD', 'PROTECT', 'BARRIER', 'DEFENSE'],
 castle_wall: ['CASTLE', 'WALL', 'FORTRESS', 'TOWER'],
 rocket_shape: ['ROCKET', 'SHIP', 'LAUNCH', 'THRUST'],
 ring: ['RING', 'CIRCLE', 'ORBIT', 'HALO'],
-    shape_library: ['SHAPE', 'DESIGN', 'PATTERN', 'FORM'],};
+    shape_library: ['SHAPE', 'DESIGN', 'PATTERN', 'FORM'],
+    pro: ['STRUCTURE', 'DESIGN', 'BLUEPRINT', 'ARCHITECT'],};
   
   const names = patternNames[pattern];
   const name = names[level % names.length];
@@ -1124,32 +1126,28 @@ const getPatternType = (level: number): PatternType => {
     return 'star';
   }
   
-  // Levels 11+: Cycle heavily through the 530 GRID_PATTERNS + shape library
-  // so users see fresh patterns through 200+ levels with no repetition.
+  // Levels 11+: structured, designed layouts dominate.
+  // 70% pro engine (frames/tunnels/arches/towers/windows/...),
+  // 20% curated grid patterns, 10% hand-made classic shapes.
   const cyclePos = (level - 11);
-  
-  // 60% grid (530 unique patterns), 25% shape_library (12K combos), 15% classic
-  const mod = cyclePos % 20;
-  if (mod < 12) return 'grid';                  // 12/20 = 60%
-  if (mod < 17) return 'shape_library' as PatternType; // 5/20 = 25%
-  
+  const mod = cyclePos % 10;
+  if (mod < 7) return 'pro';
+  if (mod < 9) return 'grid';
+
   const shapePatterns: PatternType[] = [
     'complex_heart', 'complex_spaceship', 'complex_star', 'maze_complex',
     'complex_diamond_frame', 'complex_towers', 'complex_wave', 'complex_arrow',
     'complex_h', 'complex_bar', 'l_shape', 't_shape', 'u_shape', 'e_shape',
-    'explosion_burst', 'shield', 'castle_wall', 'rocket_shape', 'ring',
-    'hourglass_outlaw', 'cross_wings', 'constellation',
-    'boss', 'spaceship', 'robot', 'castle', 'butterfly', 'crown',
-    'skull', 'tree', 'towers', 'bridge', 'maze', 'wings',
-    'anchor', 'mushroom', 'cup', 'city_skyline', 'invader', 'cactus',
-    'umbrella', 'rocket', 'staircase', 'reverse_staircase',
-    'zigzag', 'pyramid', 'fortress', 'diagonal', 'frame',
-    'hourglass', 'bars', 'xshape', 'spiral', 'wave',
-    'arrow', 'circle', 'checker', 'diamond',
+    'shield', 'castle_wall', 'rocket_shape', 'ring',
+    'hourglass_outlaw', 'cross_wings',
+    'boss', 'spaceship', 'castle', 'butterfly', 'crown',
+    'towers', 'bridge', 'maze', 'wings', 'cup', 'city_skyline',
+    'staircase', 'pyramid', 'fortress', 'frame',
+    'hourglass', 'bars', 'xshape', 'diamond',
     'pillars', 'steps_lr', 'steps_rl', 'letter_e', 'letter_h',
-    'letter_f', 'letter_t', 'wave_solid', 'corner_blocks',
+    'letter_f', 'letter_t',
   ];
-  
+
   return shapePatterns[cyclePos % shapePatterns.length];
 };
 
@@ -1166,6 +1164,11 @@ export const generateLevel = (level: number): LevelConfig => {
     case 'custom_level': {
       const customPattern = CUSTOM_LEVEL_PATTERNS[level - 1];
       bricks = generateShapePattern(level, params, customPattern);
+      break;
+    }
+    case 'pro': {
+      const pro = getProPattern(level, params.rows);
+      bricks = generateShapePattern(level, params, pro.grid);
       break;
     }
     case 'rows': bricks = generateFortressPattern(level, params); break;
