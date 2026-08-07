@@ -72,19 +72,20 @@ export const LEVEL5_GEMINI_PATTERN_4: number[][] = [
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
-// Level 6: GEMINI PATTERN 5 - CROSS PATTERN
+// Level 6: CLEAN X - symmetric X with open corners
 export const LEVEL6_GEMINI_PATTERN_5: number[][] = [
-  [3, 0, 0, 0, 0, 0, 0, 3],
-  [0, 3, 0, 0, 0, 0, 3, 0],
-  [0, 0, 3, 0, 0, 3, 0, 0],
-  [0, 0, 0, 1, 1, 0, 0, 0],
-  [0, 0, 0, 1, 1, 0, 0, 0],
-  [0, 0, 3, 0, 0, 3, 0, 0],
-  [0, 3, 0, 0, 0, 0, 3, 0],
-  [3, 0, 0, 0, 0, 0, 0, 3],
+  [1, 1, 0, 0, 0, 0, 1, 1],
+  [0, 1, 1, 0, 0, 1, 1, 0],
+  [0, 0, 1, 1, 1, 1, 0, 0],
+  [0, 0, 0, 3, 3, 0, 0, 0],
+  [0, 0, 0, 3, 3, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 0, 0],
+  [0, 1, 1, 0, 0, 1, 1, 0],
+  [1, 1, 0, 0, 0, 0, 1, 1],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
 ];
+
 
 // Level 7: GEMINI PATTERN 6 - HOLLOW FRAME
 export const LEVEL7_GEMINI_PATTERN_6: number[][] = [
