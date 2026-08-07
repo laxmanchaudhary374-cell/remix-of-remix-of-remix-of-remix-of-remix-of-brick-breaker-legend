@@ -5,7 +5,7 @@
 //
 // Grid values: 0 = empty, 1 = normal brick, 2 = steel, 3 = explosive
 
-import { isGoodPattern } from './cleanPatterns';
+import { isGoodPattern, getFillRatio } from './cleanPatterns';
 
 const COLS = 8;
 
@@ -390,9 +390,70 @@ const addAccents = (g: number[][], seed: number) => {
   return g;
 };
 
+/** Remove lone bricks that make a layout look noisy. */
+const deIsolate = (g: number[][]) => {
+  const rows = g.length;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (!g[r][c]) continue;
+      const n =
+        (r > 0 && g[r - 1][c] ? 1 : 0) + (r < rows - 1 && g[r + 1][c] ? 1 : 0) +
+        (c > 0 && g[r][c - 1] ? 1 : 0) + (c < COLS - 1 && g[r][c + 1] ? 1 : 0);
+      if (n === 0) {
+        // Attach it to a neighbour instead of deleting, keeping the silhouette.
+        if (c < COLS - 1) g[r][c + 1] = g[r][c];
+        else if (c > 0) g[r][c - 1] = g[r][c];
+        else g[r][c] = 0;
+      }
+    }
+  }
+  return g;
+};
+
+/**
+ * Bring a layout into the pleasant 32-62% density window while keeping the
+ * family's silhouette: thicken thin shapes, carve out over-solid ones.
+ */
+const repairDensity = (g: number[][]) => {
+  const rows = g.length;
+  const fill = () => getFillRatio(g);
+  // Thicken: grow each filled cell sideways/downwards in passes.
+  let guard = 0;
+  while (fill() < 0.32 && guard++ < 6) {
+    const snapshot = g.map(r => r.slice());
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (!snapshot[r][c]) continue;
+        const v = snapshot[r][c] === 2 ? 2 : 1;
+        if (guard % 2 === 1) {
+          if (c + 1 < COLS && !g[r][c + 1]) g[r][c + 1] = v;
+          if (c > 0 && !g[r][c - 1]) g[r][c - 1] = v;
+        } else if (r + 1 < rows && !g[r + 1][c]) {
+          g[r + 1][c] = v;
+        }
+      }
+    }
+  }
+  // Carve: punch a regular lattice of holes so the ball keeps travel lanes.
+  guard = 0;
+  while (fill() > 0.62 && guard++ < 6) {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (!g[r][c]) continue;
+        if ((r + c * 2 + guard) % (3 + (guard % 2)) === 0) g[r][c] = 0;
+      }
+      if (fill() <= 0.62) break;
+    }
+  }
+  return g;
+};
+
 const build = (rows: number, familyIndex: number, variant: number, seed: number) => {
   const fam = FAMILIES[familyIndex % FAMILIES.length];
   let g = fam.fn(rows, variant);
+  if (fam.symmetric) g = mirror(g);
+  g = repairDensity(g);
+  g = deIsolate(g);
   if (fam.symmetric) g = mirror(g);
   g = addAccents(g, seed);
   return { grid: g, name: fam.name };
@@ -412,10 +473,15 @@ export const getProPattern = (
   // Offset step of 7 (coprime with 20) shuffles the family order per cycle.
   const baseIndex = (level * 7 + cycle * 3) % FAMILIES.length;
 
-  for (let attempt = 0; attempt < FAMILIES.length; attempt++) {
-    const idx = (baseIndex + attempt) % FAMILIES.length;
+  // Keep the intended family; only its variant changes if quality fails.
+  for (let attempt = 0; attempt < 6; attempt++) {
     const variant = (cycle + attempt) % 6;
-    const built = build(safeRows, idx, variant, level * 31 + attempt);
+    const built = build(safeRows, baseIndex, variant, level * 31 + attempt);
+    if (isGoodPattern(built.grid)) return built;
+  }
+  for (let attempt = 1; attempt < FAMILIES.length; attempt++) {
+    const idx = (baseIndex + attempt) % FAMILIES.length;
+    const built = build(safeRows, idx, cycle % 6, level * 31 + attempt);
     if (isGoodPattern(built.grid)) return built;
   }
   // Guaranteed-good fallback: classic double frame
