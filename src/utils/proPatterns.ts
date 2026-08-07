@@ -448,13 +448,26 @@ const repairDensity = (g: number[][]) => {
   return g;
 };
 
+/** Stretch a canonical 8-row design onto the level's row count (keeps density). */
+const stretchRows = (g: number[][], target: number): number[][] => {
+  const src = g.length;
+  const out: number[][] = [];
+  for (let r = 0; r < target; r++) {
+    out.push(g[Math.min(src - 1, Math.floor((r * src) / target))].slice());
+  }
+  return out;
+};
+
+const CANON_ROWS = 8;
+
 const build = (rows: number, familyIndex: number, variant: number, seed: number) => {
   const fam = FAMILIES[familyIndex % FAMILIES.length];
-  let g = fam.fn(rows, variant);
+  let g = fam.fn(CANON_ROWS, variant);
   if (fam.symmetric) g = mirror(g);
   g = repairDensity(g);
   g = deIsolate(g);
   if (fam.symmetric) g = mirror(g);
+  g = stretchRows(g, rows);
   g = addAccents(g, seed);
   return { grid: g, name: fam.name };
 };
