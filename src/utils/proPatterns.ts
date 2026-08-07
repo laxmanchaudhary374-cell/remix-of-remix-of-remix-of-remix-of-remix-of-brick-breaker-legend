@@ -72,7 +72,7 @@ const familyTunnel: Family = (rows, v) => {
   const cols = layouts[v % layouts.length];
   for (const c of cols) rect(g, 0, rows - 1, c, c);
   // Cross-beams so it isn't just plain lines
-  const beam = Math.max(2, Math.floor(rows / 4));
+  const beam = Math.max(3, Math.floor(rows / 3));
   for (let r = beam; r < rows; r += beam) rect(g, r, r, 0, COLS - 1, r % (beam * 2) === 0 ? 1 : 2);
   return g;
 };
@@ -93,8 +93,8 @@ const familyBars: Family = (rows, v) => {
 // 4. Arch / gateway
 const familyArch: Family = (rows, v) => {
   const g = blank(rows);
-  const thick = 1;
   const side = 1 + (v % 2);
+  const thick = side === 1 ? 1 : 0;
   rect(g, 0, thick, 0, COLS - 1);
   rect(g, thick + 1, rows - 1, 0, side - 1);
   rect(g, thick + 1, rows - 1, COLS - side, COLS - 1);
@@ -110,7 +110,8 @@ const familyTowers: Family = (rows, v) => {
   const base = rows - 1;
   rect(g, 0, base - 1, 0, w - 1);
   rect(g, 0, base - 1, COLS - w, COLS - 1);
-  rect(g, Math.floor(rows / 3), base - 1, 3, 4, v % 2 === 0 ? 2 : 1);
+  if (w === 1) rect(g, Math.floor(rows / 3), base - 1, 3, 4, 2);
+  else rect(g, Math.floor(rows / 2), base - 1, 3, 4, 2);
   rect(g, base, base, 0, COLS - 1);
   return g;
 };
@@ -134,7 +135,7 @@ const familyCross: Family = (rows, v) => {
   const w = 1;
   rect(g, armR - w, armR + w, 0, COLS - 1);
   rect(g, 0, rows - 1, 3, 4);
-  if (v % 3 === 0) {
+  if (v % 3 === 1) {
     rect(g, 0, 0, 0, COLS - 1, 2);
     rect(g, rows - 1, rows - 1, 0, COLS - 1, 2);
   }
@@ -281,7 +282,7 @@ const familyBrackets: Family = (rows, v) => {
   rect(g, 0, 0, 0, COLS - 1);
   rect(g, rows - 1, rows - 1, 0, COLS - 1);
   const mid = Math.floor(rows / 2);
-  const h = 1;
+  const h = w === 1 ? 1 : 0;
   rect(g, mid - h, mid + h, 3, 4, 2);
   return g;
 };
@@ -432,13 +433,13 @@ const repairDensity = (g: number[][]) => {
   }
   // Carve: punch a regular lattice of holes so the ball keeps travel lanes.
   guard = 0;
-  while (fill() > 0.62 && guard++ < 6) {
+  while (fill() > 0.66 && guard++ < 6) {
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < COLS; c++) {
         if (!g[r][c]) continue;
         if ((r + c * 2 + guard) % (3 + (guard % 2)) === 0) g[r][c] = 0;
       }
-      if (fill() <= 0.62) break;
+      if (fill() <= 0.66) break;
     }
   }
   return g;
