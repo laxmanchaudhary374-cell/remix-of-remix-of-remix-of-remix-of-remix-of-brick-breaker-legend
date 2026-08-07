@@ -52,8 +52,8 @@ const familyFrame: Family = (rows, v) => {
   for (let i = 0; i < rings; i++) {
     const r0 = i * step;
     const r1 = rows - 1 - i * step;
-    const c0 = i;
-    const c1 = COLS - 1 - i;
+    const c0 = i * 2;
+    const c1 = COLS - 1 - i * 2;
     if (r1 - r0 < 2 || c1 - c0 < 2) break;
     outline(g, r0, r1, c0, c1, i === 1 ? 2 : 1);
   }
@@ -64,10 +64,10 @@ const familyFrame: Family = (rows, v) => {
 const familyTunnel: Family = (rows, v) => {
   const g = blank(rows);
   const layouts = [
-    [0, 1, 3, 4, 6, 7],
-    [0, 1, 2, 5, 6, 7],
-    [1, 2, 3, 4, 5, 6],
-    [0, 2, 3, 4, 5, 7],
+    [0, 1, 6, 7],
+    [0, 3, 4, 7],
+    [1, 2, 5, 6],
+    [0, 1, 3, 4],
   ];
   const cols = layouts[v % layouts.length];
   for (const c of cols) rect(g, 0, rows - 1, c, c);
@@ -93,10 +93,11 @@ const familyBars: Family = (rows, v) => {
 // 4. Arch / gateway
 const familyArch: Family = (rows, v) => {
   const g = blank(rows);
-  const thick = 1 + (v % 2);
+  const thick = 1;
+  const side = 1 + (v % 2);
   rect(g, 0, thick, 0, COLS - 1);
-  rect(g, thick + 1, rows - 1, 0, thick);
-  rect(g, thick + 1, rows - 1, COLS - 1 - thick, COLS - 1);
+  rect(g, thick + 1, rows - 1, 0, side - 1);
+  rect(g, thick + 1, rows - 1, COLS - side, COLS - 1);
   const mid = Math.floor(rows / 2);
   rect(g, mid, mid + 1, thick + 2, COLS - 3 - thick, 2);
   return g;
@@ -105,18 +106,12 @@ const familyArch: Family = (rows, v) => {
 // 5. Towers with base
 const familyTowers: Family = (rows, v) => {
   const g = blank(rows);
-  const count = 2 + (v % 2); // 2 or 3 towers
-  const base = rows - 2;
-  if (count === 2) {
-    rect(g, 0, base - 1, 0, 1);
-    rect(g, 0, base - 1, COLS - 2, COLS - 1);
-    rect(g, Math.floor(rows / 3), base - 1, 3, 4, 2);
-  } else {
-    rect(g, 0, base - 1, 0, 1);
-    rect(g, 0, base - 1, COLS - 2, COLS - 1);
-    rect(g, Math.floor(rows / 4), base - 1, 3, 4);
-  }
-  rect(g, base, rows - 1, 0, COLS - 1);
+  const w = 1 + (v % 2);
+  const base = rows - 1;
+  rect(g, 0, base - 1, 0, w - 1);
+  rect(g, 0, base - 1, COLS - w, COLS - 1);
+  rect(g, Math.floor(rows / 3), base - 1, 3, 4, v % 2 === 0 ? 2 : 1);
+  rect(g, base, base, 0, COLS - 1);
   return g;
 };
 
@@ -136,7 +131,7 @@ const familyWindows: Family = (rows, v) => {
 const familyCross: Family = (rows, v) => {
   const g = blank(rows);
   const armR = Math.floor(rows / 2);
-  const w = 1 + (v % 2);
+  const w = 1;
   rect(g, armR - w, armR + w, 0, COLS - 1);
   rect(g, 0, rows - 1, 3, 4);
   if (v % 3 === 0) {
@@ -267,7 +262,7 @@ const familyHourglass: Family = (rows, v) => {
     const c1 = 4 + half;
     g[r][Math.max(0, c0)] = 1;
     g[r][Math.min(COLS - 1, c1)] = 1;
-    if (v % 2 === 0) {
+    if (v % 2 === 0 && r % 2 === 0) {
       g[r][Math.max(0, c0 + 1)] = 1;
       g[r][Math.min(COLS - 1, c1 - 1)] = 1;
     }
@@ -280,12 +275,13 @@ const familyHourglass: Family = (rows, v) => {
 // 16. Brackets — strong sides, open center with a floating core
 const familyBrackets: Family = (rows, v) => {
   const g = blank(rows);
-  rect(g, 0, rows - 1, 0, 1);
-  rect(g, 0, rows - 1, COLS - 2, COLS - 1);
+  const w = 1 + (v % 2);
+  rect(g, 0, rows - 1, 0, w - 1);
+  rect(g, 0, rows - 1, COLS - w, COLS - 1);
   rect(g, 0, 0, 0, COLS - 1);
   rect(g, rows - 1, rows - 1, 0, COLS - 1);
   const mid = Math.floor(rows / 2);
-  const h = 1 + (v % 2);
+  const h = 1;
   rect(g, mid - h, mid + h, 3, 4, 2);
   return g;
 };
@@ -334,7 +330,7 @@ const familyWave: Family = (rows, v) => {
   for (let c = 0; c < COLS; c++) {
     const phase = Math.sin((c / COLS) * Math.PI * 2 + v);
     const center = Math.floor(rows / 2 + phase * amp);
-    for (let d = -2; d <= 2; d++) {
+    for (let d = -1; d <= 1; d++) {
       const r = center + d;
       if (r >= 0 && r < rows) g[r][c] = 1;
     }
