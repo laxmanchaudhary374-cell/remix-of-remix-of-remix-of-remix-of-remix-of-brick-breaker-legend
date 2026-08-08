@@ -688,12 +688,12 @@ export const getProPattern = (
 ): { grid: number[][]; name: string } => {
   const safeRows = Math.max(8, Math.min(rows, 18));
   const cycle = Math.floor(level / FAMILIES.length);
-  // Offset step of 7 (coprime with 20) shuffles the family order per cycle.
-  const baseIndex = (level * 7 + cycle * 3) % FAMILIES.length;
+  // Step 9 is coprime with 34, so families never repeat within a cycle.
+  const baseIndex = (level * 9 + cycle * 5) % FAMILIES.length;
 
-  // Keep the intended family; only its variant changes if quality fails.
+  // Variant changes every level too, so even the same family looks different.
   for (let attempt = 0; attempt < 12; attempt++) {
-    const variant = (cycle + attempt) % 12;
+    const variant = (level * 5 + cycle * 7 + attempt) % 12;
     const built = build(safeRows, baseIndex, variant, level * 31 + attempt);
     if (isGoodPattern(built.grid)) return built;
   }
