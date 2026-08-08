@@ -341,6 +341,197 @@ const familyWave: Family = (rows, v) => {
   return g;
 };
 
+// 21. Horizontal tunnels — long open corridors between thick slabs
+const familyHTunnel: Family = (rows, v) => {
+  const g = blank(rows);
+  const slab = 2 + (v % 2);
+  const gap = 1 + (v % 2);
+  let r = 0;
+  while (r < rows) {
+    rect(g, r, Math.min(rows - 1, r + slab - 1), 0, COLS - 1);
+    // punch entry holes so corridors connect vertically
+    const hole = (v + r) % 2 === 0 ? 2 : 5;
+    rect(g, r, Math.min(rows - 1, r + slab - 1), hole, hole, 0);
+    r += slab + gap;
+  }
+  return g;
+};
+
+// 22. Grouped sections — clean blocks separated by wide channels
+const familySections: Family = (rows, v) => {
+  const g = blank(rows);
+  const bh = 2 + (v % 2);
+  const groups = [[0, 2], [5, 7]];
+  let band = 0;
+  for (let r = 0; r < rows; r += bh + 1, band++) {
+    if ((band + v) % 3 === 2) {
+      rect(g, r, r + bh - 1, 3, 4, 2);
+    } else {
+      for (const [c0, c1] of groups) rect(g, r, r + bh - 1, c0, c1);
+    }
+  }
+  return g;
+};
+
+// 23. Layered bars with sliding gaps
+const familyLayeredBars: Family = (rows, v) => {
+  const g = blank(rows);
+  let i = 0;
+  for (let r = 0; r < rows; r += 2, i++) {
+    rect(g, r, r, 0, COLS - 1, i % 3 === 1 ? 2 : 1);
+    const gap = (i * 2 + v) % (COLS - 1);
+    rect(g, r, r, gap, gap + 1, 0);
+  }
+  return g;
+};
+
+// 24. Maze — winding corridor walls
+const familyMaze: Family = (rows, v) => {
+  const g = blank(rows);
+  for (let r = 0; r < rows; r++) {
+    const band = Math.floor(r / 2);
+    if (r % 2 === 0) {
+      rect(g, r, r, 0, COLS - 1);
+      const open = (band + v) % 2 === 0 ? 0 : COLS - 1;
+      g[r][open] = 0;
+      if (open === 0) g[r][1] = 0; else g[r][COLS - 2] = 0;
+    } else {
+      const side = (band + v) % 2 === 0 ? COLS - 1 : 0;
+      g[r][side] = 1;
+      g[r][Math.floor(COLS / 2)] = 2;
+    }
+  }
+  return g;
+};
+
+// 25. Nested square maze frames with entrances
+const familyNestedMaze: Family = (rows, v) => {
+  const g = blank(rows);
+  let r0 = 0, r1 = rows - 1, c0 = 0, c1 = COLS - 1, ring = 0;
+  while (r1 - r0 >= 2 && c1 - c0 >= 2) {
+    outline(g, r0, r1, c0, c1, ring % 2 === 1 ? 2 : 1);
+    // entrance gap alternates side per ring
+    if ((ring + v) % 2 === 0) g[Math.floor((r0 + r1) / 2)][c0] = 0;
+    else g[Math.floor((r0 + r1) / 2)][c1] = 0;
+    r0 += 2; r1 -= 2; c0 += 1; c1 -= 1; ring++;
+  }
+  return g;
+};
+
+// 26. Twin towers connected by a bridge
+const familyTwinTowers: Family = (rows, v) => {
+  const g = blank(rows);
+  const w = 2;
+  rect(g, 0, rows - 1, 0, w - 1);
+  rect(g, 0, rows - 1, COLS - w, COLS - 1);
+  const b1 = Math.floor(rows / 3);
+  const b2 = Math.floor((rows * 2) / 3);
+  rect(g, b1, b1 + (v % 2), w, COLS - w - 1, 2);
+  rect(g, b2, b2, w, COLS - w - 1);
+  rect(g, 0, 0, w, COLS - w - 1);
+  return g;
+};
+
+// 27. Butterfly / dual mirrored wings with open core
+const familyWings: Family = (rows, v) => {
+  const g = blank(rows);
+  const mid = (rows - 1) / 2;
+  for (let r = 0; r < rows; r++) {
+    const t = 1 - Math.abs(r - mid) / mid;
+    const span = Math.round(t * 3);
+    rect(g, r, r, 0, span);
+    rect(g, r, r, COLS - 1 - span, COLS - 1);
+  }
+  rect(g, Math.floor(mid), Math.ceil(mid), 3, 4, 2);
+  return g;
+};
+
+// 28. Zipper — interlocking teeth from both sides
+const familyZipper: Family = (rows, v) => {
+  const g = blank(rows);
+  for (let r = 0; r < rows; r++) {
+    if ((r + v) % 2 === 0) rect(g, r, r, 0, 4);
+    else rect(g, r, r, 3, COLS - 1);
+  }
+  rect(g, 0, 0, 0, COLS - 1, 2);
+  return g;
+};
+
+// 29. Honeycomb-ish offset cells
+const familyHoney: Family = (rows, v) => {
+  const g = blank(rows);
+  for (let r = 0; r < rows; r += 3) {
+    const off = ((r / 3) + v) % 2 === 0 ? 0 : 2;
+    for (let c = off; c < COLS; c += 4) {
+      outline(g, r, Math.min(rows - 1, r + 2), c, Math.min(COLS - 1, c + 2));
+    }
+  }
+  return g;
+};
+
+// 30. Portal — big central ring with side pillars
+const familyPortal: Family = (rows, v) => {
+  const g = blank(rows);
+  const cr = (rows - 1) / 2;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const d = Math.sqrt(Math.pow((r - cr) / cr * 3.2, 2) + Math.pow(c - 3.5, 2));
+      if (Math.abs(d - 2.6) < 0.9) g[r][c] = 1;
+    }
+  }
+  rect(g, 0, rows - 1, 0, 0, v % 2 === 0 ? 2 : 1);
+  rect(g, 0, rows - 1, COLS - 1, COLS - 1, v % 2 === 0 ? 2 : 1);
+  return g;
+};
+
+// 31. Staircase corridors
+const familyStairs: Family = (rows, v) => {
+  const g = blank(rows);
+  for (let r = 0; r < rows; r++) {
+    const step = Math.floor((r + v) / 2) % COLS;
+    rect(g, r, r, 0, step);
+  }
+  rect(g, 0, 0, 0, COLS - 1);
+  rect(g, rows - 1, rows - 1, 0, COLS - 1);
+  return g;
+};
+
+// 32. Comb — top slab with hanging teeth
+const familyComb: Family = (rows, v) => {
+  const g = blank(rows);
+  rect(g, 0, 1, 0, COLS - 1);
+  for (let c = (v % 2); c < COLS; c += 2) {
+    rect(g, 2, rows - 1 - (c % 3), c, c);
+  }
+  rect(g, rows - 1, rows - 1, 0, COLS - 1, 2);
+  return g;
+};
+
+// 33. Split city — two stacked skyline halves
+const familySkyline: Family = (rows, v) => {
+  const g = blank(rows);
+  const heights = [3, 5, 2, 6, 4, 6, 2, 5];
+  for (let c = 0; c < COLS; c++) {
+    const h = Math.max(2, Math.round((heights[(c + v) % COLS] / 6) * (rows / 2)));
+    rect(g, rows - h, rows - 1, c, c);
+    rect(g, 0, Math.max(0, Math.floor(rows / 2) - h), c, c, c % 3 === 0 ? 2 : 1);
+  }
+  return g;
+};
+
+// 34. Labyrinth grid — cells with staggered doorways
+const familyLabyrinth: Family = (rows, v) => {
+  const g = blank(rows);
+  for (let r = 0; r < rows; r += 2) rect(g, r, r, 0, COLS - 1);
+  for (let c = 0; c < COLS; c += 2) rect(g, 0, rows - 1, c, c);
+  for (let r = 0; r < rows; r += 2) {
+    const door = ((r / 2) + v) % COLS;
+    g[r][door] = 0;
+    if (door + 1 < COLS) g[r][door + 1] = 0;
+  }
+  return g;
+};
+
 const FAMILIES: { name: string; fn: Family; symmetric: boolean }[] = [
   { name: 'FRAME', fn: familyFrame, symmetric: true },
   { name: 'TUNNEL', fn: familyTunnel, symmetric: false },
@@ -362,7 +553,22 @@ const FAMILIES: { name: string; fn: Family; symmetric: boolean }[] = [
   { name: 'SPIRAL', fn: familySpiral, symmetric: false },
   { name: 'ROOMS', fn: familyRooms, symmetric: false },
   { name: 'WAVE', fn: familyWave, symmetric: false },
+  { name: 'H-TUNNEL', fn: familyHTunnel, symmetric: false },
+  { name: 'SECTIONS', fn: familySections, symmetric: true },
+  { name: 'LAYERS', fn: familyLayeredBars, symmetric: false },
+  { name: 'MAZE', fn: familyMaze, symmetric: false },
+  { name: 'NEST-MAZE', fn: familyNestedMaze, symmetric: false },
+  { name: 'TWIN-TOWERS', fn: familyTwinTowers, symmetric: true },
+  { name: 'WINGS', fn: familyWings, symmetric: true },
+  { name: 'ZIPPER', fn: familyZipper, symmetric: false },
+  { name: 'HONEYCOMB', fn: familyHoney, symmetric: false },
+  { name: 'PORTAL', fn: familyPortal, symmetric: true },
+  { name: 'STAIRS', fn: familyStairs, symmetric: false },
+  { name: 'COMB', fn: familyComb, symmetric: false },
+  { name: 'SKYLINE', fn: familySkyline, symmetric: false },
+  { name: 'LABYRINTH', fn: familyLabyrinth, symmetric: false },
 ];
+
 
 export const PRO_FAMILY_COUNT = FAMILIES.length;
 
@@ -482,12 +688,12 @@ export const getProPattern = (
 ): { grid: number[][]; name: string } => {
   const safeRows = Math.max(8, Math.min(rows, 18));
   const cycle = Math.floor(level / FAMILIES.length);
-  // Offset step of 7 (coprime with 20) shuffles the family order per cycle.
-  const baseIndex = (level * 7 + cycle * 3) % FAMILIES.length;
+  // Step 9 is coprime with 34, so families never repeat within a cycle.
+  const baseIndex = (level * 9 + cycle * 5) % FAMILIES.length;
 
-  // Keep the intended family; only its variant changes if quality fails.
+  // Variant changes every level too, so even the same family looks different.
   for (let attempt = 0; attempt < 12; attempt++) {
-    const variant = (cycle + attempt) % 12;
+    const variant = (level * 5 + cycle * 7 + attempt) % 12;
     const built = build(safeRows, baseIndex, variant, level * 31 + attempt);
     if (isGoodPattern(built.grid)) return built;
   }
