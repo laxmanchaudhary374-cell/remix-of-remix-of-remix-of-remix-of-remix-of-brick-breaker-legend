@@ -1157,8 +1157,20 @@ export const generateLevel = (level: number): LevelConfig => {
   const pattern = getPatternType(level);
   const theme = getTheme(level);
   const name = getLevelName(level, pattern);
-  
+
+  // Hand-picked replacement patterns for levels the player disliked
+  const special = getSpecialPattern(level);
+  if (special) {
+    return {
+      name,
+      ballSpeed: Math.round(params.ballSpeed),
+      theme,
+      bricks: generateShapePattern(level, params, special),
+    };
+  }
+
   let bricks: LevelConfig['bricks'];
+  
   
   switch (pattern) {
     case 'custom_level': {
