@@ -18,6 +18,7 @@ import { CUSTOM_LEVEL_PATTERNS } from '../customLevelPatterns';
 import { getShapeForLevel, ALL_BASE_SHAPES } from '../shapes';
 import { isGoodPattern, getCleanPattern } from '../cleanPatterns';
 import { getProPattern } from '../proPatterns';
+import { getSpecialPattern } from '../specialLevelPatterns';
 
 /**
  * Quality gate for generated grids (levels 12+).
