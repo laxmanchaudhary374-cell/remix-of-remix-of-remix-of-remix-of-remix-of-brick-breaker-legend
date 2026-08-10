@@ -356,7 +356,11 @@ class AudioManager {
       this.masterGain.gain.value = 0;
     }
     localStorage.setItem('neon_breaker_muted', 'true');
-    this.stopBackgroundMusic();
+    // Stop the audio source but remember that music should resume on unmute
+    if (this.backgroundMusic) {
+      try { this.backgroundMusic.stop(); } catch {}
+      this.backgroundMusic = null;
+    }
   }
 
   unmute(): void {
@@ -365,7 +369,11 @@ class AudioManager {
       this.masterGain.gain.value = this._masterVolume;
     }
     localStorage.setItem('neon_breaker_muted', 'false');
+    if (this.isMusicPlaying && !document.hidden) {
+      this.startBackgroundMusic();
+    }
   }
+
 }
 
 export const audioManager = new AudioManager();
