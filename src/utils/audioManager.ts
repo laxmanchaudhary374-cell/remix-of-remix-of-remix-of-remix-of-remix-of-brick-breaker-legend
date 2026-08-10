@@ -248,9 +248,13 @@ class AudioManager {
   }
 
   async startBackgroundMusic(): Promise<void> {
-    if (!this.audioContext || !this.musicGain || this.isMusicPlaying) return;
+    if (!this.audioContext || !this.musicGain) return;
+    if (this.isMusicPlaying && this.backgroundMusic) return;
 
     this.isMusicPlaying = true;
+
+    // Respect the user's mute choice - don't force audio on
+    if (this._masterVolume === 0) return;
 
     try {
       if (!this.musicBuffer) {
@@ -262,15 +266,16 @@ class AudioManager {
       this.playMusicFromBuffer();
     } catch (e) {
       console.warn('Failed to load background music:', e);
-      this.isMusicPlaying = false;
     }
   }
 
   private playMusicFromBuffer(): void {
     if (!this.audioContext || !this.musicGain || !this.musicBuffer || !this.isMusicPlaying) return;
+    if (this._masterVolume === 0) return;
 
     if (this.backgroundMusic) {
-      this.backgroundMusic.stop();
+      try { this.backgroundMusic.stop(); } catch {}
+      this.backgroundMusic = null;
     }
 
     this.backgroundMusic = this.audioContext.createBufferSource();
@@ -283,10 +288,11 @@ class AudioManager {
   stopBackgroundMusic(): void {
     this.isMusicPlaying = false;
     if (this.backgroundMusic) {
-      this.backgroundMusic.stop();
+      try { this.backgroundMusic.stop(); } catch {}
       this.backgroundMusic = null;
     }
   }
+
 
   get sfxVolume(): number {
     return this._sfxVolume;
@@ -350,7 +356,11 @@ class AudioManager {
       this.masterGain.gain.value = 0;
     }
     localStorage.setItem('neon_breaker_muted', 'true');
-    this.stopBackgroundMusic();
+    // Stop the audio source but remember that music should resume on unmute
+    if (this.backgroundMusic) {
+      try { this.backgroundMusic.stop(); } catch {}
+      this.backgroundMusic = null;
+    }
   }
 
   unmute(): void {
@@ -359,7 +369,11 @@ class AudioManager {
       this.masterGain.gain.value = this._masterVolume;
     }
     localStorage.setItem('neon_breaker_muted', 'false');
+    if (this.isMusicPlaying && !document.hidden) {
+      this.startBackgroundMusic();
+    }
   }
+
 }
 
 export const audioManager = new AudioManager();
