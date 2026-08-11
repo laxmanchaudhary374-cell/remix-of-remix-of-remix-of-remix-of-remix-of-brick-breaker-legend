@@ -19,6 +19,8 @@ import { getShapeForLevel, ALL_BASE_SHAPES } from '../shapes';
 import { isGoodPattern, getCleanPattern } from '../cleanPatterns';
 import { getProPattern } from '../proPatterns';
 import { getSpecialPattern } from '../specialLevelPatterns';
+import { isMonsterLevel, generateMonsterBricks, getMonsterName } from '../monsterLevels';
+
 
 /**
  * Quality gate for generated grids (levels 12+).
@@ -1158,6 +1160,18 @@ export const generateLevel = (level: number): LevelConfig => {
   const pattern = getPatternType(level);
   const theme = getTheme(level);
   const name = getLevelName(level, pattern);
+
+  // Monster (boss) level every 10 levels
+  if (isMonsterLevel(level)) {
+    return {
+      name: getMonsterName(level),
+      ballSpeed: Math.round(params.ballSpeed),
+      theme,
+      bricks: generateMonsterBricks(level),
+    };
+  }
+
+
 
   // Hand-picked replacement patterns for levels the player disliked
   const special = getSpecialPattern(level);

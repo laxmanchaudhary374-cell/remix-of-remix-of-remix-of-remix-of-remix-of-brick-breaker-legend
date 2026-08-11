@@ -25,6 +25,8 @@ import {
   updateMovingBricks,
 } from '@/utils/gameUtils';
 import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
+import { isMonsterLevel, getMonsterName, getMonsterSpeed } from '@/utils/monsterLevels';
+
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
 import spaceBackground from '@/assets/space-background.jpg';
@@ -104,6 +106,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const aimAngleRef = useRef<number>(-Math.PI / 2);
   const lastAutoTimerRef = useRef(0);
 
+  // Monster (boss) level state
+  const monsterDirRef = useRef(1);
+  const monsterTotalHpRef = useRef(0);
+  const levelStartTimeRef = useRef(0);
+  const [monsterHp, setMonsterHp] = useState({ current: 0, max: 0 });
+  const isMonster = isMonsterLevel(gameState.level);
+
+
   // Track previous level to only reinitialize on level change
   const prevLevelRef = useRef<number | null>(null);
   const prevStatusRef = useRef<string | null>(null);
@@ -159,6 +169,19 @@ useEffect(() => {
         }));
       
       setBricks(newBricks);
+
+      // Monster level setup: shared HP bar + slide direction + intro lightning
+      if (isMonsterLevel(gameState.level)) {
+        const totalHp = newBricks.reduce((sum, b) => sum + b.maxHits, 0);
+        monsterTotalHpRef.current = totalHp;
+        monsterDirRef.current = 1;
+        setMonsterHp({ current: totalHp, max: totalHp });
+      } else {
+        monsterTotalHpRef.current = 0;
+        setMonsterHp({ current: 0, max: 0 });
+      }
+      levelStartTimeRef.current = performance.now();
+
       
       const baseBallSpeed = level.ballSpeed;
       setBallSpeed(baseBallSpeed);
@@ -744,6 +767,26 @@ useEffect(() => {
 
     // Update moving bricks
     //setBricks(prev => updateMovingBricks(prev, deltaTime));
+
+    // Monster level: slide the whole creature left <-> right as one body
+    if (isMonsterLevel(gameState.level)) {
+      const speed = getMonsterSpeed(gameState.level);
+      setBricks(prev => {
+        const alive = prev.filter(b => !b.destroyed);
+        if (alive.length === 0) return prev;
+        const minX = Math.min(...alive.map(b => b.x));
+        const maxX = Math.max(...alive.map(b => b.x + b.width));
+        let dir = monsterDirRef.current;
+        if (dir > 0 && maxX >= GAME_WIDTH - 6) dir = -1;
+        else if (dir < 0 && minX <= 6) dir = 1;
+        monsterDirRef.current = dir;
+        const dx = dir * speed * deltaTime;
+        return prev.map(b => (b.destroyed ? b : { ...b, x: b.x + dx }));
+      });
+      const hpLeft = bricks.reduce((sum, b) => (b.destroyed ? sum : sum + b.hits), 0);
+      setMonsterHp(prev => (prev.current === hpLeft ? prev : { ...prev, current: hpLeft }));
+    }
+
 
     // Update balls with sub-stepping for smoothness
     setBalls(prevBalls => {
@@ -1486,7 +1529,7 @@ explosions.forEach(explosion => {
         });
       });
     }
-  }, [paddle, balls, bricks, alienShips, alienBullets, gameState.score, ballSpeed, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, shieldEndTime, ghostEndTime, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState, plane, lastPowerUpTime, gameTime, levelCoins]);
+  }, [paddle, balls, bricks, alienShips, alienBullets, gameState.score, gameState.level, ballSpeed, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, shieldEndTime, ghostEndTime, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState, plane, lastPowerUpTime, gameTime, levelCoins]);
 
   useGameLoop(gameLoop, gameState.status === 'playing');
 
@@ -1892,6 +1935,117 @@ explosions.forEach(explosion => {
       drawPremiumBrick(ctx, brick, gameTime);
     });
 
+    // ===== MONSTER (BOSS) LEVEL OVERLAY =====
+    if (isMonster && monsterHp.max > 0) {
+      const alive = bricks.filter(b => !b.destroyed);
+      if (alive.length > 0) {
+        const minX = Math.min(...alive.map(b => b.x));
+        const maxX = Math.max(...alive.map(b => b.x + b.width));
+        const minY = Math.min(...alive.map(b => b.y));
+        const maxY = Math.max(...alive.map(b => b.y + b.height));
+        const ratio = Math.max(0, Math.min(1, monsterHp.current / monsterHp.max));
+
+        // Danger aura around the creature
+        ctx.save();
+        ctx.globalAlpha = 0.35 + Math.sin(gameTime * 6) * 0.15;
+        ctx.strokeStyle = 'hsl(0, 100%, 55%)';
+        ctx.shadowColor = 'hsl(0, 100%, 55%)';
+        ctx.shadowBlur = 22;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(minX - 6, minY - 6, maxX - minX + 12, maxY - minY + 12, 12);
+        ctx.stroke();
+        ctx.restore();
+
+        // HP bar at the very top
+        const barW = GAME_WIDTH - 40;
+        const barX = 20;
+        const barY = 8;
+        const barH = 14;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.beginPath();
+        ctx.roundRect(barX - 2, barY - 2, barW + 4, barH + 4, 9);
+        ctx.fill();
+
+        const hpGrad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+        if (ratio > 0.5) {
+          hpGrad.addColorStop(0, 'hsl(140, 100%, 55%)');
+          hpGrad.addColorStop(1, 'hsl(90, 100%, 50%)');
+        } else if (ratio > 0.25) {
+          hpGrad.addColorStop(0, 'hsl(45, 100%, 60%)');
+          hpGrad.addColorStop(1, 'hsl(30, 100%, 55%)');
+        } else {
+          hpGrad.addColorStop(0, 'hsl(0, 100%, 60%)');
+          hpGrad.addColorStop(1, 'hsl(15, 100%, 50%)');
+        }
+        ctx.fillStyle = hpGrad;
+        ctx.shadowColor = ratio > 0.25 ? 'transparent' : 'hsl(0, 100%, 55%)';
+        ctx.shadowBlur = ratio > 0.25 ? 0 : 12;
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, Math.max(2, barW * ratio), barH, 7);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, barW, barH, 7);
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+          `${getMonsterName(gameState.level)}  ${monsterHp.current}/${monsterHp.max}`,
+          GAME_WIDTH / 2,
+          barY + barH / 2 + 0.5
+        );
+        ctx.restore();
+      }
+
+      // Red lightning intro for the first 2.2 seconds of a monster level
+      const elapsed = (performance.now() - levelStartTimeRef.current) / 1000;
+      if (elapsed < 2.2) {
+        const fade = 1 - elapsed / 2.2;
+        ctx.save();
+        ctx.globalAlpha = fade * (0.25 + Math.random() * 0.35);
+        ctx.fillStyle = 'hsl(0, 100%, 30%)';
+        ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        ctx.globalAlpha = fade;
+        ctx.strokeStyle = 'hsl(0, 100%, 70%)';
+        ctx.shadowColor = 'hsl(0, 100%, 60%)';
+        ctx.shadowBlur = 18;
+        ctx.lineWidth = 2.5;
+        const bolts = 4;
+        for (let b = 0; b < bolts; b++) {
+          let x = 30 + Math.random() * (GAME_WIDTH - 60);
+          let y = 0;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          while (y < GAME_HEIGHT * 0.7) {
+            x += (Math.random() - 0.5) * 40;
+            y += 25 + Math.random() * 30;
+            ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = Math.min(1, fade * 1.6);
+        ctx.fillStyle = 'hsl(0, 100%, 65%)';
+        ctx.font = 'bold 26px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚠ DANGER ⚠', GAME_WIDTH / 2, GAME_HEIGHT * 0.35);
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(getMonsterName(gameState.level), GAME_WIDTH / 2, GAME_HEIGHT * 0.35 + 30);
+        ctx.restore();
+      }
+    }
+
+
     // Draw coins
     coins.forEach(coin => {
       ctx.fillStyle = 'hsl(45, 100%, 55%)';
@@ -2034,7 +2188,7 @@ explosions.forEach(explosion => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo]);
+  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo, isMonster, monsterHp, gameState.level]);
 
   // Set up HiDPI canvas rendering
   useEffect(() => {
