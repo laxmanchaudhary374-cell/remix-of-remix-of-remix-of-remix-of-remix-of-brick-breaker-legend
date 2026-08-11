@@ -119,13 +119,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   
   // Initialize level - only reinitialize when level actually changes (not on pause/resume)
   useEffect(() => {
-  const img = new Image();
-  img.src = getWorldBg(gameState.level);
-  img.onload = () => { 
-    bgImageRef.current = img; 
+  const img = getWorldBgImage(gameState.level);
+  if (img.complete && img.naturalWidth > 0) {
+    // Already decoded (preloaded) -> show instantly on level start
+    bgImageRef.current = img;
+    bgCacheRef.current = null;
+    return;
+  }
+  const onLoad = () => {
+    bgImageRef.current = img;
     bgCacheRef.current = null; // force rebuild cache
   };
-  img.onerror = () => { console.error('Failed to load image'); };
+  img.addEventListener('load', onLoad);
+  return () => img.removeEventListener('load', onLoad);
 }, [gameState.level]);
 
 useEffect(() => {
