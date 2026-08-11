@@ -28,7 +28,7 @@ import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/br
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
 import spaceBackground from '@/assets/space-background.jpg';
-import { getWorldBg } from '@/utils/worldBackgrounds';
+import { getWorldBg, getWorldBgImage } from '@/utils/worldBackgrounds';
 
 // Alien ship system is currently disabled — these stubs keep dead references compiling.
 const updateAlienShips = (ships: any[], _dt: number) => ships;
@@ -119,13 +119,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   
   // Initialize level - only reinitialize when level actually changes (not on pause/resume)
   useEffect(() => {
-  const img = new Image();
-  img.src = getWorldBg(gameState.level);
-  img.onload = () => { 
-    bgImageRef.current = img; 
+  const img = getWorldBgImage(gameState.level);
+  if (img.complete && img.naturalWidth > 0) {
+    // Already decoded (preloaded) -> show instantly on level start
+    bgImageRef.current = img;
+    bgCacheRef.current = null;
+    return;
+  }
+  const onLoad = () => {
+    bgImageRef.current = img;
     bgCacheRef.current = null; // force rebuild cache
   };
-  img.onerror = () => { console.error('Failed to load image'); };
+  img.addEventListener('load', onLoad);
+  return () => img.removeEventListener('load', onLoad);
 }, [gameState.level]);
 
 useEffect(() => {

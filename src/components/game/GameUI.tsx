@@ -22,14 +22,6 @@ const GameUI: React.FC<GameUIProps> = ({ gameState, persistentCoins, onTogglePau
     initAudio();
   }, []);
 
-  useEffect(() => {
-    if (isPlaying) {
-      audioManager.startBackgroundMusic();
-    } else {
-      audioManager.stopBackgroundMusic();
-    }
-  }, [isPlaying]);
-
   const toggleMute = () => {
     audioManager.toggleMute();
     setIsMuted(audioManager.isMuted);

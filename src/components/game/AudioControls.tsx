@@ -22,14 +22,6 @@ const AudioControls: React.FC<AudioControlsProps> = ({ isPlaying }) => {
     initAudio();
   }, []);
 
-  useEffect(() => {
-    if (isPlaying) {
-      audioManager.startBackgroundMusic();
-    } else {
-      audioManager.stopBackgroundMusic();
-    }
-  }, [isPlaying]);
-
   // Close panel when clicking outside
   useEffect(() => {
     if (!isExpanded) return;

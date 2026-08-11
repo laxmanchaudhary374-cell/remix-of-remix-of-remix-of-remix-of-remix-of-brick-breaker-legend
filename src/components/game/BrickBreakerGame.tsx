@@ -144,7 +144,6 @@ const BrickBreakerGame: React.FC = () => {
   // #8 Pause everything when app is minimized / screen locked (Capacitor + web fallback)
   useEffect(() => {
     const pauseAll = () => {
-      try { audioManager.mute(); } catch {}
       try { audioManager.stopBackgroundMusic(); } catch {}
       setScreenState(prev => (prev === 'playing' ? 'paused' : prev));
       setGameState(prev => (prev.status === 'playing' ? { ...prev, status: 'paused' } : prev));
@@ -347,7 +346,6 @@ const BrickBreakerGame: React.FC = () => {
 
     if (shouldShowAd) {
       pendingNextLevelRef.current = nextLevel;
-      audioManager.mute();
       audioManager.stopBackgroundMusic();
      showInterstitialAd(
   "Between_Levels",
@@ -355,7 +353,7 @@ const BrickBreakerGame: React.FC = () => {
   () => {
           const lvl = pendingNextLevelRef.current;
           pendingNextLevelRef.current = null;
-          audioManager.unmute();
+          if (!audioManager.isMuted) audioManager.startBackgroundMusic();
           if (lvl) {
             setGameState(prev => ({
               ...prev,
@@ -372,7 +370,7 @@ const BrickBreakerGame: React.FC = () => {
         if (pendingNextLevelRef.current) {
           const lvl = pendingNextLevelRef.current;
           pendingNextLevelRef.current = null;
-          audioManager.unmute();
+          if (!audioManager.isMuted) audioManager.startBackgroundMusic();
           setGameState(prev => ({
             ...prev,
             status: 'playing',
@@ -456,14 +454,15 @@ const BrickBreakerGame: React.FC = () => {
   }, [screenState]);
 
   useEffect(() => {
-    const shouldPlay = (screenState === 'playing' || screenState === 'paused') && !isAdActive();
-    if (shouldPlay) {
-      if (!audioManager.isMuted) {
-        audioManager.startBackgroundMusic();
-      } else {
-        audioManager.stopBackgroundMusic();
-      }
-    } else {
+    // Keep music running across level transitions (levelcomplete -> playing)
+    // so it never stutters on/off between levels.
+    const inGame =
+      screenState === 'playing' ||
+      screenState === 'paused' ||
+      screenState === 'levelcomplete';
+    if (inGame && !isAdActive() && !audioManager.isMuted) {
+      audioManager.startBackgroundMusic();
+    } else if (!inGame) {
       audioManager.stopBackgroundMusic();
     }
   }, [screenState]);
