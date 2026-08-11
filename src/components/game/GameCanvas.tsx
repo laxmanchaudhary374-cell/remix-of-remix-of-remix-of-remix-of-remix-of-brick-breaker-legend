@@ -25,6 +25,8 @@ import {
   updateMovingBricks,
 } from '@/utils/gameUtils';
 import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
+import { isMonsterLevel, getMonsterName, getMonsterSpeed } from '@/utils/monsterLevels';
+
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
 import spaceBackground from '@/assets/space-background.jpg';
@@ -103,6 +105,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
   const aimAngleRef = useRef<number>(-Math.PI / 2);
   const lastAutoTimerRef = useRef(0);
+
+  // Monster (boss) level state
+  const monsterDirRef = useRef(1);
+  const monsterTotalHpRef = useRef(0);
+  const levelStartTimeRef = useRef(0);
+  const [monsterHp, setMonsterHp] = useState({ current: 0, max: 0 });
+  const isMonster = isMonsterLevel(gameState.level);
+
 
   // Track previous level to only reinitialize on level change
   const prevLevelRef = useRef<number | null>(null);
