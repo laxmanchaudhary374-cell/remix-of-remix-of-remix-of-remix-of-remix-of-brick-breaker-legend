@@ -18,3 +18,33 @@ export function getWorldBg(level: number): string {
   const index = Math.floor((level - 1) / 20) % 10;
   return BACKGROUNDS[index];
 }
+
+// Decoded-image cache so a level start never shows an empty background
+const imageCache = new Map<string, HTMLImageElement>();
+
+export function getWorldBgImage(level: number): HTMLImageElement {
+  const src = getWorldBg(level);
+  let img = imageCache.get(src);
+  if (!img) {
+    img = new Image();
+    img.decoding = 'sync';
+    img.src = src;
+    imageCache.set(src, img);
+  }
+  return img;
+}
+
+// Warm up every world background up-front (they are bundled assets)
+export function preloadAllWorldBgs(): void {
+  BACKGROUNDS.forEach(src => {
+    if (!imageCache.has(src)) {
+      const img = new Image();
+      img.src = src;
+      imageCache.set(src, img);
+    }
+  });
+}
+
+if (typeof window !== 'undefined') {
+  preloadAllWorldBgs();
+}
