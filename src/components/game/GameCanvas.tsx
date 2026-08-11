@@ -28,7 +28,7 @@ import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/br
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
 import spaceBackground from '@/assets/space-background.jpg';
-import { getWorldBg } from '@/utils/worldBackgrounds';
+import { getWorldBg, getWorldBgImage } from '@/utils/worldBackgrounds';
 
 // Alien ship system is currently disabled — these stubs keep dead references compiling.
 const updateAlienShips = (ships: any[], _dt: number) => ships;
