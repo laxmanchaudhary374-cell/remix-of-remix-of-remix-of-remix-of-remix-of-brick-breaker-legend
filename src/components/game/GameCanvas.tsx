@@ -768,6 +768,26 @@ useEffect(() => {
     // Update moving bricks
     //setBricks(prev => updateMovingBricks(prev, deltaTime));
 
+    // Monster level: slide the whole creature left <-> right as one body
+    if (isMonsterLevel(gameState.level)) {
+      const speed = getMonsterSpeed(gameState.level);
+      setBricks(prev => {
+        const alive = prev.filter(b => !b.destroyed);
+        if (alive.length === 0) return prev;
+        const minX = Math.min(...alive.map(b => b.x));
+        const maxX = Math.max(...alive.map(b => b.x + b.width));
+        let dir = monsterDirRef.current;
+        if (dir > 0 && maxX >= GAME_WIDTH - 6) dir = -1;
+        else if (dir < 0 && minX <= 6) dir = 1;
+        monsterDirRef.current = dir;
+        const dx = dir * speed * deltaTime;
+        return prev.map(b => (b.destroyed ? b : { ...b, x: b.x + dx }));
+      });
+      const hpLeft = bricks.reduce((sum, b) => (b.destroyed ? sum : sum + b.hits), 0);
+      setMonsterHp(prev => (prev.current === hpLeft ? prev : { ...prev, current: hpLeft }));
+    }
+
+
     // Update balls with sub-stepping for smoothness
     setBalls(prevBalls => {
       const newBalls = prevBalls.map(ball => {
