@@ -169,6 +169,19 @@ useEffect(() => {
         }));
       
       setBricks(newBricks);
+
+      // Monster level setup: shared HP bar + slide direction + intro lightning
+      if (isMonsterLevel(gameState.level)) {
+        const totalHp = newBricks.reduce((sum, b) => sum + b.maxHits, 0);
+        monsterTotalHpRef.current = totalHp;
+        monsterDirRef.current = 1;
+        setMonsterHp({ current: totalHp, max: totalHp });
+      } else {
+        monsterTotalHpRef.current = 0;
+        setMonsterHp({ current: 0, max: 0 });
+      }
+      levelStartTimeRef.current = performance.now();
+
       
       const baseBallSpeed = level.ballSpeed;
       setBallSpeed(baseBallSpeed);
