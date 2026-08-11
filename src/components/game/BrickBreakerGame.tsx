@@ -454,14 +454,15 @@ const BrickBreakerGame: React.FC = () => {
   }, [screenState]);
 
   useEffect(() => {
-    const shouldPlay = (screenState === 'playing' || screenState === 'paused') && !isAdActive();
-    if (shouldPlay) {
-      if (!audioManager.isMuted) {
-        audioManager.startBackgroundMusic();
-      } else {
-        audioManager.stopBackgroundMusic();
-      }
-    } else {
+    // Keep music running across level transitions (levelcomplete -> playing)
+    // so it never stutters on/off between levels.
+    const inGame =
+      screenState === 'playing' ||
+      screenState === 'paused' ||
+      screenState === 'levelcomplete';
+    if (inGame && !isAdActive() && !audioManager.isMuted) {
+      audioManager.startBackgroundMusic();
+    } else if (!inGame) {
       audioManager.stopBackgroundMusic();
     }
   }, [screenState]);
