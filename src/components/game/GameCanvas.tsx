@@ -2188,7 +2188,7 @@ explosions.forEach(explosion => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo]);
+  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo, isMonster, monsterHp, gameState.level]);
 
   // Set up HiDPI canvas rendering
   useEffect(() => {
