@@ -2030,23 +2030,33 @@ explosions.forEach(explosion => {
     if (isMonster && monsterHp.max > 0) {
       const alive = bricks.filter(b => !b.destroyed);
       if (alive.length > 0) {
-        const minX = Math.min(...alive.map(b => b.x));
-        const maxX = Math.max(...alive.map(b => b.x + b.width));
-        const minY = Math.min(...alive.map(b => b.y));
-        const maxY = Math.max(...alive.map(b => b.y + b.height));
         const ratio = Math.max(0, Math.min(1, monsterHp.current / monsterHp.max));
 
-        // Danger aura around the creature
-        ctx.save();
-        ctx.globalAlpha = 0.35 + Math.sin(gameTime * 6) * 0.15;
-        ctx.strokeStyle = 'hsl(0, 100%, 55%)';
-        ctx.shadowColor = 'hsl(0, 100%, 55%)';
-        ctx.shadowBlur = 22;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(minX - 6, minY - 6, maxX - minX + 12, maxY - minY + 12, 12);
-        ctx.stroke();
-        ctx.restore();
+        // Enrage: red lightning storm when the boss is nearly dead
+        if (ratio <= 0.25) {
+          ctx.save();
+          ctx.globalAlpha = 0.12 + Math.random() * 0.18;
+          ctx.fillStyle = 'hsl(0, 100%, 30%)';
+          ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+          ctx.globalAlpha = 0.8;
+          ctx.strokeStyle = 'hsl(0, 100%, 70%)';
+          ctx.shadowColor = 'hsl(0, 100%, 60%)';
+          ctx.shadowBlur = 16;
+          ctx.lineWidth = 2;
+          for (let b = 0; b < 2; b++) {
+            let lx = 30 + Math.random() * (GAME_WIDTH - 60);
+            let ly = 0;
+            ctx.beginPath();
+            ctx.moveTo(lx, ly);
+            while (ly < GAME_HEIGHT * 0.55) {
+              lx += (Math.random() - 0.5) * 40;
+              ly += 25 + Math.random() * 30;
+              ctx.lineTo(lx, ly);
+            }
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
 
         // HP bar at the very top
         const barW = GAME_WIDTH - 40;
