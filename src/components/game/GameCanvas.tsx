@@ -25,7 +25,25 @@ import {
   updateMovingBricks,
 } from '@/utils/gameUtils';
 import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
-import { isMonsterLevel, getMonsterName, getMonsterSpeed } from '@/utils/monsterLevels';
+import {
+  isMonsterLevel, getMonsterName, getMonsterSpeed,
+  MONSTER_COLS, MONSTER_ROWS, MONSTER_BRICK_WIDTH, MONSTER_BRICK_HEIGHT,
+  MONSTER_START_X, MONSTER_START_Y, MONSTER_BODY_WIDTH, MONSTER_BODY_HEIGHT,
+} from '@/utils/monsterLevels';
+import { getMonsterImage, preloadMonsterImages } from '@/utils/monsterImages';
+
+// Brick entrance animation: bricks fall in and settle before play starts
+const ENTRANCE_MS = 1300;
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+// Short haptic tick on ball impacts (throttled so the phone never buzzes nonstop)
+let lastVibrateAt = 0;
+const impactVibrate = () => {
+  const now = performance.now();
+  if (now - lastVibrateAt < 120) return;
+  lastVibrateAt = now;
+  try { navigator.vibrate?.(100); } catch {}
+};
 
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
@@ -114,6 +132,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const isMonster = isMonsterLevel(gameState.level);
 
 
+  // Preload the boss artworks once so monster levels never start blank
+  useEffect(() => { preloadMonsterImages(); }, []);
+
   // Track previous level to only reinitialize on level change
   const prevLevelRef = useRef<number | null>(null);
   const prevStatusRef = useRef<string | null>(null);
@@ -181,6 +202,7 @@ useEffect(() => {
         setMonsterHp({ current: 0, max: 0 });
       }
       levelStartTimeRef.current = performance.now();
+      audioManager.setBossMode(isMonsterLevel(gameState.level));
 
       
       const baseBallSpeed = level.ballSpeed;
@@ -471,6 +493,8 @@ useEffect(() => {
     };
 
     const releaseMagnetBall = () => {
+      // Bricks must finish falling into place before the ball can launch
+      if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS) return;
       if (magnetBallRef.current) {
         const ballId = magnetBallRef.current.id;
         const angle = aimAngleRef.current;
@@ -770,7 +794,8 @@ useEffect(() => {
 
     // Monster level: slide the whole creature left <-> right as one body
     if (isMonsterLevel(gameState.level)) {
-      const speed = getMonsterSpeed(gameState.level);
+      const hpRatio = monsterHp.max ? monsterHp.current / monsterHp.max : 1;
+      const speed = getMonsterSpeed(gameState.level) * (hpRatio <= 0.25 ? 2.2 : 1);
       setBricks(prev => {
         const alive = prev.filter(b => !b.destroyed);
         if (alive.length === 0) return prev;
@@ -820,17 +845,17 @@ useEffect(() => {
           if (x - ball.radius < 0) {
             x = ball.radius;
             dx = Math.abs(dx);
-            if (step === 0) audioManager.playWallBounce();
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
           }
           if (x + ball.radius > GAME_WIDTH) {
             x = GAME_WIDTH - ball.radius;
             dx = -Math.abs(dx);
-            if (step === 0) audioManager.playWallBounce();
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
           }
           if (y - ball.radius < 0) {
             y = ball.radius;
             dy = Math.abs(dy);
-            if (step === 0) audioManager.playWallBounce();
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
           }
         }
 
@@ -1031,7 +1056,7 @@ setLasers(prevLasers => {
               return brick;
             }
             
-            // Vibration removed - was causing phone to vibrate excessively during gameplay
+            impactVibrate();
             
             const newHits = brick.hits - ((isFireball || isBigBall) ? brick.hits : 1);
             
@@ -1930,32 +1955,115 @@ explosions.forEach(explosion => {
     // #1/#5: Ghost bricks always render fully — no alpha oscillation — so the
     // background stays visually stable. Collision toggling (pass-through) is
     // handled separately in the physics step.
-    bricks.forEach(brick => {
-      if (brick.destroyed) return;
-      drawPremiumBrick(ctx, brick, gameTime);
-    });
+    const entranceT = Math.min(1, (performance.now() - levelStartTimeRef.current) / ENTRANCE_MS);
+
+    if (isMonster) {
+      // Boss body: paint the monster artwork onto the surviving brick chunks
+      const img = getMonsterImage(gameState.level);
+      const alive = bricks.filter(b => !b.destroyed);
+      const bodyDx = alive.length ? alive[0].x - (alive[0].originalX ?? alive[0].x) : 0;
+      const ready = img.complete && img.naturalWidth > 0;
+
+      bricks.forEach(brick => {
+        if (brick.destroyed) return;
+        const col = Math.round(((brick.originalX ?? brick.x) - MONSTER_START_X) / MONSTER_BRICK_WIDTH);
+        const row = Math.round((brick.y - MONSTER_START_Y) / MONSTER_BRICK_HEIGHT);
+        if (!ready || col < 0 || row < 0 || col >= MONSTER_COLS || row >= MONSTER_ROWS) {
+          drawPremiumBrick(ctx, brick, gameTime);
+          return;
+        }
+        const sw = img.naturalWidth / MONSTER_COLS;
+        const sh = img.naturalHeight / MONSTER_ROWS;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(brick.x, brick.y, brick.width, brick.height);
+        ctx.clip();
+        ctx.drawImage(
+          img,
+          col * sw, row * sh, sw, sh,
+          brick.x, brick.y, brick.width, brick.height
+        );
+        // Damage shading as the chunk gets hit
+        const dmg = 1 - brick.hits / Math.max(1, brick.maxHits);
+        if (dmg > 0) {
+          ctx.fillStyle = `rgba(255,40,40,${dmg * 0.35})`;
+          ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+        }
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(brick.x + 0.5, brick.y + 0.5, brick.width - 1, brick.height - 1);
+        ctx.restore();
+      });
+
+      // Glowing danger frame around the whole boss body
+      if (alive.length) {
+        const ratio = monsterHp.max ? monsterHp.current / monsterHp.max : 1;
+        const enraged = ratio <= 0.25;
+        ctx.save();
+        ctx.globalAlpha = 0.5 + Math.sin(gameTime * (enraged ? 12 : 5)) * 0.25;
+        ctx.strokeStyle = enraged ? 'hsl(0, 100%, 60%)' : 'hsl(0, 90%, 45%)';
+        ctx.shadowColor = 'hsl(0, 100%, 55%)';
+        ctx.shadowBlur = enraged ? 30 : 18;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(
+          MONSTER_START_X + bodyDx - 5, MONSTER_START_Y - 5,
+          MONSTER_BODY_WIDTH + 10, MONSTER_BODY_HEIGHT + 10, 10
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      bricks.forEach(brick => {
+        if (brick.destroyed) return;
+        if (entranceT < 1) {
+          // Fall-in entrance: each brick drops from above and settles
+          const delay = (((brick.y * 0.6 + brick.x * 0.4) % 260) / 260) * 0.35;
+          const p = Math.max(0, Math.min(1, (entranceT - delay) / (1 - delay)));
+          const offset = -(brick.y + 120) * (1 - easeOutCubic(p));
+          if (p <= 0) return;
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, p * 2);
+          ctx.translate(0, offset);
+          drawPremiumBrick(ctx, brick, gameTime);
+          ctx.restore();
+        } else {
+          drawPremiumBrick(ctx, brick, gameTime);
+        }
+      });
+    }
 
     // ===== MONSTER (BOSS) LEVEL OVERLAY =====
     if (isMonster && monsterHp.max > 0) {
       const alive = bricks.filter(b => !b.destroyed);
       if (alive.length > 0) {
-        const minX = Math.min(...alive.map(b => b.x));
-        const maxX = Math.max(...alive.map(b => b.x + b.width));
-        const minY = Math.min(...alive.map(b => b.y));
-        const maxY = Math.max(...alive.map(b => b.y + b.height));
         const ratio = Math.max(0, Math.min(1, monsterHp.current / monsterHp.max));
 
-        // Danger aura around the creature
-        ctx.save();
-        ctx.globalAlpha = 0.35 + Math.sin(gameTime * 6) * 0.15;
-        ctx.strokeStyle = 'hsl(0, 100%, 55%)';
-        ctx.shadowColor = 'hsl(0, 100%, 55%)';
-        ctx.shadowBlur = 22;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(minX - 6, minY - 6, maxX - minX + 12, maxY - minY + 12, 12);
-        ctx.stroke();
-        ctx.restore();
+        // Enrage: red lightning storm when the boss is nearly dead
+        if (ratio <= 0.25) {
+          ctx.save();
+          ctx.globalAlpha = 0.12 + Math.random() * 0.18;
+          ctx.fillStyle = 'hsl(0, 100%, 30%)';
+          ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+          ctx.globalAlpha = 0.8;
+          ctx.strokeStyle = 'hsl(0, 100%, 70%)';
+          ctx.shadowColor = 'hsl(0, 100%, 60%)';
+          ctx.shadowBlur = 16;
+          ctx.lineWidth = 2;
+          for (let b = 0; b < 2; b++) {
+            let lx = 30 + Math.random() * (GAME_WIDTH - 60);
+            let ly = 0;
+            ctx.beginPath();
+            ctx.moveTo(lx, ly);
+            while (ly < GAME_HEIGHT * 0.55) {
+              lx += (Math.random() - 0.5) * 40;
+              ly += 25 + Math.random() * 30;
+              ctx.lineTo(lx, ly);
+            }
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
 
         // HP bar at the very top
         const barW = GAME_WIDTH - 40;
