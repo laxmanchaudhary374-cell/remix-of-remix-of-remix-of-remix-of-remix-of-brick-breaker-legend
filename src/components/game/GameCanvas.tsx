@@ -489,6 +489,8 @@ useEffect(() => {
     };
 
     const releaseMagnetBall = () => {
+      // Bricks must finish falling into place before the ball can launch
+      if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS) return;
       if (magnetBallRef.current) {
         const ballId = magnetBallRef.current.id;
         const angle = aimAngleRef.current;
@@ -788,7 +790,8 @@ useEffect(() => {
 
     // Monster level: slide the whole creature left <-> right as one body
     if (isMonsterLevel(gameState.level)) {
-      const speed = getMonsterSpeed(gameState.level);
+      const hpRatio = monsterHp.max ? monsterHp.current / monsterHp.max : 1;
+      const speed = getMonsterSpeed(gameState.level) * (hpRatio <= 0.25 ? 2.2 : 1);
       setBricks(prev => {
         const alive = prev.filter(b => !b.destroyed);
         if (alive.length === 0) return prev;
@@ -838,17 +841,17 @@ useEffect(() => {
           if (x - ball.radius < 0) {
             x = ball.radius;
             dx = Math.abs(dx);
-            if (step === 0) audioManager.playWallBounce();
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
           }
           if (x + ball.radius > GAME_WIDTH) {
             x = GAME_WIDTH - ball.radius;
             dx = -Math.abs(dx);
-            if (step === 0) audioManager.playWallBounce();
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
           }
           if (y - ball.radius < 0) {
             y = ball.radius;
             dy = Math.abs(dy);
-            if (step === 0) audioManager.playWallBounce();
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
           }
         }
 
@@ -1049,7 +1052,7 @@ setLasers(prevLasers => {
               return brick;
             }
             
-            // Vibration removed - was causing phone to vibrate excessively during gameplay
+            impactVibrate();
             
             const newHits = brick.hits - ((isFireball || isBigBall) ? brick.hits : 1);
             
