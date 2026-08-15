@@ -48,7 +48,7 @@ export async function initDailyReminder(): Promise<void> {
           title: "Brick Breaker Legend",
           body: randomMessage,
           schedule: {
-            at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+            at: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
           }
         }
       ]
