@@ -25,7 +25,25 @@ import {
   updateMovingBricks,
 } from '@/utils/gameUtils';
 import { drawPremiumBrick, drawPremiumPaddle, drawPremiumBall } from '@/utils/brickRenderer';
-import { isMonsterLevel, getMonsterName, getMonsterSpeed } from '@/utils/monsterLevels';
+import {
+  isMonsterLevel, getMonsterName, getMonsterSpeed,
+  MONSTER_COLS, MONSTER_ROWS, MONSTER_BRICK_WIDTH, MONSTER_BRICK_HEIGHT,
+  MONSTER_START_X, MONSTER_START_Y, MONSTER_BODY_WIDTH, MONSTER_BODY_HEIGHT,
+} from '@/utils/monsterLevels';
+import { getMonsterImage, preloadMonsterImages } from '@/utils/monsterImages';
+
+// Brick entrance animation: bricks fall in and settle before play starts
+const ENTRANCE_MS = 1300;
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+// Short haptic tick on ball impacts (throttled so the phone never buzzes nonstop)
+let lastVibrateAt = 0;
+const impactVibrate = () => {
+  const now = performance.now();
+  if (now - lastVibrateAt < 120) return;
+  lastVibrateAt = now;
+  try { navigator.vibrate?.(100); } catch {}
+};
 
 import { drawPowerUp } from '@/utils/powerUpRenderer';
 import { audioManager } from '@/utils/audioManager';
