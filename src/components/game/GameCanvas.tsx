@@ -1948,10 +1948,83 @@ explosions.forEach(explosion => {
     // #1/#5: Ghost bricks always render fully — no alpha oscillation — so the
     // background stays visually stable. Collision toggling (pass-through) is
     // handled separately in the physics step.
-    bricks.forEach(brick => {
-      if (brick.destroyed) return;
-      drawPremiumBrick(ctx, brick, gameTime);
-    });
+    const entranceT = Math.min(1, (performance.now() - levelStartTimeRef.current) / ENTRANCE_MS);
+
+    if (isMonster) {
+      // Boss body: paint the monster artwork onto the surviving brick chunks
+      const img = getMonsterImage(gameState.level);
+      const alive = bricks.filter(b => !b.destroyed);
+      const bodyDx = alive.length ? alive[0].x - (alive[0].originalX ?? alive[0].x) : 0;
+      const ready = img.complete && img.naturalWidth > 0;
+
+      bricks.forEach(brick => {
+        if (brick.destroyed) return;
+        const col = Math.round(((brick.originalX ?? brick.x) - MONSTER_START_X) / MONSTER_BRICK_WIDTH);
+        const row = Math.round((brick.y - MONSTER_START_Y) / MONSTER_BRICK_HEIGHT);
+        if (!ready || col < 0 || row < 0 || col >= MONSTER_COLS || row >= MONSTER_ROWS) {
+          drawPremiumBrick(ctx, brick, gameTime);
+          return;
+        }
+        const sw = img.naturalWidth / MONSTER_COLS;
+        const sh = img.naturalHeight / MONSTER_ROWS;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(brick.x, brick.y, brick.width, brick.height);
+        ctx.clip();
+        ctx.drawImage(
+          img,
+          col * sw, row * sh, sw, sh,
+          brick.x, brick.y, brick.width, brick.height
+        );
+        // Damage shading as the chunk gets hit
+        const dmg = 1 - brick.hits / Math.max(1, brick.maxHits);
+        if (dmg > 0) {
+          ctx.fillStyle = `rgba(255,40,40,${dmg * 0.35})`;
+          ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+        }
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(brick.x + 0.5, brick.y + 0.5, brick.width - 1, brick.height - 1);
+        ctx.restore();
+      });
+
+      // Glowing danger frame around the whole boss body
+      if (alive.length) {
+        const ratio = monsterHp.max ? monsterHp.current / monsterHp.max : 1;
+        const enraged = ratio <= 0.25;
+        ctx.save();
+        ctx.globalAlpha = 0.5 + Math.sin(gameTime * (enraged ? 12 : 5)) * 0.25;
+        ctx.strokeStyle = enraged ? 'hsl(0, 100%, 60%)' : 'hsl(0, 90%, 45%)';
+        ctx.shadowColor = 'hsl(0, 100%, 55%)';
+        ctx.shadowBlur = enraged ? 30 : 18;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(
+          MONSTER_START_X + bodyDx - 5, MONSTER_START_Y - 5,
+          MONSTER_BODY_WIDTH + 10, MONSTER_BODY_HEIGHT + 10, 10
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      bricks.forEach(brick => {
+        if (brick.destroyed) return;
+        if (entranceT < 1) {
+          // Fall-in entrance: each brick drops from above and settles
+          const delay = (((brick.y * 0.6 + brick.x * 0.4) % 260) / 260) * 0.35;
+          const p = Math.max(0, Math.min(1, (entranceT - delay) / (1 - delay)));
+          const offset = -(brick.y + 120) * (1 - easeOutCubic(p));
+          if (p <= 0) return;
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, p * 2);
+          ctx.translate(0, offset);
+          drawPremiumBrick(ctx, brick, gameTime);
+          ctx.restore();
+        } else {
+          drawPremiumBrick(ctx, brick, gameTime);
+        }
+      });
+    }
 
     // ===== MONSTER (BOSS) LEVEL OVERLAY =====
     if (isMonster && monsterHp.max > 0) {
