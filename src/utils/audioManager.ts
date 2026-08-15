@@ -281,8 +281,32 @@ class AudioManager {
     this.backgroundMusic = this.audioContext.createBufferSource();
     this.backgroundMusic.buffer = this.musicBuffer;
     this.backgroundMusic.loop = true;
+    try { this.backgroundMusic.playbackRate.value = this.bossMode ? 0.72 : 1; } catch {}
     this.backgroundMusic.connect(this.musicGain);
     this.backgroundMusic.start();
+  }
+
+  private bossMode = false;
+  private bossPulse: number | null = null;
+
+  /** Boss levels: slow the music down and add a menacing heartbeat drone. */
+  setBossMode(on: boolean): void {
+    if (this.bossMode === on) return;
+    this.bossMode = on;
+    if (this.backgroundMusic) {
+      try { this.backgroundMusic.playbackRate.value = on ? 0.72 : 1; } catch {}
+    }
+    if (this.bossPulse !== null) {
+      clearInterval(this.bossPulse);
+      this.bossPulse = null;
+    }
+    if (on) {
+      this.bossPulse = window.setInterval(() => {
+        if (!this.audioContext || this._masterVolume === 0 || document.hidden) return;
+        this.playSynth(55, 0.35, 'sawtooth', true);
+        setTimeout(() => this.playSynth(41, 0.4, 'sine', true), 180);
+      }, 1600);
+    }
   }
 
   stopBackgroundMusic(): void {

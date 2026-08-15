@@ -132,6 +132,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const isMonster = isMonsterLevel(gameState.level);
 
 
+  // Preload the boss artworks once so monster levels never start blank
+  useEffect(() => { preloadMonsterImages(); }, []);
+
   // Track previous level to only reinitialize on level change
   const prevLevelRef = useRef<number | null>(null);
   const prevStatusRef = useRef<string | null>(null);
@@ -199,6 +202,7 @@ useEffect(() => {
         setMonsterHp({ current: 0, max: 0 });
       }
       levelStartTimeRef.current = performance.now();
+      audioManager.setBossMode(isMonsterLevel(gameState.level));
 
       
       const baseBallSpeed = level.ballSpeed;
