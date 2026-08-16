@@ -1,4 +1,4 @@
-// The 9 boss artworks used for monster (every 10th) levels.
+// The 15 boss artworks used for monster (every 10th) levels.
 // Images are served from the CDN via .asset.json pointers.
 
 import crystalSkull from '@/assets/monsters/crystal-skull.jpg.asset.json';
@@ -10,6 +10,12 @@ import cosmicSkull from '@/assets/monsters/cosmic-skull.jpg.asset.json';
 import goldenSkull from '@/assets/monsters/golden-skull.webp.asset.json';
 import lavaSkull from '@/assets/monsters/lava-skull.webp.asset.json';
 import crystalSkull2 from '@/assets/monsters/crystal-skull-2.webp.asset.json';
+import stoneHornedDemon from '@/assets/monsters/stone-horned-demon.webp.asset.json';
+import lavaDragon from '@/assets/monsters/lava-dragon.webp.asset.json';
+import grinningGolem from '@/assets/monsters/grinning-golem.webp.asset.json';
+import iceGolem from '@/assets/monsters/ice-golem.webp.asset.json';
+import goldenDragon from '@/assets/monsters/golden-dragon.webp.asset.json';
+import cyanSkull from '@/assets/monsters/cyan-skull.webp.asset.json';
 
 export interface MonsterArt {
   name: string;
@@ -26,6 +32,12 @@ export const MONSTER_ART: MonsterArt[] = [
   { name: 'GOLDEN SKULL', url: goldenSkull.url },
   { name: 'LAVA SKULL', url: lavaSkull.url },
   { name: 'CRYSTAL WRAITH', url: crystalSkull2.url },
+  { name: 'STONE TITAN', url: stoneHornedDemon.url },
+  { name: 'MAGMA DRAKE', url: lavaDragon.url },
+  { name: 'GRINNING GOLEM', url: grinningGolem.url },
+  { name: 'FROST GOLEM', url: iceGolem.url },
+  { name: 'GOLDEN DRAGON', url: goldenDragon.url },
+  { name: 'VOID SKULL', url: cyanSkull.url },
 ];
 
 export const getMonsterArt = (level: number): MonsterArt =>

@@ -281,7 +281,7 @@ class AudioManager {
     this.backgroundMusic = this.audioContext.createBufferSource();
     this.backgroundMusic.buffer = this.musicBuffer;
     this.backgroundMusic.loop = true;
-    try { this.backgroundMusic.playbackRate.value = this.bossMode ? 0.72 : 1; } catch {}
+    try { this.backgroundMusic.playbackRate.value = this.bossMode ? 0.88 : 1; } catch {}
     this.backgroundMusic.connect(this.musicGain);
     this.backgroundMusic.start();
   }
@@ -289,23 +289,55 @@ class AudioManager {
   private bossMode = false;
   private bossPulse: number | null = null;
 
-  /** Boss levels: slow the music down and add a menacing heartbeat drone. */
+  /** Music gain, boosted on boss levels so the fight feels bigger. */
+  private applyMusicGain(): void {
+    if (!this.musicGain) return;
+    const boost = this.bossMode ? 1.7 : 1;
+    this.musicGain.gain.value = Math.min(1, this._musicVolume * boost);
+  }
+
+  /** Monster roar / fire-breath cue. */
+  playMonsterRoar(): void {
+    if (!this.audioContext) return;
+    this.playSynth(90, 0.28, 'sawtooth', true);
+    setTimeout(() => this.playSynth(62, 0.34, 'square', true), 70);
+    setTimeout(() => this.playSynth(140, 0.18, 'sawtooth', true), 150);
+  }
+
+  /**
+   * Boss levels: louder, driving music plus an epic layered battle riff
+   * (pounding low drum + rising minor motif) on top of the track.
+   */
   setBossMode(on: boolean): void {
     if (this.bossMode === on) return;
     this.bossMode = on;
+    this.applyMusicGain();
     if (this.backgroundMusic) {
-      try { this.backgroundMusic.playbackRate.value = on ? 0.72 : 1; } catch {}
+      try { this.backgroundMusic.playbackRate.value = on ? 0.88 : 1; } catch {}
     }
     if (this.bossPulse !== null) {
       clearInterval(this.bossPulse);
       this.bossPulse = null;
     }
     if (on) {
+      // Epic boss motif: D minor style stabs over a war-drum pulse
+      const motif = [73.4, 87.3, 98.0, 110.0, 98.0, 87.3];
+      let step = 0;
       this.bossPulse = window.setInterval(() => {
         if (!this.audioContext || this._masterVolume === 0 || document.hidden) return;
-        this.playSynth(55, 0.35, 'sawtooth', true);
-        setTimeout(() => this.playSynth(41, 0.4, 'sine', true), 180);
-      }, 1600);
+        // war drum
+        this.playSynth(48, 0.22, 'sine', true);
+        setTimeout(() => this.playSynth(40, 0.26, 'sine', true), 110);
+        // riff note
+        const n = motif[step % motif.length];
+        this.playSynth(n, 0.3, 'sawtooth', true);
+        setTimeout(() => this.playSynth(n * 2, 0.18, 'square', true), 200);
+        // brass-like accent every 4th beat
+        if (step % 4 === 3) {
+          setTimeout(() => this.playSynth(n * 3, 0.22, 'sawtooth', true), 260);
+        }
+        step++;
+      }, 600);
     }
   }
 
@@ -335,9 +367,7 @@ class AudioManager {
 
   set musicVolume(value: number) {
     this._musicVolume = Math.max(0, Math.min(1, value));
-    if (this.musicGain) {
-      this.musicGain.gain.value = this._musicVolume;
-    }
+    this.applyMusicGain();
     if (this._musicVolume <= 0.01) {
       if (this.backgroundMusic) {
         try { this.backgroundMusic.stop(); } catch (e) {}
