@@ -36,9 +36,11 @@ import { getMonsterImage, preloadMonsterImages } from '@/utils/monsterImages';
 const ENTRANCE_MS = 1300;
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
-// Short haptic tick on ball impacts (throttled so the phone never buzzes nonstop)
+// Haptics: ONLY a big (power-up enlarged) ball shakes the phone.
+// Normal-size balls never vibrate. Throttled so it can't buzz nonstop.
 let lastVibrateAt = 0;
-const impactVibrate = () => {
+const impactVibrate = (ballRadius: number) => {
+  if (ballRadius <= BALL_RADIUS * 1.2) return; // normal ball -> no vibration
   const now = performance.now();
   if (now - lastVibrateAt < 120) return;
   lastVibrateAt = now;
@@ -129,6 +131,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const monsterTotalHpRef = useRef(0);
   const levelStartTimeRef = useRef(0);
   const [monsterHp, setMonsterHp] = useState({ current: 0, max: 0 });
+  // Boss fireballs spat from the monster's mouth toward the paddle
+  const [monsterFires, setMonsterFires] = useState<
+    { id: string; x: number; y: number; vx: number; vy: number }[]
+  >([]);
+  const monsterFireCdRef = useRef(1.8);
   const isMonster = isMonsterLevel(gameState.level);
 
 
@@ -209,6 +216,8 @@ useEffect(() => {
       setBallSpeed(baseBallSpeed);
       
       // Reset ALL state on new level - including laser
+      setMonsterFires([]);
+      monsterFireCdRef.current = 2.2;
       setPowerUps([]);
       setLasers([]);
       setCoins([]);
@@ -810,6 +819,73 @@ useEffect(() => {
       });
       const hpLeft = bricks.reduce((sum, b) => (b.destroyed ? sum : sum + b.hits), 0);
       setMonsterHp(prev => (prev.current === hpLeft ? prev : { ...prev, current: hpLeft }));
+
+      // ---- Boss breathes fireballs at the paddle ----
+      const aliveB = bricks.filter(b => !b.destroyed);
+      if (aliveB.length > 0 && !levelCompletingRef.current) {
+        const enraged = hpRatio <= 0.25;
+        monsterFireCdRef.current -= deltaTime;
+        if (monsterFireCdRef.current <= 0) {
+          monsterFireCdRef.current = (enraged ? 1.3 : 2.6) + Math.random() * (enraged ? 0.8 : 1.4);
+          const minX = Math.min(...aliveB.map(b => b.x));
+          const maxX = Math.max(...aliveB.map(b => b.x + b.width));
+          const mouthX = (minX + maxX) / 2;
+          const mouthY = Math.max(...aliveB.map(b => b.y + b.height)) - 6;
+          const targetX = paddle.x + paddle.width / 2;
+          const speed = enraged ? 260 : 200;
+          const ang = Math.atan2(paddle.y - mouthY, targetX - mouthX);
+          setMonsterFires(prev => [
+            ...prev,
+            {
+              id: generateId(),
+              x: mouthX,
+              y: mouthY,
+              vx: Math.cos(ang) * speed,
+              vy: Math.abs(Math.sin(ang) * speed) || speed,
+            },
+          ]);
+          createParticles(mouthX, mouthY, 'hsl(20, 100%, 55%)', 10);
+          audioManager.playMonsterRoar?.();
+        }
+      }
+    }
+
+    // Move boss fireballs + check paddle hit (a hit costs a life)
+    if (monsterFires.length > 0) {
+      let hitPaddle = false;
+      setMonsterFires(prev => {
+        const next: typeof prev = [];
+        for (const f of prev) {
+          const nx = f.x + f.vx * deltaTime;
+          const ny = f.y + f.vy * deltaTime;
+          if (
+            nx > paddle.x - 8 && nx < paddle.x + paddle.width + 8 &&
+            ny > paddle.y - 8 && ny < paddle.y + paddle.height + 10
+          ) {
+            hitPaddle = true;
+            createParticles(nx, ny, 'hsl(15, 100%, 55%)', 22);
+            continue;
+          }
+          if (ny > GAME_HEIGHT + 20) continue;
+          next.push({ ...f, x: nx, y: ny });
+        }
+        return next;
+      });
+
+      if (hitPaddle) {
+        setScreenShake(14);
+        audioManager.playBallLost();
+        try { navigator.vibrate?.(200); } catch {}
+        setGameState(prev => {
+          const newLives = prev.lives - 1;
+          if (newLives <= 0) {
+            setTimeout(() => onGameOver(), 100);
+            return { ...prev, lives: 0, status: 'gameover' };
+          }
+          return { ...prev, lives: newLives };
+        });
+        setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH }));
+      }
     }
 
 
@@ -845,17 +921,17 @@ useEffect(() => {
           if (x - ball.radius < 0) {
             x = ball.radius;
             dx = Math.abs(dx);
-            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(ball.radius); }
           }
           if (x + ball.radius > GAME_WIDTH) {
             x = GAME_WIDTH - ball.radius;
             dx = -Math.abs(dx);
-            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(ball.radius); }
           }
           if (y - ball.radius < 0) {
             y = ball.radius;
             dy = Math.abs(dy);
-            if (step === 0) { audioManager.playWallBounce(); impactVibrate(); }
+            if (step === 0) { audioManager.playWallBounce(); impactVibrate(ball.radius); }
           }
         }
 
@@ -1056,7 +1132,7 @@ setLasers(prevLasers => {
               return brick;
             }
             
-            impactVibrate();
+            impactVibrate(ball.radius);
             
             const newHits = brick.hits - ((isFireball || isBigBall) ? brick.hits : 1);
             
@@ -2033,6 +2109,26 @@ explosions.forEach(explosion => {
       });
     }
 
+    // Boss fireballs
+    monsterFires.forEach(f => {
+      const g = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, 14);
+      g.addColorStop(0, 'hsla(55, 100%, 85%, 1)');
+      g.addColorStop(0.35, 'hsla(30, 100%, 60%, 0.95)');
+      g.addColorStop(1, 'hsla(0, 100%, 45%, 0)');
+      ctx.save();
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowColor = 'hsl(20, 100%, 55%)';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = 'hsl(45, 100%, 70%)';
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, 5.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
     // ===== MONSTER (BOSS) LEVEL OVERLAY =====
     if (isMonster && monsterHp.max > 0) {
       const alive = bricks.filter(b => !b.destroyed);
@@ -2296,7 +2392,7 @@ explosions.forEach(explosion => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo, isMonster, monsterHp, gameState.level]);
+  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo, isMonster, monsterHp, monsterFires, gameState.level]);
 
   // Set up HiDPI canvas rendering
   useEffect(() => {
