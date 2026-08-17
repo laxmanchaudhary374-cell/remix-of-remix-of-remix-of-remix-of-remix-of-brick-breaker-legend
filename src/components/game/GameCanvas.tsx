@@ -341,12 +341,16 @@ useEffect(() => {
       setIsShock(false);
       setIsFireball(false);
       setPowerUps([]);
+      // Monster defeated -> stop the boss battle music immediately
+      setMonsterFires([]);
+      audioManager.setBossMode(false);
       if (laserAutoFireRef.current) {
         clearInterval(laserAutoFireRef.current);
         laserAutoFireRef.current = null;
       }
       setTimeout(() => onLevelComplete(), 300);
     }
+
   }, [bricks, alienShips, gameState.status, onLevelComplete]);
 
   // Create particles
