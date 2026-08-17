@@ -310,10 +310,13 @@ useEffect(() => {
       setPlane(null);
       setAlienShips([]);
       setAlienBullets([]);
+      setMonsterFires([]);
       magnetBallRef.current = null;
       aimAngleRef.current = -Math.PI / 2;
       levelCompletingRef.current = false;
+      audioManager.setBossMode(false);
     }
+
   }, [gameState.status]);
 
   // Track previous brick count for level completion check
@@ -341,12 +344,16 @@ useEffect(() => {
       setIsShock(false);
       setIsFireball(false);
       setPowerUps([]);
+      // Monster defeated -> stop the boss battle music immediately
+      setMonsterFires([]);
+      audioManager.setBossMode(false);
       if (laserAutoFireRef.current) {
         clearInterval(laserAutoFireRef.current);
         laserAutoFireRef.current = null;
       }
       setTimeout(() => onLevelComplete(), 300);
     }
+
   }, [bricks, alienShips, gameState.status, onLevelComplete]);
 
   // Create particles
@@ -850,43 +857,59 @@ useEffect(() => {
       }
     }
 
-    // Move boss fireballs + check paddle hit (a hit costs a life)
+    // Move boss fireballs + check paddle hit (a hit costs a life).
+    // NOTE: collision is resolved synchronously here (NOT inside the state
+    // updater, which runs later during render) so the life is actually lost.
     if (monsterFires.length > 0) {
+      const FIRE_R = 11;
+      const px1 = paddle.x - FIRE_R;
+      const px2 = paddle.x + paddle.width + FIRE_R;
+      const py1 = paddle.y - FIRE_R;
+      const py2 = paddle.y + paddle.height + FIRE_R;
+
       let hitPaddle = false;
-      setMonsterFires(prev => {
-        const next: typeof prev = [];
-        for (const f of prev) {
-          const nx = f.x + f.vx * deltaTime;
-          const ny = f.y + f.vy * deltaTime;
-          if (
-            nx > paddle.x - 8 && nx < paddle.x + paddle.width + 8 &&
-            ny > paddle.y - 8 && ny < paddle.y + paddle.height + 10
-          ) {
+      const nextFires: typeof monsterFires = [];
+      for (const f of monsterFires) {
+        // sub-step so a fast fireball can never tunnel through the paddle
+        const steps = 4;
+        let nx = f.x;
+        let ny = f.y;
+        let consumed = false;
+        for (let s = 0; s < steps; s++) {
+          nx += (f.vx * deltaTime) / steps;
+          ny += (f.vy * deltaTime) / steps;
+          if (nx > px1 && nx < px2 && ny > py1 && ny < py2) {
             hitPaddle = true;
-            createParticles(nx, ny, 'hsl(15, 100%, 55%)', 22);
-            continue;
+            consumed = true;
+            createParticles(nx, ny, 'hsl(15, 100%, 55%)', 24);
+            break;
           }
-          if (ny > GAME_HEIGHT + 20) continue;
-          next.push({ ...f, x: nx, y: ny });
         }
-        return next;
-      });
+        if (consumed) continue;
+        if (ny > GAME_HEIGHT + 20) continue;
+        nextFires.push({ ...f, x: nx, y: ny });
+      }
 
       if (hitPaddle) {
+        setMonsterFires([]);
         setScreenShake(14);
         audioManager.playBallLost();
         try { navigator.vibrate?.(200); } catch {}
+        setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH }));
         setGameState(prev => {
           const newLives = prev.lives - 1;
           if (newLives <= 0) {
+            audioManager.setBossMode(false);
             setTimeout(() => onGameOver(), 100);
             return { ...prev, lives: 0, status: 'gameover' };
           }
           return { ...prev, lives: newLives };
         });
-        setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH }));
+      } else {
+        setMonsterFires(nextFires);
       }
     }
+
 
 
     // Update balls with sub-stepping for smoothness
