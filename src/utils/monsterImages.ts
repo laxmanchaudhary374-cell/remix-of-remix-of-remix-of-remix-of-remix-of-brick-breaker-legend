@@ -1,21 +1,20 @@
 // The 15 boss artworks used for monster (every 10th) levels.
-// Images are served from the CDN via .asset.json pointers.
 
-import crystalSkull from '@/assets/monsters/crystal-skull.jpg.asset.json';
-import hornedDemon from '@/assets/monsters/horned-demon.webp.asset.json';
-import stoneGolem from '@/assets/monsters/stone-golem.webp.asset.json';
-import voidDragon from '@/assets/monsters/void-dragon.webp.asset.json';
-import cyclops from '@/assets/monsters/cyclops.webp.asset.json';
-import cosmicSkull from '@/assets/monsters/cosmic-skull.jpg.asset.json';
-import goldenSkull from '@/assets/monsters/golden-skull.webp.asset.json';
-import lavaSkull from '@/assets/monsters/lava-skull.webp.asset.json';
-import crystalSkull2 from '@/assets/monsters/crystal-skull-2.webp.asset.json';
-import stoneHornedDemon from '@/assets/monsters/stone-horned-demon.webp.asset.json';
-import lavaDragon from '@/assets/monsters/lava-dragon.webp.asset.json';
-import grinningGolem from '@/assets/monsters/grinning-golem.webp.asset.json';
-import iceGolem from '@/assets/monsters/ice-golem.webp.asset.json';
-import goldenDragon from '@/assets/monsters/golden-dragon.webp.asset.json';
-import cyanSkull from '@/assets/monsters/cyan-skull.webp.asset.json';
+import crystalSkull from '@/assets/monsters/crystal-skull.jpg';
+import hornedDemon from '@/assets/monsters/horned-demon.webp';
+import stoneGolem from '@/assets/monsters/stone-golem.webp';
+import voidDragon from '@/assets/monsters/void-dragon.webp';
+import cyclops from '@/assets/monsters/cyclops.webp';
+import cosmicSkull from '@/assets/monsters/cosmic-skull.jpg';
+import goldenSkull from '@/assets/monsters/golden-skull.webp';
+import lavaSkull from '@/assets/monsters/lava-skull.webp';
+import crystalSkull2 from '@/assets/monsters/crystal-skull-2.webp';
+import stoneHornedDemon from '@/assets/monsters/stone-horned-demon.webp';
+import lavaDragon from '@/assets/monsters/lava-dragon.webp';
+import grinningGolem from '@/assets/monsters/grinning-golem.webp';
+import iceGolem from '@/assets/monsters/ice-golem.webp';
+import goldenDragon from '@/assets/monsters/golden-dragon.webp';
+import cyanSkull from '@/assets/monsters/cyan-skull.webp';
 
 export interface MonsterArt {
   name: string;
@@ -23,21 +22,21 @@ export interface MonsterArt {
 }
 
 export const MONSTER_ART: MonsterArt[] = [
-  { name: 'CRYSTAL SKULL', url: crystalSkull.url },
-  { name: 'HORNED DEMON', url: hornedDemon.url },
-  { name: 'STONE GOLEM', url: stoneGolem.url },
-  { name: 'VOID DRAGON', url: voidDragon.url },
-  { name: 'CYCLOPS', url: cyclops.url },
-  { name: 'COSMIC REAPER', url: cosmicSkull.url },
-  { name: 'GOLDEN SKULL', url: goldenSkull.url },
-  { name: 'LAVA SKULL', url: lavaSkull.url },
-  { name: 'CRYSTAL WRAITH', url: crystalSkull2.url },
-  { name: 'STONE TITAN', url: stoneHornedDemon.url },
-  { name: 'MAGMA DRAKE', url: lavaDragon.url },
-  { name: 'GRINNING GOLEM', url: grinningGolem.url },
-  { name: 'FROST GOLEM', url: iceGolem.url },
-  { name: 'GOLDEN DRAGON', url: goldenDragon.url },
-  { name: 'VOID SKULL', url: cyanSkull.url },
+  { name: 'CRYSTAL SKULL', url: crystalSkull },
+  { name: 'HORNED DEMON', url: hornedDemon },
+  { name: 'STONE GOLEM', url: stoneGolem },
+  { name: 'VOID DRAGON', url: voidDragon },
+  { name: 'CYCLOPS', url: cyclops },
+  { name: 'COSMIC REAPER', url: cosmicSkull },
+  { name: 'GOLDEN SKULL', url: goldenSkull },
+  { name: 'LAVA SKULL', url: lavaSkull },
+  { name: 'CRYSTAL WRAITH', url: crystalSkull2 },
+  { name: 'STONE TITAN', url: stoneHornedDemon },
+  { name: 'MAGMA DRAKE', url: lavaDragon },
+  { name: 'GRINNING GOLEM', url: grinningGolem },
+  { name: 'FROST GOLEM', url: iceGolem },
+  { name: 'GOLDEN DRAGON', url: goldenDragon },
+  { name: 'VOID SKULL', url: cyanSkull },
 ];
 
 export const getMonsterArt = (level: number): MonsterArt =>
