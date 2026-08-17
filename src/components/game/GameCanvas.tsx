@@ -890,7 +890,7 @@ useEffect(() => {
         nextFires.push({ ...f, x: nx, y: ny });
       }
 
-            if (hitPaddle) {
+                  if (hitPaddle) {
         setMonsterFires([]);
         setScreenShake(14);
         audioManager.playBallLost();
@@ -905,6 +905,42 @@ useEffect(() => {
           }
           return { ...prev, lives: newLives };
         });
+
+        // Full reset like a normal ball loss
+        setCombo(0);
+        setComboTimer(0);
+        setIsFireball(false);
+        setIsBigBall(false);
+        setIsShock(false);
+        setIsAutoPaddle(false);
+        setAutoPaddleEndTime(0);
+        setIsGhostPaddle(false);
+        setLasers([]);
+        if (laserAutoFireRef.current) {
+          clearInterval(laserAutoFireRef.current);
+          laserAutoFireRef.current = null;
+        }
+
+        setPaddle(prev => ({
+          ...prev,
+          x: GAME_WIDTH / 2 - PADDLE_WIDTH / 2,
+          width: PADDLE_WIDTH,
+          hasLaser: false,
+          hasMagnet: false,
+          hasShield: false,
+        }));
+        paddleTargetRef.current = GAME_WIDTH / 2 - PADDLE_WIDTH / 2;
+
+        // Fresh ball on paddle ready to launch
+        const newBall = {
+          id: generateId(),
+          position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 90 },
+          velocity: { dx: 0, dy: 0 },
+          radius: BALL_RADIUS,
+        };
+        magnetBallRef.current = newBall;
+        setBalls([newBall]);
+        aimAngleRef.current = -Math.PI / 2;
 
         // Full reset like a normal ball loss
         setCombo(0);
