@@ -20,6 +20,9 @@ class AudioManager {
   private _masterVolume = 1.0;
   private _savedVolume: number = 1;
 
+  private bossMode = false;
+  private bossPulse: number | null = null;
+
   async init(): Promise<void> {
     if (this.isInitialized) return;
 
@@ -38,7 +41,6 @@ class AudioManager {
       this.sfxGain.gain.value = this._sfxVolume;
       this.musicGain.gain.value = this._musicVolume;
 
-      // Load saved mute state
       try {
         if (localStorage.getItem('neon_breaker_muted') === 'true') {
           this._masterVolume = 0;
@@ -60,6 +62,10 @@ class AudioManager {
         try { this.backgroundMusic.stop(); } catch {}
         this.backgroundMusic = null;
       }
+      if (this.bossPulse !== null) {
+        clearInterval(this.bossPulse);
+        this.bossPulse = null;
+      }
       if (this.audioContext && this.audioContext.state === 'running') {
         this.audioContext.suspend().catch(() => {});
       }
@@ -67,7 +73,9 @@ class AudioManager {
       if (this.audioContext && this.audioContext.state === 'suspended') {
         this.audioContext.resume().catch(() => {});
       }
-      if (this.isMusicPlaying && this._musicVolume > 0 && this._masterVolume > 0) {
+      if (this.bossMode) {
+        this.setBossMode(true); // restart boss loop
+      } else if (this.isMusicPlaying && this._musicVolume > 0 && this._masterVolume > 0) {
         this.playMusicFromBuffer();
       }
     }
@@ -247,13 +255,20 @@ class AudioManager {
     this.playSynth(600, 0.1, 'sine', true);
   }
 
+  playMonsterRoar(): void {
+    if (!this.audioContext) return;
+    this.playSynth(90, 0.28, 'sawtooth', true);
+    setTimeout(() => this.playSynth(62, 0.34, 'square', true), 70);
+    setTimeout(() => this.playSynth(140, 0.18, 'sawtooth', true), 150);
+  }
+
   async startBackgroundMusic(): Promise<void> {
     if (!this.audioContext || !this.musicGain) return;
+    if (this.bossMode) return; // never start normal music during boss
     if (this.isMusicPlaying && this.backgroundMusic) return;
 
     this.isMusicPlaying = true;
 
-    // Respect the user's mute choice - don't force audio on
     if (this._masterVolume === 0) return;
 
     try {
@@ -272,6 +287,7 @@ class AudioManager {
   private playMusicFromBuffer(): void {
     if (!this.audioContext || !this.musicGain || !this.musicBuffer || !this.isMusicPlaying) return;
     if (this._masterVolume === 0) return;
+    if (this.bossMode) return;
 
     if (this.backgroundMusic) {
       try { this.backgroundMusic.stop(); } catch {}
@@ -281,63 +297,65 @@ class AudioManager {
     this.backgroundMusic = this.audioContext.createBufferSource();
     this.backgroundMusic.buffer = this.musicBuffer;
     this.backgroundMusic.loop = true;
-    try { this.backgroundMusic.playbackRate.value = this.bossMode ? 0.88 : 1; } catch {}
     this.backgroundMusic.connect(this.musicGain);
     this.backgroundMusic.start();
   }
 
-  private bossMode = false;
-  private bossPulse: number | null = null;
-
-  /** Music gain, boosted on boss levels so the fight feels bigger. */
   private applyMusicGain(): void {
     if (!this.musicGain) return;
-    const boost = this.bossMode ? 1.7 : 1;
-    this.musicGain.gain.value = Math.min(1, this._musicVolume * boost);
-  }
-
-  /** Monster roar / fire-breath cue. */
-  playMonsterRoar(): void {
-    if (!this.audioContext) return;
-    this.playSynth(90, 0.28, 'sawtooth', true);
-    setTimeout(() => this.playSynth(62, 0.34, 'square', true), 70);
-    setTimeout(() => this.playSynth(140, 0.18, 'sawtooth', true), 150);
+    // Boss mode silences normal track
+    this.musicGain.gain.value = this.bossMode ? 0 : this._musicVolume;
   }
 
   /**
-   * Boss levels: louder, driving music plus an epic layered battle riff
-   * (pounding low drum + rising minor motif) on top of the track.
+   * Boss levels only. Stops normal music and starts a better dark battle loop.
    */
   setBossMode(on: boolean): void {
     if (this.bossMode === on) return;
     this.bossMode = on;
-    this.applyMusicGain();
-    if (this.backgroundMusic) {
-      try { this.backgroundMusic.playbackRate.value = on ? 0.88 : 1; } catch {}
-    }
+
+    // Always clear old pulse
     if (this.bossPulse !== null) {
       clearInterval(this.bossPulse);
       this.bossPulse = null;
     }
+
     if (on) {
-      // Epic boss motif: D minor style stabs over a war-drum pulse
-      const motif = [73.4, 87.3, 98.0, 110.0, 98.0, 87.3];
+      // Stop normal background music completely
+      this.applyMusicGain();
+      if (this.backgroundMusic) {
+        try { this.backgroundMusic.stop(); } catch {}
+        this.backgroundMusic = null;
+      }
+
+      // Better boss music: deep drums + dark minor motif
+      const motif = [73.4, 87.3, 98.0, 110.0, 130.8, 110.0, 98.0, 87.3];
       let step = 0;
       this.bossPulse = window.setInterval(() => {
         if (!this.audioContext || this._masterVolume === 0 || document.hidden) return;
-        // war drum
-        this.playSynth(48, 0.22, 'sine', true);
-        setTimeout(() => this.playSynth(40, 0.26, 'sine', true), 110);
-        // riff note
+        if (!this.bossMode) return;
+
+        // Deep war drum
+        this.playSynth(45, 0.28, 'sine', true);
+        setTimeout(() => this.playSynth(38, 0.32, 'sine', true), 120);
+
+        // Dark motif
         const n = motif[step % motif.length];
-        this.playSynth(n, 0.3, 'sawtooth', true);
-        setTimeout(() => this.playSynth(n * 2, 0.18, 'square', true), 200);
-        // brass-like accent every 4th beat
-        if (step % 4 === 3) {
-          setTimeout(() => this.playSynth(n * 3, 0.22, 'sawtooth', true), 260);
+        this.playSynth(n, 0.35, 'sawtooth', true);
+        setTimeout(() => this.playSynth(n * 1.5, 0.2, 'triangle', true), 180);
+
+        // Strong accent every 4 beats
+        if (step % 4 === 0) {
+          setTimeout(() => this.playSynth(n * 2, 0.25, 'square', true), 240);
         }
         step++;
-      }, 600);
+      }, 520);
+    } else {
+      // Leave boss mode → restore normal music
+      this.applyMusicGain();
+      if (this.isMusicPlaying && this._masterVolume > 0 && !document.hidden) {
+        this.playMusicFromBuffer();
+      }
     }
   }
 
@@ -347,8 +365,13 @@ class AudioManager {
       try { this.backgroundMusic.stop(); } catch {}
       this.backgroundMusic = null;
     }
+    // Also stop boss music when fully stopping
+    if (this.bossPulse !== null) {
+      clearInterval(this.bossPulse);
+      this.bossPulse = null;
+    }
+    this.bossMode = false;
   }
-
 
   get sfxVolume(): number {
     return this._sfxVolume;
@@ -373,7 +396,7 @@ class AudioManager {
         try { this.backgroundMusic.stop(); } catch (e) {}
         this.backgroundMusic = null;
       }
-    } else if (this._musicVolume > 0.01 && this.isMusicPlaying && !this.backgroundMusic && !document.hidden) {
+    } else if (this._musicVolume > 0.01 && this.isMusicPlaying && !this.backgroundMusic && !document.hidden && !this.bossMode) {
       this.playMusicFromBuffer();
     }
   }
@@ -410,7 +433,6 @@ class AudioManager {
       this.masterGain.gain.value = 0;
     }
     localStorage.setItem('neon_breaker_muted', 'true');
-    // Stop the audio source but remember that music should resume on unmute
     if (this.backgroundMusic) {
       try { this.backgroundMusic.stop(); } catch {}
       this.backgroundMusic = null;
@@ -423,11 +445,12 @@ class AudioManager {
       this.masterGain.gain.value = this._masterVolume;
     }
     localStorage.setItem('neon_breaker_muted', 'false');
-    if (this.isMusicPlaying && !document.hidden) {
+    if (this.bossMode) {
+      this.setBossMode(true);
+    } else if (this.isMusicPlaying && !document.hidden) {
       this.startBackgroundMusic();
     }
   }
-
 }
 
 export const audioManager = new AudioManager();
