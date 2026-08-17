@@ -310,10 +310,13 @@ useEffect(() => {
       setPlane(null);
       setAlienShips([]);
       setAlienBullets([]);
+      setMonsterFires([]);
       magnetBallRef.current = null;
       aimAngleRef.current = -Math.PI / 2;
       levelCompletingRef.current = false;
+      audioManager.setBossMode(false);
     }
+
   }, [gameState.status]);
 
   // Track previous brick count for level completion check
