@@ -74,7 +74,7 @@ class AudioManager {
         this.audioContext.resume().catch(() => {});
       }
       if (this.bossMode) {
-        this.setBossMode(true); // restart boss loop
+        this.setBossMode(true);
       } else if (this.isMusicPlaying && this._musicVolume > 0 && this._masterVolume > 0) {
         this.playMusicFromBuffer();
       }
@@ -264,7 +264,7 @@ class AudioManager {
 
   async startBackgroundMusic(): Promise<void> {
     if (!this.audioContext || !this.musicGain) return;
-    if (this.bossMode) return; // never start normal music during boss
+    if (this.bossMode) return;
     if (this.isMusicPlaying && this.backgroundMusic) return;
 
     this.isMusicPlaying = true;
@@ -303,55 +303,44 @@ class AudioManager {
 
   private applyMusicGain(): void {
     if (!this.musicGain) return;
-    // Boss mode silences normal track
     this.musicGain.gain.value = this.bossMode ? 0 : this._musicVolume;
   }
 
-  /**
-   * Boss levels only. Stops normal music and starts a better dark battle loop.
-   */
   setBossMode(on: boolean): void {
     if (this.bossMode === on) return;
     this.bossMode = on;
 
-    // Always clear old pulse
     if (this.bossPulse !== null) {
       clearInterval(this.bossPulse);
       this.bossPulse = null;
     }
 
     if (on) {
-      // Stop normal background music completely
       this.applyMusicGain();
       if (this.backgroundMusic) {
         try { this.backgroundMusic.stop(); } catch {}
         this.backgroundMusic = null;
       }
 
-      // Better boss music: deep drums + dark minor motif
       const motif = [73.4, 87.3, 98.0, 110.0, 130.8, 110.0, 98.0, 87.3];
       let step = 0;
       this.bossPulse = window.setInterval(() => {
         if (!this.audioContext || this._masterVolume === 0 || document.hidden) return;
         if (!this.bossMode) return;
 
-        // Deep war drum
         this.playSynth(45, 0.28, 'sine', true);
         setTimeout(() => this.playSynth(38, 0.32, 'sine', true), 120);
 
-        // Dark motif
         const n = motif[step % motif.length];
         this.playSynth(n, 0.35, 'sawtooth', true);
         setTimeout(() => this.playSynth(n * 1.5, 0.2, 'triangle', true), 180);
 
-        // Strong accent every 4 beats
         if (step % 4 === 0) {
           setTimeout(() => this.playSynth(n * 2, 0.25, 'square', true), 240);
         }
         step++;
       }, 520);
     } else {
-      // Leave boss mode → restore normal music
       this.applyMusicGain();
       if (this.isMusicPlaying && this._masterVolume > 0 && !document.hidden) {
         this.playMusicFromBuffer();
@@ -365,7 +354,6 @@ class AudioManager {
       try { this.backgroundMusic.stop(); } catch {}
       this.backgroundMusic = null;
     }
-    // Also stop boss music when fully stopping
     if (this.bossPulse !== null) {
       clearInterval(this.bossPulse);
       this.bossPulse = null;
