@@ -415,7 +415,9 @@ const BrickBreakerGame: React.FC = () => {
     });
   }, [gameState.level, gameState.highScore]);
 
-  const handleMainMenu = useCallback(() => {
+    const handleMainMenu = useCallback(() => {
+    audioManager.setBossMode(false);
+    audioManager.stopBackgroundMusic();
     setScreenState('menu');
     setGameState(prev => ({
       ...prev,
