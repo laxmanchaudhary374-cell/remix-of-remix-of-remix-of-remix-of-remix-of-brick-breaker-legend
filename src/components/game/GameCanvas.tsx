@@ -228,7 +228,7 @@ useEffect(() => {
       setAlienShips([]);
       setAlienBullets([]);
       setIsFireball(false);
-            setIsBigBall(false);
+      setIsBigBall(false);
       isBigBallActive = false;
       setIsShock(false);
       setIsAutoPaddle(false);
