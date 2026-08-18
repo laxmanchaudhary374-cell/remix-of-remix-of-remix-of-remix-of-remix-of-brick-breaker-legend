@@ -187,7 +187,7 @@ const BrickBreakerGame: React.FC = () => {
     // Initialize AdMob
     initAdMob().then(ok => { 
       console.log('[AdMob] Init result:', ok);
-      if (ok) { showBannerAd(); preloadInterstitial(); } 
+            if (ok) { preloadInterstitial(); } 
     });
     initDailyReminder();
   }, []);
@@ -292,8 +292,7 @@ const BrickBreakerGame: React.FC = () => {
     setScreenState('splash');
   }, []);
 
-  const handleStartGame = useCallback((level: number = 1) => {
-    // Lives are per-level: always start a new level with 3 lives.
+    const handleStartGame = useCallback((level: number = 1) => {
     setIsNewHighScore(false);
     setGameState({
       status: 'playing',
@@ -306,6 +305,9 @@ const BrickBreakerGame: React.FC = () => {
       maxCombo: 0,
     });
     setScreenState('playing');
+    if (level > 5 && !isAdsRemoved()) {
+      showBannerAd();
+    }
   }, []);
 
   const handleGameOver = useCallback(() => {
@@ -331,29 +333,28 @@ const BrickBreakerGame: React.FC = () => {
     }
   }, [gameState.level]);
 
-  const handleNextLevel = useCallback(() => {
+    const handleNextLevel = useCallback(() => {
     const nextLevel = gameState.level + 1;
-
-    // #2 Show interstitial only every 3 levels.
-    // #9 Skip ad entirely when offline so next level starts instantly.
     const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
-        const shouldShowAd = nextLevel >= 15
-      && (nextLevel - 15) % 3 === 0
-
-      && online
-      && !isAdsRemoved();
-
+    const shouldShowAd =
+      nextLevel >= 15 &&
+      (nextLevel - 15) % 3 === 0 &&
+      online &&
+      !isAdsRemoved();
 
     if (shouldShowAd) {
       pendingNextLevelRef.current = nextLevel;
-      audioManager.stopBackgroundMusic();
-     showInterstitialAd(
-  "Between_Levels",
-  () => { /* ad is showing */ },
-  () => {
+      audioManager.muteForAd();
+      showInterstitialAd(
+        "Between_Levels",
+        () => {},
+        () => {
           const lvl = pendingNextLevelRef.current;
           pendingNextLevelRef.current = null;
-          if (!audioManager.isMuted) audioManager.startBackgroundMusic();
+          audioManager.unmuteAfterAd();
+          if (!audioManager.isMuted) {
+            audioManager.startBackgroundMusic();
+          }
           if (lvl) {
             setGameState(prev => ({
               ...prev,
@@ -363,10 +364,10 @@ const BrickBreakerGame: React.FC = () => {
             }));
             setScreenState('playing');
             preloadInterstitial();
+            if (lvl > 5 && !isAdsRemoved()) showBannerAd();
           }
         }
       );
-      
     } else {
       setGameState(prev => ({
         ...prev,
@@ -376,6 +377,7 @@ const BrickBreakerGame: React.FC = () => {
       }));
       setScreenState('playing');
       if (online) preloadInterstitial();
+      if (nextLevel > 5 && !isAdsRemoved()) showBannerAd();
     }
   }, [gameState.level]);
 
