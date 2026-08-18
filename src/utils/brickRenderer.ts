@@ -919,34 +919,36 @@ export const drawPremiumPaddle = (
   ctx.fillStyle = 'rgba(255, 180, 180, 0.6)';
   ctx.fill();
   
-  // Chrome/silver middle body with 3D metallic gradient
+    // Chrome/silver middle body
   const bodyGrad = ctx.createLinearGradient(cx + capR, centerY - h / 2, cx + capR, centerY + h / 2);
-  bodyGrad.addColorStop(0, '#e8e8e8');
-  bodyGrad.addColorStop(0.15, '#ffffff');
-  bodyGrad.addColorStop(0.3, '#d0d0d0');
-  bodyGrad.addColorStop(0.5, '#b8b8b8');
-  bodyGrad.addColorStop(0.7, '#a0a0a0');
-  bodyGrad.addColorStop(0.85, '#888888');
-  bodyGrad.addColorStop(1, '#666666');
+  bodyGrad.addColorStop(0, '#ffffff');
+  bodyGrad.addColorStop(0.2, '#e8eef5');
+  bodyGrad.addColorStop(0.45, '#b8c4d0');
+  bodyGrad.addColorStop(0.7, '#8a96a4');
+  bodyGrad.addColorStop(1, '#5a6570');
   ctx.fillStyle = bodyGrad;
-  ctx.fillRect(cx + capR, centerY - h / 2, width - capR * 2, h);
-  
-  // Top edge highlight (thin white line for chrome reflection)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  ctx.fillRect(cx + capR, centerY - h / 2, width - capR * 2, 2);
-  
-  // Cyan glow line in the middle
-  const cyanGrad = ctx.createLinearGradient(cx + capR, centerY - 1, cx + width - capR, centerY - 1);
-  cyanGrad.addColorStop(0, 'rgba(0, 255, 255, 0.3)');
-  cyanGrad.addColorStop(0.3, 'rgba(0, 255, 255, 0.9)');
+  ctx.beginPath();
+  ctx.roundRect(cx + capR - 1, centerY - h / 2, width - capR * 2 + 2, h, 4);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillRect(cx + capR, centerY - h / 2 + 1, width - capR * 2, 2.5);
+
+  const cyanGrad = ctx.createLinearGradient(cx + capR, centerY, cx + width - capR, centerY);
+  cyanGrad.addColorStop(0, 'rgba(0, 220, 255, 0.25)');
+  cyanGrad.addColorStop(0.2, 'rgba(0, 255, 255, 0.95)');
   cyanGrad.addColorStop(0.5, 'rgba(200, 255, 255, 1)');
-  cyanGrad.addColorStop(0.7, 'rgba(0, 255, 255, 0.9)');
-  cyanGrad.addColorStop(1, 'rgba(0, 255, 255, 0.3)');
+  cyanGrad.addColorStop(0.8, 'rgba(0, 255, 255, 0.95)');
+  cyanGrad.addColorStop(1, 'rgba(0, 220, 255, 0.25)');
+  ctx.shadowColor = 'rgba(0, 255, 255, 0.8)';
+  ctx.shadowBlur = 10;
   ctx.fillStyle = cyanGrad;
-  ctx.fillRect(cx + capR + 4, centerY - 1, width - capR * 2 - 8, 3);
-  
-  // Bottom edge shadow
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.beginPath();
+  ctx.roundRect(cx + capR + 6, centerY - 2, width - capR * 2 - 12, 4, 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.fillRect(cx + capR, centerY + h / 2 - 2, width - capR * 2, 2);
   
   // Laser turrets
@@ -1140,11 +1142,11 @@ export const drawPremiumBall = (
       x - radius * 0.4, y - radius * 0.4, 0,
       x, y, radius
     );
-    steelGrad.addColorStop(0, 'hsl(210, 15%, 95%)');   // Bright highlight
-    steelGrad.addColorStop(0.15, 'hsl(210, 10%, 80%)'); // Light steel
-    steelGrad.addColorStop(0.4, 'hsl(215, 12%, 60%)');  // Mid steel
-    steelGrad.addColorStop(0.7, 'hsl(220, 15%, 45%)');  // Dark steel
-    steelGrad.addColorStop(1, 'hsl(225, 20%, 30%)');    // Edge shadow
+        steelGrad.addColorStop(0, 'hsl(210, 20%, 100%)');
+    steelGrad.addColorStop(0.12, 'hsl(210, 15%, 88%)');
+    steelGrad.addColorStop(0.35, 'hsl(215, 12%, 65%)');
+    steelGrad.addColorStop(0.65, 'hsl(220, 15%, 42%)');
+    steelGrad.addColorStop(1, 'hsl(225, 25%, 22%)');
     
     ctx.fillStyle = steelGrad;
     ctx.beginPath();
