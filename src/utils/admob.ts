@@ -200,39 +200,42 @@ async function tryAdMobRewarded(onShow?: () => void): Promise<RewardedAdResult> 
     }
   });
 }
-
 // ==================== BANNER ADS ====================
 
 export async function showBannerAd(location: string = "Main_Menu_Banner"): Promise<void> {
   if (!Capacitor.isNativePlatform() || isAdsRemoved()) return;
 
-  // 1. TRY CHARTBOOST FIRST
+  // 1. TRY ADMOB FIRST (Chartboost is still pending)
+  try {
+    await AdMob.showBanner({
+      adId: AD_UNIT_IDS.BANNER,
+      adSize: 'BANNER' as any,
+      position: 'BOTTOM_CENTER' as any,  // bottom is better for games
+      isTesting: false,
+    });
+    console.log('[AdMob] Banner shown');
+    return;
+  } catch (e) {
+    console.warn('[AdMob] Banner failed:', e);
+  }
+
+  // 2. FALLBACK TO CHARTBOOST (when it gets approved)
   if (chartboostReady) {
     try {
       await Chartboost.showBanner({ location });
       console.log('[Chartboost] Banner shown');
       return;
     } catch (e) {
-      console.warn('[Chartboost] Banner failed:', e);
+      console.warn('[Chartboost] Banner also failed:', e);
     }
   }
 
-  // 2. FALLBACK TO ADMOB (position TOP_CENTER)
-  try {
-    await AdMob.showBanner({
-      adId: AD_UNIT_IDS.BANNER,
-      adSize: 'BANNER' as any,
-      position: 'TOP_CENTER' as any,
-      isTesting: false,
-    });
-    console.log('[AdMob] Banner shown');
-  } catch (e) {
-    console.warn('[AdMob] Banner also failed:', e);
-    // Retry after 15 seconds
-    if (bannerRetryTimer) clearTimeout(bannerRetryTimer);
-    bannerRetryTimer = setTimeout(() => showBannerAd(location), 15000);
-  }
+  // Retry after 20 seconds if both failed
+  if (bannerRetryTimer) clearTimeout(bannerRetryTimer);
+  bannerRetryTimer = setTimeout(() => showBannerAd(location), 20000);
 }
+//
+
 
 // ==================== INTERSTITIAL ADS ====================
 
