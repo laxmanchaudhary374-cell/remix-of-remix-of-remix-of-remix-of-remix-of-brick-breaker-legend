@@ -15,9 +15,9 @@ class AudioManager {
   private lastBrickDestroyTime = 0;
   private readonly SOUND_THROTTLE = 50;
 
-  private _sfxVolume = 0.7;
-  private _musicVolume = 0.4;
-  private _masterVolume = 1.0;
+    private _sfxVolume = 0.65;
+  private _musicVolume = 0.35;
+  private _masterVolume = 0.7;
   private _savedVolume: number = 1;
 
   private bossMode = false;
@@ -94,7 +94,8 @@ class AudioManager {
     fadeOut: boolean = true,
     detune: number = 0
   ): void {
-    if (!this.audioContext || !this.sfxGain) return;
+        if (!this.audioContext || !this.sfxGain) return;
+    if (this._masterVolume === 0) return;
 
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
@@ -347,7 +348,6 @@ class AudioManager {
       }
     }
   }
-
   stopBackgroundMusic(): void {
     this.isMusicPlaying = false;
     if (this.backgroundMusic) {
@@ -359,6 +359,30 @@ class AudioManager {
       this.bossPulse = null;
     }
     this.bossMode = false;
+  }
+
+  muteForAd(): void {
+    if (this._masterVolume > 0) {
+      this._savedVolume = this._masterVolume;
+    }
+    this._masterVolume = 0;
+    if (this.masterGain) this.masterGain.gain.value = 0;
+    if (this.backgroundMusic) {
+      try { this.backgroundMusic.stop(); } catch {}
+      this.backgroundMusic = null;
+    }
+    if (this.bossPulse !== null) {
+      clearInterval(this.bossPulse);
+      this.bossPulse = null;
+    }
+  }
+
+  unmuteAfterAd(): void {
+    try {
+      if (localStorage.getItem('neon_breaker_muted') === 'true') return;
+    } catch {}
+    this._masterVolume = this._savedVolume > 0 ? this._savedVolume : 0.7;
+    if (this.masterGain) this.masterGain.gain.value = this._masterVolume;
   }
 
   get sfxVolume(): number {
