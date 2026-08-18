@@ -2468,7 +2468,7 @@ explosions.forEach(explosion => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = GAME_WIDTH * dpr;
     canvas.height = GAME_HEIGHT * dpr;
     canvas.style.width = `${GAME_WIDTH}px`;
