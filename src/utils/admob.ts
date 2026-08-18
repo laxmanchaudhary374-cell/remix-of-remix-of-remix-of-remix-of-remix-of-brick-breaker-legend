@@ -197,7 +197,7 @@ export async function showBannerAd(location: string = "Main_Menu_Banner"): Promi
     await AdMob.showBanner({
       adId: AD_UNIT_IDS.BANNER,
       adSize: 'BANNER' as any,
-      position: 'BOTTOM_CENTER' as any,
+            position: 'TOP_CENTER' as any,
       isTesting: false,
     });
     console.log('[AdMob] Banner shown');
