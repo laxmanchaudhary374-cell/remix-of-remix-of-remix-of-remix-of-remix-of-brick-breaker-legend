@@ -39,12 +39,13 @@ const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 // Haptics: ONLY a big (power-up enlarged) ball shakes the phone.
 // Normal-size balls never vibrate. Throttled so it can't buzz nonstop.
 let lastVibrateAt = 0;
+let isBigBallActive = false;
 const impactVibrate = (ballRadius: number) => {
-  if (ballRadius <= BALL_RADIUS * 1.2) return; // normal ball -> no vibration
+  if (!isBigBallActive && ballRadius <= BALL_RADIUS * 1.25) return;
   const now = performance.now();
-  if (now - lastVibrateAt < 120) return;
+  if (now - lastVibrateAt < 90) return;
   lastVibrateAt = now;
-  try { navigator.vibrate?.(100); } catch {}
+  try { navigator.vibrate?.([40, 30, 40]); } catch {}
 };
 
 import { drawPowerUp } from '@/utils/powerUpRenderer';
@@ -227,7 +228,8 @@ useEffect(() => {
       setAlienShips([]);
       setAlienBullets([]);
       setIsFireball(false);
-      setIsBigBall(false);
+            setIsBigBall(false);
+      isBigBallActive = false;
       setIsShock(false);
       setIsAutoPaddle(false);
       setAutoPaddleEndTime(0);
@@ -326,6 +328,7 @@ useEffect(() => {
   useEffect(() => {
     if (gameState.status !== 'playing') return;
     if (levelCompletingRef.current) return;
+        if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS + 300) return;
     // Need actual bricks loaded for this level
     if (bricks.length === 0) return;
 
@@ -511,7 +514,7 @@ useEffect(() => {
 
     const releaseMagnetBall = () => {
       // Bricks must finish falling into place before the ball can launch
-      if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS) return;
+            if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS + 250) return;
       if (magnetBallRef.current) {
         const ballId = magnetBallRef.current.id;
         const angle = aimAngleRef.current;
@@ -609,8 +612,9 @@ useEffect(() => {
     return;
   }
     // Use fixed sub-steps for smoother physics (capped at 4 to prevent ball tunneling through bricks)
-    const numSteps = Math.min(4, Math.max(2, Math.ceil(deltaTime / 0.008)));
-    const stepDt = deltaTime / numSteps;
+        const clampedDt = Math.min(deltaTime, 0.033);
+    const numSteps = Math.min(6, Math.max(3, Math.ceil(clampedDt / 0.006)));
+    const stepDt = clampedDt / numSteps;
     
     // Check emergency powerup activation
     if (emergencyRef?.current) {
@@ -956,7 +960,7 @@ useEffect(() => {
       const newBalls = prevBalls.map(ball => {
         if (magnetBallRef.current && ball.id === magnetBallRef.current.id) {
           // Auto-release ball when auto-paddle is active + magnet
-          if (isAutoPaddle) {
+                    if (isAutoPaddle && performance.now() - levelStartTimeRef.current > ENTRANCE_MS + 400) {
             const releaseAngle = -Math.PI / 2 + (Math.random() - 0.5) * 0.4;
             magnetBallRef.current = null;
             return {
@@ -1434,13 +1438,15 @@ explosions.forEach(explosion => {
                 ...ball,
                 radius: BALL_RADIUS * 1.8,
               })));
-              setIsBigBall(true);
+                            setIsBigBall(true);
+              isBigBallActive = true;
               setTimeout(() => {
                 setBalls(prev => prev.map(ball => ({
                   ...ball,
                   radius: BALL_RADIUS,
                 })));
                 setIsBigBall(false);
+                isBigBallActive = false;
               }, 15000);
               break;
             case 'slow':
