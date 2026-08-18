@@ -357,7 +357,8 @@ useEffect(() => {
   }, [bricks, alienShips, gameState.status, onLevelComplete]);
 
   // Create particles
-  const createParticles = useCallback((x: number, y: number, color: string, count: number = 8) => {
+    const createParticles = useCallback((x: number, y: number, color: string, count: number = 6) => {
+    count = Math.min(count, 10);
     const reducedCount = Math.ceil(count * 0.5); // Reduce particles by 50% for performance
     const newParticles: Particle[] = [];
     for (let i = 0; i < reducedCount; i++) {
@@ -1705,7 +1706,7 @@ explosions.forEach(explosion => {
 
     // Reset transform fully to prevent drift between frames
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
@@ -2170,22 +2171,29 @@ explosions.forEach(explosion => {
       });
     }
 
-    // Boss fireballs
+        // Boss fireballs — bigger + live flame
     monsterFires.forEach(f => {
-      const g = ctx.createRadialGradient(f.x, f.y, 1, f.x, f.y, 14);
-      g.addColorStop(0, 'hsla(55, 100%, 85%, 1)');
-      g.addColorStop(0.35, 'hsla(30, 100%, 60%, 0.95)');
-      g.addColorStop(1, 'hsla(0, 100%, 45%, 0)');
+      const r = 22;
       ctx.save();
+      const g = ctx.createRadialGradient(f.x, f.y, 2, f.x, f.y, r);
+      g.addColorStop(0, 'hsla(50, 100%, 80%, 1)');
+      g.addColorStop(0.25, 'hsla(30, 100%, 55%, 0.95)');
+      g.addColorStop(0.55, 'hsla(15, 100%, 45%, 0.7)');
+      g.addColorStop(1, 'hsla(0, 100%, 30%, 0)');
       ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(f.x, f.y, 14, 0, Math.PI * 2);
+      ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowColor = 'hsl(20, 100%, 55%)';
-      ctx.shadowBlur = 18;
-      ctx.fillStyle = 'hsl(45, 100%, 70%)';
+      ctx.shadowColor = 'hsl(20, 100%, 50%)';
+      ctx.shadowBlur = 24;
+      ctx.fillStyle = 'hsl(45, 100%, 75%)';
       ctx.beginPath();
-      ctx.arc(f.x, f.y, 5.5, 0, Math.PI * 2);
+      ctx.arc(f.x, f.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.5 + Math.random() * 0.4;
+      ctx.fillStyle = 'hsl(10, 100%, 55%)';
+      ctx.beginPath();
+      ctx.arc(f.x + (Math.random() - 0.5) * 6, f.y + (Math.random() - 0.5) * 6, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     });
@@ -2283,7 +2291,7 @@ explosions.forEach(explosion => {
         ctx.shadowColor = 'hsl(0, 100%, 60%)';
         ctx.shadowBlur = 18;
         ctx.lineWidth = 2.5;
-        const bolts = 4;
+        const bolts = 2;
         for (let b = 0; b < bolts; b++) {
           let x = 30 + Math.random() * (GAME_WIDTH - 60);
           let y = 0;
@@ -2460,7 +2468,7 @@ explosions.forEach(explosion => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
     canvas.width = GAME_WIDTH * dpr;
     canvas.height = GAME_HEIGHT * dpr;
     canvas.style.width = `${GAME_WIDTH}px`;
