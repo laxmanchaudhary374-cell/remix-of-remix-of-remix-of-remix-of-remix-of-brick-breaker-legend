@@ -366,21 +366,7 @@ const BrickBreakerGame: React.FC = () => {
           }
         }
       );
-      setTimeout(() => {
-        if (pendingNextLevelRef.current) {
-          const lvl = pendingNextLevelRef.current;
-          pendingNextLevelRef.current = null;
-          if (!audioManager.isMuted) audioManager.startBackgroundMusic();
-          setGameState(prev => ({
-            ...prev,
-            status: 'playing',
-            level: lvl,
-            lives: 3,
-          }));
-          setScreenState('playing');
-          preloadInterstitial();
-        }
-      }, 6000);
+      
     } else {
       setGameState(prev => ({
         ...prev,
