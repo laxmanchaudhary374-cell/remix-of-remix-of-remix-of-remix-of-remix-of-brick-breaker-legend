@@ -1,16 +1,10 @@
 /**
- * Ad integration: Chartboost PRIMARY, AdMob FALLBACK
- * Chartboost is tried first for all ad types.
- * If Chartboost fails, AdMob is tried as backup.
- * When AdMob gets unsuspended, it will automatically work as fallback.
+ * Ad integration: AdMob PRIMARY, Chartboost FALLBACK
  */
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import {
   AdMob,
   RewardAdPluginEvents,
-  type AdLoadInfo,
-  type AdMobError,
-  type AdMobRewardItem,
 } from '@capacitor-community/admob';
 import Chartboost from './chartboost';
 
@@ -32,6 +26,8 @@ let chartboostReady = false;
 let adActive = false;
 let rewardedAdInProgress = false;
 let bannerRetryTimer: any = null;
+let lastInterstitialTime = 0;
+let interstitialReady = false;
 
 export function isAdActive(): boolean {
   return adActive;
@@ -65,24 +61,20 @@ export async function initAdMob(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
   if (initialized) return true;
 
-  // Initialize Chartboost FIRST (primary ad network)
-  try {
-    await Chartboost.initialize(CHARTBOOST_CONFIG);
-    console.log('[Chartboost] SDK initialized successfully');
-  } catch (e) {
-    console.warn('[Chartboost] Init reported error (will still attempt ads):', e);
-  }
-  // Always set chartboostReady to true so we attempt Chartboost ads
-  // The SDK may report init failure but still serve ads once approved
-  chartboostReady = true;
-
-  // Initialize AdMob as backup (will fail silently if suspended)
   try {
     await AdMob.initialize({ initializeForTesting: false });
     console.log('[AdMob] SDK initialized');
   } catch (err) {
-    console.warn('[AdMob] Init failed (likely suspended):', err);
+    console.warn('[AdMob] Init failed:', err);
   }
+
+  try {
+    await Chartboost.initialize(CHARTBOOST_CONFIG);
+    console.log('[Chartboost] SDK initialized');
+  } catch (e) {
+    console.warn('[Chartboost] Init error:', e);
+  }
+  chartboostReady = true;
 
   initialized = true;
   return true;
@@ -98,36 +90,59 @@ export async function showRewardedAd(location: string = "Default", onShow?: () =
   if (!Capacitor.isNativePlatform()) {
     return { ok: false, error: 'Ads only work in the installed app.' };
   }
-
   if (rewardedAdInProgress) {
     return { ok: false, error: 'Ad is already opening.' };
   }
-
   rewardedAdInProgress = true;
-  // DO NOT hide banner during rewarded - keep banner always visible
 
   try {
-    // 1. TRY CHARTBOOST FIRST (primary)
+    console.log('[AdMob] Attempting Rewarded...');
+    const amResult = await tryAdMobRewarded(onShow);
+    if (amResult.ok) return amResult;
+  } catch (e) {
+    console.warn('[AdMob] Rewarded failed:', e);
+  }
+
+  try {
     if (chartboostReady) {
-      console.log('[Chartboost] Attempting Rewarded at location:', location);
-      const cbResult = await tryChartboostRewarded(location, onShow);
-      if (cbResult.ok) return cbResult;
+      console.log('[Chartboost] Attempting Rewarded...');
+      return await tryChartboostRewarded(location, onShow);
     }
   } catch (e) {
     console.warn('[Chartboost] Rewarded failed:', e);
   }
 
-  // 2. FALLBACK TO ADMOB
-  try {
-    console.log('[AdMob] Attempting Rewarded as fallback...');
-    const amResult = await tryAdMobRewarded(onShow);
-    return amResult;
-  } catch (e) {
-    console.warn('[AdMob] Rewarded also failed:', e);
-    return { ok: false, error: 'No ads available. Try again later.' };
-  } finally {
-    rewardedAdInProgress = false;
-  }
+  rewardedAdInProgress = false;
+  return { ok: false, error: 'No ads available. Try again later.' };
+}
+
+async function tryAdMobRewarded(onShow?: () => void): Promise<RewardedAdResult> {
+  return new Promise(async (resolve) => {
+    let settled = false;
+    const listeners: PluginListenerHandle[] = [];
+    const finish = (r: RewardedAdResult) => {
+      if (settled) return;
+      settled = true;
+      adActive = false;
+      rewardedAdInProgress = false;
+      listeners.forEach(l => l.remove());
+      resolve(r);
+    };
+    try {
+      listeners.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, () => finish({ ok: true, reward: 50 })));
+      listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToLoad, () => finish({ ok: false, error: 'AdMob failed to load' })));
+      listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, () => finish({ ok: false, error: 'AdMob failed to show' })));
+      listeners.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+        if (!settled) finish({ ok: true, reward: 0 });
+      }));
+      await AdMob.prepareRewardVideoAd({ adId: AD_UNIT_IDS.REWARDED_COINS, isTesting: false });
+      if (onShow) onShow();
+      adActive = true;
+      await AdMob.showRewardVideoAd();
+    } catch (e) {
+      finish({ ok: false, error: 'AdMob not available' });
+    }
+  });
 }
 
 async function tryChartboostRewarded(location: string, onShow?: () => void): Promise<RewardedAdResult> {
@@ -137,21 +152,23 @@ async function tryChartboostRewarded(location: string, onShow?: () => void): Pro
       if (!settled) {
         settled = true;
         adActive = false;
+        rewardedAdInProgress = false;
         reject(new Error('Chartboost rewarded timeout'));
       }
-    }, 10000); // 10 second timeout
-
+    }, 8000);
     Chartboost.addListener('rewardedEvent', (data) => {
       if (settled) return;
       if (data.event === 'onRewardEarned') {
         settled = true;
         clearTimeout(timeout);
         adActive = false;
+        rewardedAdInProgress = false;
         resolve({ ok: true, reward: 50 });
       } else if (data.event === 'onAdDismissed') {
         settled = true;
         clearTimeout(timeout);
         adActive = false;
+        rewardedAdInProgress = false;
         resolve({ ok: true, reward: 0 });
       }
     }).then(listener => {
@@ -162,6 +179,7 @@ async function tryChartboostRewarded(location: string, onShow?: () => void): Pro
           settled = true;
           clearTimeout(timeout);
           adActive = false;
+          rewardedAdInProgress = false;
           listener.remove();
           reject(e);
         }
@@ -170,47 +188,16 @@ async function tryChartboostRewarded(location: string, onShow?: () => void): Pro
   });
 }
 
-async function tryAdMobRewarded(onShow?: () => void): Promise<RewardedAdResult> {
-  return new Promise(async (resolve) => {
-    let settled = false;
-    const listeners: PluginListenerHandle[] = [];
-
-    const finish = (r: RewardedAdResult) => {
-      if (settled) return;
-      settled = true;
-      adActive = false;
-      listeners.forEach(l => l.remove());
-      resolve(r);
-    };
-
-    try {
-      listeners.push(await AdMob.addListener(RewardAdPluginEvents.Rewarded, () => finish({ ok: true, reward: 50 })));
-      listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToLoad, () => finish({ ok: false, error: 'AdMob failed to load' })));
-      listeners.push(await AdMob.addListener(RewardAdPluginEvents.FailedToShow, () => finish({ ok: false, error: 'AdMob failed to show' })));
-      listeners.push(await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
-        if (!settled) finish({ ok: true, reward: 0 });
-      }));
-
-      await AdMob.prepareRewardVideoAd({ adId: AD_UNIT_IDS.REWARDED_COINS, isTesting: false });
-      if (onShow) onShow();
-      adActive = true;
-      await AdMob.showRewardVideoAd();
-    } catch (e) {
-      finish({ ok: false, error: 'AdMob not available' });
-    }
-  });
-}
 // ==================== BANNER ADS ====================
 
 export async function showBannerAd(location: string = "Main_Menu_Banner"): Promise<void> {
   if (!Capacitor.isNativePlatform() || isAdsRemoved()) return;
 
-  // 1. TRY ADMOB FIRST (Chartboost is still pending)
   try {
     await AdMob.showBanner({
       adId: AD_UNIT_IDS.BANNER,
       adSize: 'BANNER' as any,
-      position: 'BOTTOM_CENTER' as any,  // bottom is better for games
+      position: 'BOTTOM_CENTER' as any,
       isTesting: false,
     });
     console.log('[AdMob] Banner shown');
@@ -219,102 +206,124 @@ export async function showBannerAd(location: string = "Main_Menu_Banner"): Promi
     console.warn('[AdMob] Banner failed:', e);
   }
 
-  // 2. FALLBACK TO CHARTBOOST (when it gets approved)
   if (chartboostReady) {
     try {
       await Chartboost.showBanner({ location });
       console.log('[Chartboost] Banner shown');
       return;
     } catch (e) {
-      console.warn('[Chartboost] Banner also failed:', e);
+      console.warn('[Chartboost] Banner failed:', e);
     }
   }
 
-  // Retry after 20 seconds if both failed
   if (bannerRetryTimer) clearTimeout(bannerRetryTimer);
   bannerRetryTimer = setTimeout(() => showBannerAd(location), 20000);
 }
-//
-
 
 // ==================== INTERSTITIAL ADS ====================
 
-let lastInterstitialTime = 0;
+export async function preloadInterstitial(): Promise<void> {
+  if (!Capacitor.isNativePlatform() || isAdsRemoved() || interstitialReady) return;
+  try {
+    await AdMob.prepareInterstitial({
+      adId: AD_UNIT_IDS.INTERSTITIAL,
+      isTesting: false,
+    });
+    interstitialReady = true;
+    console.log('[AdMob] Interstitial preloaded');
+  } catch (e) {
+    interstitialReady = false;
+    console.warn('[AdMob] Preload failed', e);
+  }
+}
 
-export async function showInterstitialAd(location: string = "Between_Levels", onShow?: () => void, onDismiss?: () => void): Promise<void> {
+export async function showInterstitialAd(
+  location: string = "Between_Levels",
+  onShow?: () => void,
+  onDismiss?: () => void
+): Promise<void> {
   if (!Capacitor.isNativePlatform() || isAdsRemoved()) {
-    if (onDismiss) onDismiss();
+    onDismiss?.();
     return;
   }
 
-  const now = Date.now();
-  if (now - lastInterstitialTime < 45000) {
-    if (onDismiss) onDismiss();
+  if (Date.now() - lastInterstitialTime < 45000) {
+    onDismiss?.();
     return;
   }
 
-  // 1. TRY CHARTBOOST FIRST
+  // 1. ADMOB FIRST
+  try {
+    if (!interstitialReady) {
+      await Promise.race([
+        AdMob.prepareInterstitial({
+          adId: AD_UNIT_IDS.INTERSTITIAL,
+          isTesting: false,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('AdMob prepare timeout')), 1800)
+        ),
+      ]);
+      interstitialReady = true;
+    }
+    onShow?.();
+    adActive = true;
+    await AdMob.showInterstitial();
+    adActive = false;
+    interstitialReady = false;
+    lastInterstitialTime = Date.now();
+    onDismiss?.();
+    setTimeout(() => preloadInterstitial(), 1000);
+    return;
+  } catch (e) {
+    console.warn('[Mediation] AdMob failed → Chartboost', e);
+    adActive = false;
+    interstitialReady = false;
+  }
+
+  // 2. CHARTBOOST FALLBACK
   if (chartboostReady) {
     try {
       await new Promise<void>((resolve, reject) => {
         let settled = false;
         const timeout = setTimeout(() => {
-          if (!settled) { settled = true; adActive = false; reject(new Error('timeout')); }
-        }, 10000);
-
+          if (!settled) { settled = true; reject(new Error('Chartboost timeout')); }
+        }, 3000);
         Chartboost.addListener('interstitialEvent', (data) => {
           if (settled) return;
           if (data.event === 'onAdDismissed') {
             settled = true;
             clearTimeout(timeout);
-            adActive = false;
             resolve();
           } else if (data.event === 'onAdDisplayFailed') {
             settled = true;
             clearTimeout(timeout);
-            adActive = false;
-            reject(new Error('display failed'));
+            reject(new Error('Chartboost display failed'));
           }
-        }).then(listener => {
-          if (onShow) onShow();
+        }).then((listener) => {
+          onShow?.();
           adActive = true;
-          Chartboost.showInterstitial({ location }).catch((e) => {
+          Chartboost.showInterstitial({ location }).catch((err) => {
             if (!settled) {
               settled = true;
               clearTimeout(timeout);
-              adActive = false;
               listener.remove();
-              reject(e);
+              reject(err);
             }
           });
         }).catch(reject);
       });
+      adActive = false;
       lastInterstitialTime = Date.now();
-      if (onDismiss) onDismiss();
+      onDismiss?.();
       return;
     } catch (e) {
-      console.warn('[Chartboost] Interstitial failed:', e);
+      console.warn('[Mediation] Chartboost failed', e);
+      adActive = false;
     }
   }
 
-  // 2. FALLBACK TO ADMOB
-  try {
-    await AdMob.prepareInterstitial({ adId: AD_UNIT_IDS.INTERSTITIAL, isTesting: false });
-    if (onShow) onShow();
-    adActive = true;
-    await AdMob.showInterstitial();
-    adActive = false;
-    lastInterstitialTime = Date.now();
-    if (onDismiss) onDismiss();
-  } catch (e) {
-    adActive = false;
-    console.warn('[AdMob] Interstitial also failed:', e);
-    if (onDismiss) onDismiss();
-  }
-}
-
-// ==================== PRELOAD (no-op for now) ====================
-
-export async function preloadInterstitial(): Promise<void> {
-  return Promise.resolve();
+  // 3. BOTH FAILED
+  adActive = false;
+  onDismiss?.();
 }
