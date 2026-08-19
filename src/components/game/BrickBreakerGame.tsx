@@ -129,17 +129,29 @@ const BrickBreakerGame: React.FC = () => {
     return () => clearInterval(interval);
   }, [lives, lastRegen]);
 
-  // BACK BUTTON HANDLER - Correct position to avoid Black Screen
-  useEffect(() => {
-    const backListener = App.addListener('backButton', () => {
-      if (screenState === 'playing' || screenState === 'paused' || screenState === 'gameover' || screenState === 'levelcomplete') {
-        setScreenState('menu');
-      } else if (screenState === 'menu' || screenState === 'splash') {
-        App.exitApp();
-      }
-    });
-    return () => { backListener.then(l => l.remove()); };
-  }, [screenState]);
+  // BACK BUTTON - Always go to previous screen / main menu (never force close)
+useEffect(() => {
+  const backListener = App.addListener('backButton', () => {
+    if (activeModal !== 'none') {
+      setActiveModal('none');
+      return;
+    }
+    if (screenState === 'playing' || screenState === 'paused') {
+      setScreenState('menu');
+      setGameState(prev => ({ ...prev, status: 'menu' }));
+    } else if (screenState === 'gameover' || screenState === 'levelcomplete' || screenState === 'won') {
+      setScreenState('menu');
+    } else if (screenState === 'menu') {
+      // Only from main menu allow exit
+      App.exitApp();
+    } else {
+      setScreenState('menu');
+    }
+  });
+  return () => {
+    backListener.then(l => l.remove());
+  };
+}, [screenState, activeModal]);
 
   // #8 Pause everything when app is minimized / screen locked (Capacitor + web fallback)
   useEffect(() => {
