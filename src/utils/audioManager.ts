@@ -208,7 +208,16 @@ class AudioManager {
     this.playSynth(60, 0.3, 'sine', true);
     this.playSynth(100, 0.2, 'triangle', true);
   }
+playElectricZap(): void {
+  if (!this.audioContext || this._masterVolume === 0) return;
+  this.playSynth(900, 0.08, 'sawtooth', true);
+  this.playSynth(1400, 0.06, 'square', true, 20);
+  setTimeout(() => this.playSynth(700, 0.05, 'sawtooth', true), 40);
+}
 
+startMonsterMusic(): void {
+  this.setBossMode(true);
+}
   playLaser(): void {
     if (!this.audioContext) return;
     this.playSynth(1000, 0.08, 'sawtooth', true);
