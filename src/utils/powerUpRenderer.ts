@@ -277,55 +277,50 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.stroke();
 };
 
-// Draw magnet icon (LARGE horseshoe magnet inside blue circle - like reference)
+// Draw clear horseshoe magnet logo (easy to understand)
 const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
-  
-  // Horseshoe magnet - MUCH BIGGER to fill the circle
-  const magnetSize = size * 0.40;
-  
+
+  const s = size * 0.38;
   ctx.save();
-  ctx.translate(x, y + magnetSize * 0.05);
-  
-  const armWidth = magnetSize * 0.5;
-  const innerRadius = magnetSize * 0.4;
-  const outerRadius = innerRadius + armWidth;
-  const armHeight = magnetSize * 0.6;
-  
-  // Draw the horseshoe (U shape)
+  ctx.translate(x, y + s * 0.08);
+
+  // Horseshoe shape
   ctx.beginPath();
-  ctx.moveTo(-outerRadius, -armHeight);
-  ctx.lineTo(-outerRadius, magnetSize * 0.1);
-  ctx.arc(0, magnetSize * 0.1, outerRadius, Math.PI, 0, false);
-  ctx.lineTo(outerRadius, -armHeight);
-  ctx.lineTo(innerRadius, -armHeight);
-  ctx.lineTo(innerRadius, magnetSize * 0.1);
-  ctx.arc(0, magnetSize * 0.1, innerRadius, 0, Math.PI, true);
-  ctx.lineTo(-innerRadius, -armHeight);
+  ctx.moveTo(-s * 0.55, s * 0.55);
+  ctx.lineTo(-s * 0.55, -s * 0.15);
+  ctx.quadraticCurveTo(-s * 0.55, -s * 0.55, 0, -s * 0.55);
+  ctx.quadraticCurveTo(s * 0.55, -s * 0.55, s * 0.55, -s * 0.15);
+  ctx.lineTo(s * 0.55, s * 0.55);
+  ctx.lineTo(s * 0.28, s * 0.55);
+  ctx.lineTo(s * 0.28, -s * 0.05);
+  ctx.quadraticCurveTo(s * 0.28, -s * 0.28, 0, -s * 0.28);
+  ctx.quadraticCurveTo(-s * 0.28, -s * 0.28, -s * 0.28, -s * 0.05);
+  ctx.lineTo(-s * 0.28, s * 0.55);
   ctx.closePath();
-  
-  // Classic red/blue magnet
-  const magnetGrad = ctx.createLinearGradient(-outerRadius, 0, outerRadius, 0);
-  magnetGrad.addColorStop(0, 'hsl(0, 85%, 55%)');
-  magnetGrad.addColorStop(0.45, 'hsl(0, 85%, 50%)');
-  magnetGrad.addColorStop(0.55, 'hsl(210, 85%, 50%)');
-  magnetGrad.addColorStop(1, 'hsl(210, 100%, 55%)');
-  ctx.fillStyle = magnetGrad;
+
+  // Classic red-blue magnet gradient
+  const grad = ctx.createLinearGradient(-s * 0.55, 0, s * 0.55, 0);
+  grad.addColorStop(0, '#e53935');
+  grad.addColorStop(0.48, '#e53935');
+  grad.addColorStop(0.52, '#1e88e5');
+  grad.addColorStop(1, '#1e88e5');
+  ctx.fillStyle = grad;
   ctx.fill();
-  
-  // Pole tips (white/silver caps)
-  ctx.fillStyle = 'hsl(0, 0%, 85%)';
-  ctx.fillRect(-outerRadius, -armHeight - 4, armWidth, 7);
-  ctx.fillRect(innerRadius, -armHeight - 4, armWidth, 7);
-  
-  // Lightning sparks
-  ctx.fillStyle = 'hsl(50, 100%, 55%)';
-  ctx.font = `bold ${magnetSize * 0.5}px sans-serif`;
+
+  // White poles
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(-s * 0.55, s * 0.35, s * 0.27, s * 0.22);
+  ctx.fillRect(s * 0.28, s * 0.35, s * 0.27, s * 0.22);
+
+  // Small "N" and "S"
+  ctx.fillStyle = '#111';
+  ctx.font = `bold ${s * 0.22}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('⚡', outerRadius + 2, -armHeight + 2);
-  ctx.fillText('⚡', -outerRadius - 2, -armHeight + 2);
-  
+  ctx.fillText('N', -s * 0.415, s * 0.46);
+  ctx.fillText('S', s * 0.415, s * 0.46);
+
   ctx.restore();
 };
 
