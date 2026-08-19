@@ -36,16 +36,18 @@ import { getMonsterImage, preloadMonsterImages } from '@/utils/monsterImages';
 const ENTRANCE_MS = 1300;
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
-// Haptics: ONLY a big (power-up enlarged) ball shakes the phone.
-// Normal-size balls never vibrate. Throttled so it can't buzz nonstop.
+// Haptics: ONLY Big Ball vibrates (0.10 second = 100ms)
+// Normal ball = no vibration
 let lastVibrateAt = 0;
 let isBigBallActive = false;
 const impactVibrate = (ballRadius: number) => {
   if (!isBigBallActive && ballRadius <= BALL_RADIUS * 1.25) return;
   const now = performance.now();
-  if (now - lastVibrateAt < 90) return;
+  if (now - lastVibrateAt < 80) return; // small throttle
   lastVibrateAt = now;
-  try { navigator.vibrate?.([40, 30, 40]); } catch {}
+  try {
+    navigator.vibrate?.(100); // exactly 0.10 second
+  } catch {}
 };
 
 import { drawPowerUp } from '@/utils/powerUpRenderer';
