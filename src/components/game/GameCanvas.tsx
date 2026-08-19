@@ -411,7 +411,9 @@ useEffect(() => {
     const scoreValue = brick.maxHits * 10 * (1 + combo * 0.1);
     
     audioManager.playBrickDestroy();
-    audioManager.playElectricZap();
+if (isShock) {
+  audioManager.playElectricZap();
+}
     if (combo > 1) {
       audioManager.playCombo(combo);
     }
