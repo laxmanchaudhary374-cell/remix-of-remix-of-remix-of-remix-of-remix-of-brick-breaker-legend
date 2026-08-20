@@ -210,9 +210,20 @@ class AudioManager {
   }
 playElectricZap(): void {
   if (!this.audioContext || this._masterVolume === 0) return;
-  this.playSynth(900, 0.08, 'sawtooth', true);
-  this.playSynth(1400, 0.06, 'square', true, 20);
-  setTimeout(() => this.playSynth(700, 0.05, 'sawtooth', true), 40);
+
+  // Strong realistic electric shock sound
+  this.playSynth(1300, 0.06, 'sawtooth', true);
+  this.playSynth(1900, 0.05, 'square', true, 40);
+  this.playSynth(800, 0.08, 'sawtooth', true, -30);
+
+  setTimeout(() => {
+    this.playSynth(1100, 0.05, 'sawtooth', true);
+    this.playSynth(1600, 0.04, 'square', true);
+  }, 35);
+
+  setTimeout(() => {
+    this.playSynth(650, 0.09, 'triangle', true);
+  }, 70);
 }
 
 startMonsterMusic(): void {
