@@ -129,25 +129,36 @@ const BrickBreakerGame: React.FC = () => {
     return () => clearInterval(interval);
   }, [lives, lastRegen]);
 
-  // BACK BUTTON - Always go to previous screen / main menu (never force close)
+  // BACK BUTTON - Go back properly from Level Select / Settings / all screens
 useEffect(() => {
   const backListener = App.addListener('backButton', () => {
+    // Close any open modal first
     if (activeModal !== 'none') {
       setActiveModal('none');
       return;
     }
+
     if (screenState === 'playing' || screenState === 'paused') {
       setScreenState('menu');
       setGameState(prev => ({ ...prev, status: 'menu' }));
-    } else if (screenState === 'gameover' || screenState === 'levelcomplete' || screenState === 'won') {
-      setScreenState('menu');
-    } else if (screenState === 'menu') {
-      // Only from main menu allow exit
-      App.exitApp();
-    } else {
-      setScreenState('menu');
+      return;
     }
+
+    if (screenState === 'gameover' || screenState === 'levelcomplete' || screenState === 'won') {
+      setScreenState('menu');
+      return;
+    }
+
+    if (screenState === 'menu') {
+      // From menu (including Level Select) go to splash instead of closing
+      setScreenState('splash');
+      return;
+    }
+
+    // Default
+    setScreenState('menu');
   });
+
   return () => {
     backListener.then(l => l.remove());
   };
