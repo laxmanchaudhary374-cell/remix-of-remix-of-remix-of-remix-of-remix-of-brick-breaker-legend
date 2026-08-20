@@ -177,128 +177,149 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
 useEffect(() => {
   const levelChanged = prevLevelRef.current !== gameState.level;
-    const justStartedPlaying = prevStatusRef.current !== 'playing' && gameState.status === 'playing' && 
-                               prevStatusRef.current !== 'paused';
+  const justStartedPlaying = prevStatusRef.current !== 'playing' && gameState.status === 'playing' && 
+                             prevStatusRef.current !== 'paused';
+  
+  prevLevelRef.current = gameState.level;
+  prevStatusRef.current = gameState.status;
+  
+  if (gameState.status === 'playing' && (levelChanged || justStartedPlaying)) {
+    const levelIndex = Math.min(gameState.level - 1, levels.length - 1);
+    const level = levels[levelIndex];
     
-    prevLevelRef.current = gameState.level;
-    prevStatusRef.current = gameState.status;
-    
-    if (gameState.status === 'playing' && (levelChanged || justStartedPlaying)) {
-      const levelIndex = Math.min(gameState.level - 1, levels.length - 1);
-      const level = levels[levelIndex];
-      
-      // #4 Keep the bottom ~35% of the play area brick-free so the paddle can
-      // move freely. Bricks whose bottom would enter that zone are dropped.
-      const BRICK_FREE_TOP = GAME_HEIGHT * 0.65;
-      const newBricks: Brick[] = level.bricks
-        .filter(brick => (brick.y + brick.height) <= BRICK_FREE_TOP)
-        .map((brick) => ({
-          ...brick,
-          id: generateId(),
-          destroyed: false,
-          originalX: brick.x,
-        }));
-      
-      setBricks(newBricks);
-
-      // Monster level setup: shared HP bar + slide direction + intro lightning
-      if (isMonsterLevel(gameState.level)) {
-        const totalHp = newBricks.reduce((sum, b) => sum + b.maxHits, 0);
-        monsterTotalHpRef.current = totalHp;
-        monsterDirRef.current = 1;
-        setMonsterHp({ current: totalHp, max: totalHp });
-      } else {
-        monsterTotalHpRef.current = 0;
-        setMonsterHp({ current: 0, max: 0 });
-      }
-      levelStartTimeRef.current = performance.now();
-      audioManager.setBossMode(isMonsterLevel(gameState.level));
-
-      
-      const baseBallSpeed = level.ballSpeed;
-      setBallSpeed(baseBallSpeed);
-      
-      // Reset ALL state on new level - including laser
-      setMonsterFires([]);
-      monsterFireCdRef.current = 2.2;
-      setPowerUps([]);
-      setLasers([]);
-      setCoins([]);
-      setExplosions([]);
-      setParticles([]);
-      setPlane(null);
-      setAlienShips([]);
-      setAlienBullets([]);
-      setIsFireball(false);
-      setIsBigBall(false);
-      isBigBallActive = false;
-      setIsShock(false);
-      setIsAutoPaddle(false);
-      setAutoPaddleEndTime(0);
-      setIsGhostPaddle(false);
-      setCombo(0);
-      setComboTimer(0);
-      setLastPowerUpTime(0);
-      levelCompletingRef.current = false;
-      planeThrowAnimRef.current = 0;
-      // Reset to 0 â€” the completion-check effect will populate this
-      // once the new bricks state is reflected. Setting to the new count
-      // here causes a false "level complete" because the effect runs first
-      // against the OLD (all-destroyed) bricks state.
-      prevBrickCountRef.current = 0;
-      setPaddle(prev => ({ 
-        ...prev, 
-        width: PADDLE_WIDTH,
-        hasLaser: false,
-        hasMagnet: false,
-        hasShield: false,
-      }));
-
-      // Free laser gun POWER-UP drops for first 5 levels â€” user must catch it!
-      if (gameState.level <= 5) {
-        setTimeout(() => {
-          if (levelCompletingRef.current) return;
-          const laserPowerUp: PowerUp = {
-            id: generateId(),
-            type: 'laser',
-            x: GAME_WIDTH / 2 - 25,
-            y: 80,
-            width: 50,
-            height: 26,
-            velocity: 130,
-          };
-          setPowerUps(prev => [...prev, laserPowerUp]);
-        }, 6000);
-      }
-      
-      // Clear laser auto-fire interval explicitly
-      if (laserAutoFireRef.current) {
-        clearInterval(laserAutoFireRef.current);
-        laserAutoFireRef.current = null;
-      }
-      
-      const numCoins = Math.random() < 0.3 ? 1 : 0;
-      const newLevelCoins: LevelCoin[] = [];
-      for (let i = 0; i < numCoins; i++) {
-        newLevelCoins.push({
-          id: generateId(),
-          x: 50 + Math.random() * (GAME_WIDTH - 100),
-          y: 100 + Math.random() * 200,
-          collected: false,
-          value: 1,
-        });
-      }
-      setLevelCoins(newLevelCoins);
-      
-      magnetBallRef.current = {
+    // Keep bottom area free for paddle
+    const BRICK_FREE_TOP = GAME_HEIGHT * 0.65;
+    const newBricks: Brick[] = level.bricks
+      .filter(brick => (brick.y + brick.height) <= BRICK_FREE_TOP)
+      .map((brick) => ({
+        ...brick,
         id: generateId(),
-        position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 90 },
-        velocity: { dx: 0, dy: 0 },
-        radius: BALL_RADIUS,
-      };
-      setBalls([magnetBallRef.current]);
+        destroyed: false,
+        originalX: brick.x,
+      }));
+    
+    setBricks(newBricks);
+
+    // Monster level setup
+    if (isMonsterLevel(gameState.level)) {
+      const totalHp = newBricks.reduce((sum, b) => sum + b.maxHits, 0);
+      monsterTotalHpRef.current = totalHp;
+      monsterDirRef.current = 1;
+      setMonsterHp({ current: totalHp, max: totalHp });
+    } else {
+      monsterTotalHpRef.current = 0;
+      setMonsterHp({ current: 0, max: 0 });
     }
-  }, [gameState.status, gameState.level]);
+    levelStartTimeRef.current = performance.now();
+    audioManager.setBossMode(isMonsterLevel(gameState.level));
+
+    const baseBallSpeed = level.ballSpeed;
+    setBallSpeed(baseBallSpeed);
+    
+    // =====================================================
+    // FULL POWER-UP & EFFECT RESET (fixes carry-over bug)
+    // =====================================================
+    setMonsterFires([]);
+    monsterFireCdRef.current = 2.2;
+    setPowerUps([]);
+    setLasers([]);
+    setCoins([]);
+    setExplosions([]);
+    setParticles([]);
+    setPlane(null);
+    setAlienShips([]);
+    setAlienBullets([]);
+
+    // Clear all power-up flags
+    setIsFireball(false);
+    setIsBigBall(false);
+    isBigBallActive = false;
+    setIsShock(false);
+    setIsAutoPaddle(false);
+    setAutoPaddleEndTime(0);
+    setIsGhostPaddle(false);
+    setCombo(0);
+    setComboTimer(0);
+    setLastPowerUpTime(0);
+    levelCompletingRef.current = false;
+    planeThrowAnimRef.current = 0;
+    prevBrickCountRef.current = 0;
+
+    // Clear any running timers from previous level
+    if ((window as any).__shockTimer) {
+      clearTimeout((window as any).__shockTimer);
+      (window as any).__shockTimer = null;
+    }
+    if ((window as any).__laserTimer) {
+      clearTimeout((window as any).__laserTimer);
+      (window as any).__laserTimer = null;
+    }
+    if ((window as any).__autoTimer) {
+      clearTimeout((window as any).__autoTimer);
+      (window as any).__autoTimer = null;
+    }
+
+    // Clear laser auto-fire interval
+    if (laserAutoFireRef.current) {
+      clearInterval(laserAutoFireRef.current);
+      laserAutoFireRef.current = null;
+    }
+
+    // Reset paddle completely
+    setPaddle(prev => ({
+      ...prev,
+      width: PADDLE_WIDTH,
+      hasLaser: false,
+      hasMagnet: false,
+      hasShield: false,
+    }));
+
+    // Clear emergency power-up from parent
+    if (emergencyRef) {
+      emergencyRef.current = null;
+    }
+
+    // Free laser gun for first 5 levels
+    if (gameState.level <= 5) {
+      setTimeout(() => {
+        if (levelCompletingRef.current) return;
+        const laserPowerUp: PowerUp = {
+          id: generateId(),
+          type: 'laser',
+          x: GAME_WIDTH / 2 - 25,
+          y: 80,
+          width: 50,
+          height: 26,
+          velocity: 130,
+        };
+        setPowerUps(prev => [...prev, laserPowerUp]);
+      }, 6000);
+    }
+    
+    // Level coins
+    const numCoins = Math.random() < 0.3 ? 1 : 0;
+    const newLevelCoins: LevelCoin[] = [];
+    for (let i = 0; i < numCoins; i++) {
+      newLevelCoins.push({
+        id: generateId(),
+        x: 50 + Math.random() * (GAME_WIDTH - 100),
+        y: 100 + Math.random() * 200,
+        collected: false,
+        value: 1,
+      });
+    }
+    setLevelCoins(newLevelCoins);
+    
+    // Reset ball
+    magnetBallRef.current = {
+      id: generateId(),
+      position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 90 },
+      velocity: { dx: 0, dy: 0 },
+      radius: BALL_RADIUS,
+    };
+    setBalls([magnetBallRef.current]);
+  }
+}, [gameState.status, gameState.level]);
 
   // Reset on game over
   useEffect(() => {
