@@ -188,3 +188,124 @@ export const drawPremiumBrick = (
 
 // Keep old export name working
 export const drawBrick = drawPremiumBrick;
+// ====================== PREMIUM BALL ======================
+export const drawPremiumBall = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  isFireball: boolean = false,
+  isBigBall: boolean = false
+) => {
+  const r = isBigBall ? radius * 1.15 : radius;
+
+  // Outer glow
+  const glow = ctx.createRadialGradient(x, y, r * 0.3, x, y, r * 2.1);
+  if (isFireball) {
+    glow.addColorStop(0, 'rgba(255, 120, 0, 0.65)');
+    glow.addColorStop(1, 'transparent');
+  } else {
+    glow.addColorStop(0, 'rgba(100, 200, 255, 0.5)');
+    glow.addColorStop(1, 'transparent');
+  }
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, r * 2.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ball body
+  const body = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 0, x, y, r);
+  if (isFireball) {
+    body.addColorStop(0, '#fff0c0');
+    body.addColorStop(0.4, '#ff8c00');
+    body.addColorStop(1, '#c0392b');
+  } else {
+    body.addColorStop(0, '#ffffff');
+    body.addColorStop(0.35, '#7ec8ff');
+    body.addColorStop(1, '#1a6bb5');
+  }
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath();
+  ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.28, 0, Math.PI * 2);
+  ctx.fill();
+};
+
+// ====================== PREMIUM PADDLE ======================
+export const drawPremiumPaddle = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  hasLaser: boolean = false,
+  hasMagnet: boolean = false,
+  hasShield: boolean = false,
+  isGhost: boolean = false
+) => {
+  const r = 10;
+  ctx.save();
+  if (isGhost) ctx.globalAlpha = 0.45;
+
+  // Glow
+  ctx.shadowColor = hasLaser ? '#ff4444' : hasMagnet ? '#00e5ff' : '#4fc3f7';
+  ctx.shadowBlur = 14;
+
+  // Body
+  const body = ctx.createLinearGradient(x, y, x, y + height);
+  body.addColorStop(0, '#e0f7ff');
+  body.addColorStop(0.4, '#4fc3f7');
+  body.addColorStop(1, '#0277bd');
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, r);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Shine
+  const shine = ctx.createLinearGradient(x, y, x, y + height * 0.5);
+  shine.addColorStop(0, 'rgba(255,255,255,0.75)');
+  shine.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = shine;
+  ctx.beginPath();
+  ctx.roundRect(x + 3, y + 2, width - 6, height * 0.4, r - 2);
+  ctx.fill();
+
+  // Border
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(x + 1, y + 1, width - 2, height - 2, r - 1);
+  ctx.stroke();
+
+  // Red end caps
+  ctx.fillStyle = '#e53935';
+  ctx.beginPath();
+  ctx.roundRect(x, y, 10, height, [r, 0, 0, r]);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(x + width - 10, y, 10, height, [0, r, r, 0]);
+  ctx.fill();
+
+  if (hasLaser) {
+    ctx.fillStyle = '#ff1744';
+    ctx.shadowColor = '#ff1744';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(x + width * 0.3, y - 4, width * 0.4, 3);
+    ctx.shadowBlur = 0;
+  }
+
+  if (hasMagnet) {
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath();
+    ctx.arc(x + width / 2, y + height / 2, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+};
