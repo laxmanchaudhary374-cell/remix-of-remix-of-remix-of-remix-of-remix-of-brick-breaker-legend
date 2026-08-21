@@ -247,48 +247,56 @@ export async function showInterstitialAd(
     return;
   }
 
+  // Keep 45 second cooldown
   if (Date.now() - lastInterstitialTime < 45000) {
     onDismiss?.();
     return;
   }
 
-  // 1. ADMOB FIRST
+  // ========== 1. TRY ADMOB FIRST ==========
   try {
     if (!interstitialReady) {
-      await Promise.race([
-        AdMob.prepareInterstitial({
-          adId: AD_UNIT_IDS.INTERSTITIAL,
-          isTesting: false,
-        }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('AdMob prepare timeout')), 1800)
-        ),
-      ]);
+      await AdMob.prepareInterstitial({
+        adId: AD_UNIT_IDS.INTERSTITIAL,
+        isTesting: false,
+      });
       interstitialReady = true;
     }
+
+    // Show the ad
     onShow?.();
     adActive = true;
+    
     await AdMob.showInterstitial();
+    
+    // Only reach here if ad was shown successfully
     adActive = false;
     interstitialReady = false;
     lastInterstitialTime = Date.now();
     onDismiss?.();
-    setTimeout(() => preloadInterstitial(), 1000);
+    
+    // Preload next ad
+    setTimeout(() => preloadInterstitial(), 1500);
     return;
+
   } catch (e) {
-    console.warn('[Mediation] AdMob failed → Chartboost', e);
+    console.warn('[AdMob] Interstitial failed → trying Chartboost', e);
     adActive = false;
     interstitialReady = false;
   }
 
-  // 2. CHARTBOOST FALLBACK
+  // ========== 2. CHARTBOOST FALLBACK ==========
   if (chartboostReady) {
     try {
       await new Promise<void>((resolve, reject) => {
         let settled = false;
         const timeout = setTimeout(() => {
-          if (!settled) { settled = true; reject(new Error('Chartboost timeout')); }
-        }, 3000);
+          if (!settled) {
+            settled = true;
+            reject(new Error('Chartboost timeout'));
+          }
+        }, 4000);
+
         Chartboost.addListener('interstitialEvent', (data) => {
           if (settled) return;
           if (data.event === 'onAdDismissed') {
@@ -313,17 +321,19 @@ export async function showInterstitialAd(
           });
         }).catch(reject);
       });
+
       adActive = false;
       lastInterstitialTime = Date.now();
       onDismiss?.();
       return;
+
     } catch (e) {
-      console.warn('[Mediation] Chartboost failed', e);
+      console.warn('[Chartboost] Interstitial failed', e);
       adActive = false;
     }
   }
 
-  // 3. BOTH FAILED
+  // ========== 3. BOTH FAILED ==========
   adActive = false;
   onDismiss?.();
 }
