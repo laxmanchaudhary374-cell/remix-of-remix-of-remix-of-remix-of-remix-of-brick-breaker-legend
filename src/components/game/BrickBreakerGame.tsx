@@ -357,52 +357,58 @@ useEffect(() => {
   }, [gameState.level]);
 
     const handleNextLevel = useCallback(() => {
-    const nextLevel = gameState.level + 1;
-    const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
-    const shouldShowAd =
-      nextLevel >= 15 &&
-      (nextLevel - 15) % 3 === 0 &&
-      online &&
-      !isAdsRemoved();
+  const nextLevel = gameState.level + 1;
+  const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+  const shouldShowAd =
+    nextLevel >= 15 &&
+    (nextLevel - 15) % 3 === 0 &&
+    online &&
+    !isAdsRemoved();
 
-    if (shouldShowAd) {
-      pendingNextLevelRef.current = nextLevel;
-      audioManager.muteForAd();
-      showInterstitialAd(
-        "Between_Levels",
-        () => {},
-        () => {
-          const lvl = pendingNextLevelRef.current;
-          pendingNextLevelRef.current = null;
-          audioManager.unmuteAfterAd();
-          if (!audioManager.isMuted) {
-            audioManager.startBackgroundMusic();
-          }
-          if (lvl) {
-            setGameState(prev => ({
-              ...prev,
-              status: 'playing',
-              level: lvl,
-              lives: 3,
-            }));
-            setScreenState('playing');
-            preloadInterstitial();
-            if (lvl > 5 && !isAdsRemoved()) showBannerAd();
-          }
-        }
-      );
-    } else {
-      setGameState(prev => ({
-        ...prev,
+  const startLevelClean = (lvl: number) => {
+    // Force full cleanup
+    setGameState(prev => ({ ...prev, status: 'menu' }));
+    setScreenState('menu');
+
+    setTimeout(() => {
+      setGameState({
         status: 'playing',
-        level: nextLevel,
+        score: 0,
         lives: 3,
-      }));
+        level: lvl,
+        highScore: getStoredHighScore(),
+        coins: 0,
+        combo: 0,
+        maxCombo: 0,
+      });
       setScreenState('playing');
-      if (online) preloadInterstitial();
-      if (nextLevel > 5 && !isAdsRemoved()) showBannerAd();
-    }
-  }, [gameState.level]);
+      preloadInterstitial();
+      if (lvl > 5 && !isAdsRemoved()) showBannerAd();
+    }, 120);
+  };
+
+  if (shouldShowAd) {
+    pendingNextLevelRef.current = nextLevel;
+    audioManager.muteForAd();
+    showInterstitialAd(
+      "Between_Levels",
+      () => {},
+      () => {
+        const lvl = pendingNextLevelRef.current;
+        pendingNextLevelRef.current = null;
+        audioManager.unmuteAfterAd();
+        if (!audioManager.isMuted) {
+          audioManager.startBackgroundMusic();
+        }
+        if (lvl) {
+          startLevelClean(lvl);
+        }
+      }
+    );
+  } else {
+    startLevelClean(nextLevel);
+  }
+}, [gameState.level]);
 
   const handleReplayLevel = useCallback(() => {
     setIsNewHighScore(false);
