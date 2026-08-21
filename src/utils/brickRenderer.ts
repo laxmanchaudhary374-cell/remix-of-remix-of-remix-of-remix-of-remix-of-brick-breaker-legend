@@ -1,10 +1,12 @@
-// Premium Code-Based Brick Renderer
-// Tries to get as close as possible to high-quality 3D style using pure Canvas
+// Premium 3D Textured Brick Renderer
+// Creates realistic material-based bricks like copper, ice, metal, wood, diamond
+// Uses offscreen canvas caching to avoid recreating gradients every frame
 
 import { Brick, BrickColor, BrickType } from '@/types/game';
 
+// Sprite cache for bricks - key is "color_type_width_height_hits_maxHits"
 const brickSpriteCache = new Map<string, HTMLCanvasElement>();
-const MAX_CACHE_SIZE = 250;
+const MAX_CACHE_SIZE = 200;
 
 function getCachedBrickSprite(
   key: string,
@@ -14,229 +16,861 @@ function getCachedBrickSprite(
 ): HTMLCanvasElement {
   let cached = brickSpriteCache.get(key);
   if (cached) return cached;
-
+  
+  // Evict old entries if cache is too large
   if (brickSpriteCache.size >= MAX_CACHE_SIZE) {
     const firstKey = brickSpriteCache.keys().next().value;
     if (firstKey) brickSpriteCache.delete(firstKey);
   }
-
-  const dpr = Math.max(window.devicePixelRatio || 1, 2);
+  
+  const dpr = Math.max(window.devicePixelRatio || 1, 2); // Minimum 2x for HD
   const offscreen = document.createElement('canvas');
-  offscreen.width = (Math.ceil(width) + 8) * dpr;
-  offscreen.height = (Math.ceil(height) + 8) * dpr;
+  offscreen.width = (Math.ceil(width) + 4) * dpr;
+  offscreen.height = (Math.ceil(height) + 4) * dpr;
   const offCtx = offscreen.getContext('2d')!;
   offCtx.scale(dpr, dpr);
-  offCtx.translate(4, 4);
+  offCtx.translate(2, 2); // padding for shadows
   drawFn(offCtx);
   brickSpriteCache.set(key, offscreen);
   return offscreen;
 }
 
-// ---------- Material Colors ----------
-const getMaterial = (color: BrickColor, type: BrickType) => {
-  if (type === 'indestructible') {
-    return {
-      top: '#9aa0a6',
-      mid: '#5f6368',
-      bot: '#3c4043',
-      shine: 'rgba(255,255,255,0.55)',
-      accent: '#c0c4c8',
-    };
-  }
+// Material types that match the reference image
+type MaterialType = 'copper' | 'ice' | 'metal' | 'wood' | 'glass' | 'diamond';
 
-  const materials: Record<string, any> = {
-    orange: { // Copper
-      top: '#ff9f43', mid: '#e67e22', bot: '#a0490f',
-      shine: 'rgba(255,220,180,0.7)', accent: '#2ecc71'
+// Map brick colors to material types for varied look
+const getMaterialType = (color: BrickColor, type: BrickType): MaterialType => {
+  if (type === 'indestructible') return 'metal';
+  
+  const materialMap: Record<BrickColor, MaterialType> = {
+    orange: 'copper',
+    cyan: 'ice',
+    purple: 'metal',
+    yellow: 'wood',
+    green: 'glass',
+    magenta: 'diamond',
+    red: 'copper',
+    gold: 'wood', // Gold bricks use wood material as base, then get gold overlay from coin indicator
+  };
+  return materialMap[color] || 'glass';
+};
+
+// Get material colors for rendering
+const getMaterialColors = (material: MaterialType) => {
+  const materials = {
+    copper: {
+      base: 'hsl(20, 65%, 45%)',
+      light: 'hsl(25, 70%, 60%)',
+      dark: 'hsl(15, 60%, 30%)',
+      accent: 'hsl(160, 50%, 45%)', // Patina
+      highlight: 'hsl(30, 80%, 75%)',
+      shadow: 'hsl(10, 55%, 20%)',
     },
-    cyan: { // Ice
-      top: '#81ecec', mid: '#00cec9', bot: '#00838f',
-      shine: 'rgba(220,250,255,0.75)', accent: '#74b9ff'
+    ice: {
+      base: 'hsl(195, 40%, 70%)',
+      light: 'hsl(195, 50%, 85%)',
+      dark: 'hsl(200, 50%, 50%)',
+      accent: 'hsl(200, 30%, 60%)',
+      highlight: 'hsl(195, 60%, 95%)',
+      shadow: 'hsl(205, 45%, 40%)',
     },
-    purple: { // Metal
-      top: '#a29bfe', mid: '#6c5ce7', bot: '#4834d4',
-      shine: 'rgba(220,210,255,0.6)', accent: '#dfe6e9'
+    metal: {
+      base: 'hsl(220, 5%, 35%)',
+      light: 'hsl(220, 5%, 50%)',
+      dark: 'hsl(220, 8%, 22%)',
+      accent: 'hsl(220, 3%, 40%)',
+      highlight: 'hsl(220, 5%, 65%)',
+      shadow: 'hsl(220, 10%, 15%)',
     },
-    yellow: { // Gold
-      top: '#ffeaa7', mid: '#fdcb6e', bot: '#d4a017',
-      shine: 'rgba(255,250,220,0.8)', accent: '#f1c40f'
+    wood: {
+      base: 'hsl(25, 55%, 40%)',
+      light: 'hsl(30, 50%, 55%)',
+      dark: 'hsl(20, 60%, 28%)',
+      accent: 'hsl(22, 45%, 35%)',
+      highlight: 'hsl(35, 45%, 65%)',
+      shadow: 'hsl(18, 55%, 18%)',
     },
-    green: { // Glass
-      top: '#55efc4', mid: '#00b894', bot: '#007a5e',
-      shine: 'rgba(200,255,240,0.7)', accent: '#81ecec'
+    glass: {
+      base: 'hsl(200, 80%, 50%)',
+      light: 'hsl(195, 90%, 70%)',
+      dark: 'hsl(210, 85%, 35%)',
+      accent: 'hsl(205, 75%, 45%)',
+      highlight: 'hsl(190, 95%, 85%)',
+      shadow: 'hsl(215, 80%, 25%)',
     },
-    magenta: { // Diamond
-      top: '#fd79a8', mid: '#e84393', bot: '#c2185b',
-      shine: 'rgba(255,220,240,0.75)', accent: '#ffeaa7'
-    },
-    red: {
-      top: '#ff7675', mid: '#d63031', bot: '#b71c1c',
-      shine: 'rgba(255,200,200,0.65)', accent: '#fab1a0'
-    },
-    gold: {
-      top: '#ffeaa7', mid: '#f1c40f', bot: '#b7950b',
-      shine: 'rgba(255,250,220,0.8)', accent: '#fdcb6e'
+    diamond: {
+      base: 'hsl(200, 20%, 80%)',
+      light: 'hsl(200, 30%, 95%)',
+      dark: 'hsl(210, 25%, 60%)',
+      accent: 'hsl(195, 35%, 85%)',
+      highlight: 'hsl(0, 0%, 100%)',
+      shadow: 'hsl(215, 20%, 50%)',
     },
   };
-
-  return materials[color] || materials.orange;
+  return materials[material];
 };
 
-// ---------- Main Draw Function ----------
+// Draw copper brick with oxidation patches
+const drawCopperBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  const borderRadius = 4;
+  const borderWidth = 3;
+  
+  // Dark border/frame
+  ctx.fillStyle = colors.shadow;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, borderRadius);
+  ctx.fill();
+  
+  // Main copper surface
+  const mainGrad = ctx.createLinearGradient(x, y, x, y + h);
+  mainGrad.addColorStop(0, colors.light);
+  mainGrad.addColorStop(0.3, colors.base);
+  mainGrad.addColorStop(0.7, colors.base);
+  mainGrad.addColorStop(1, colors.dark);
+  
+  ctx.fillStyle = mainGrad;
+  ctx.beginPath();
+  ctx.roundRect(x + borderWidth, y + borderWidth, w - borderWidth * 2, h - borderWidth * 2, borderRadius - 1);
+  ctx.fill();
+  
+  // Oxidation/patina patches
+  ctx.fillStyle = colors.accent;
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.3, y + h * 0.4, w * 0.15, h * 0.2, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.7, y + h * 0.6, w * 0.12, h * 0.15, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  
+  // Top highlight
+  ctx.fillStyle = colors.highlight;
+  ctx.globalAlpha = 0.4;
+  ctx.beginPath();
+  ctx.roundRect(x + borderWidth + 2, y + borderWidth + 2, w - borderWidth * 2 - 4, h * 0.25, 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+};
+
+// Draw ice brick with cracks
+const drawIceBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  const borderRadius = 4;
+  const borderWidth = 3;
+  
+  // Teal border
+  ctx.fillStyle = colors.dark;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, borderRadius);
+  ctx.fill();
+  
+  // Ice surface with gradient
+  const iceGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+  iceGrad.addColorStop(0, colors.light);
+  iceGrad.addColorStop(0.3, colors.base);
+  iceGrad.addColorStop(0.6, colors.accent);
+  iceGrad.addColorStop(1, colors.light);
+  
+  ctx.fillStyle = iceGrad;
+  ctx.beginPath();
+  ctx.roundRect(x + borderWidth, y + borderWidth, w - borderWidth * 2, h - borderWidth * 2, borderRadius - 1);
+  ctx.fill();
+  
+  // Crack lines
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.2, y + h * 0.3);
+  ctx.lineTo(x + w * 0.4, y + h * 0.5);
+  ctx.lineTo(x + w * 0.35, y + h * 0.7);
+  ctx.moveTo(x + w * 0.4, y + h * 0.5);
+  ctx.lineTo(x + w * 0.6, y + h * 0.45);
+  ctx.moveTo(x + w * 0.6, y + h * 0.2);
+  ctx.lineTo(x + w * 0.75, y + h * 0.5);
+  ctx.lineTo(x + w * 0.7, y + h * 0.8);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  
+  // Highlight
+  ctx.fillStyle = colors.highlight;
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.25, y + h * 0.3, w * 0.12, h * 0.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+};
+
+// Draw steel brick (for indestructible bricks) with rivets and industrial look - more rounded
+const drawSteelBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+  const borderRadius = 8;
+  
+  // Drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath();
+  ctx.roundRect(x + 2, y + 2, w, h, borderRadius);
+  ctx.fill();
+  
+  // Main steel body with brushed metal gradient
+  const steelGrad = ctx.createLinearGradient(x, y, x, y + h);
+  steelGrad.addColorStop(0, 'hsl(220, 10%, 55%)');
+  steelGrad.addColorStop(0.15, 'hsl(220, 8%, 45%)');
+  steelGrad.addColorStop(0.5, 'hsl(220, 6%, 35%)');
+  steelGrad.addColorStop(0.85, 'hsl(220, 8%, 40%)');
+  steelGrad.addColorStop(1, 'hsl(220, 5%, 25%)');
+  
+  ctx.fillStyle = steelGrad;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, borderRadius);
+  ctx.fill();
+  
+  // Horizontal brushed lines texture
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 6; i++) {
+    const lineY = y + 3 + (h - 6) * (i / 5);
+    ctx.beginPath();
+    ctx.moveTo(x + 3, lineY);
+    ctx.lineTo(x + w - 3, lineY);
+    ctx.stroke();
+  }
+  
+  // Industrial border frame - more rounded
+  ctx.strokeStyle = 'hsl(220, 10%, 25%)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(x + 1, y + 1, w - 2, h - 2, borderRadius - 1);
+  ctx.stroke();
+  
+  // Rivet/bolts at corners
+  const rivetRadius = 2.5;
+  const rivetOffset = 7;
+  const rivetPositions = [
+    { rx: x + rivetOffset, ry: y + rivetOffset },
+    { rx: x + w - rivetOffset, ry: y + rivetOffset },
+    { rx: x + rivetOffset, ry: y + h - rivetOffset },
+    { rx: x + w - rivetOffset, ry: y + h - rivetOffset },
+  ];
+  
+  rivetPositions.forEach(({ rx, ry }) => {
+    // Rivet shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.arc(rx + 0.5, ry + 0.5, rivetRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Rivet body
+    const rivetGrad = ctx.createRadialGradient(rx - 1, ry - 1, 0, rx, ry, rivetRadius);
+    rivetGrad.addColorStop(0, 'hsl(220, 5%, 60%)');
+    rivetGrad.addColorStop(0.5, 'hsl(220, 5%, 45%)');
+    rivetGrad.addColorStop(1, 'hsl(220, 8%, 30%)');
+    ctx.fillStyle = rivetGrad;
+    ctx.beginPath();
+    ctx.arc(rx, ry, rivetRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Rivet highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.beginPath();
+    ctx.arc(rx - 0.5, ry - 0.5, rivetRadius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  // Top highlight edge
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + borderRadius, y + 1);
+  ctx.lineTo(x + w - borderRadius, y + 1);
+  ctx.stroke();
+};
+
+// Draw steel crack overlay when steel brick is damaged
+const drawSteelCracks = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void => {
+  const centerX = x + w / 2;
+  const centerY = y + h / 2;
+  
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  
+  // Main crack from center
+  ctx.beginPath();
+  ctx.moveTo(centerX - 2, centerY - 1);
+  ctx.lineTo(centerX - w * 0.35, centerY - h * 0.3);
+  ctx.lineTo(centerX - w * 0.45, centerY - h * 0.15);
+  ctx.stroke();
+  
+  // Branch crack
+  ctx.beginPath();
+  ctx.moveTo(centerX - w * 0.25, centerY - h * 0.2);
+  ctx.lineTo(centerX - w * 0.15, centerY + h * 0.25);
+  ctx.stroke();
+  
+  // Right side crack
+  ctx.beginPath();
+  ctx.moveTo(centerX + 3, centerY + 2);
+  ctx.lineTo(centerX + w * 0.3, centerY + h * 0.35);
+  ctx.lineTo(centerX + w * 0.4, centerY + h * 0.2);
+  ctx.stroke();
+  
+  // Secondary crack
+  ctx.beginPath();
+  ctx.moveTo(centerX + w * 0.2, centerY + h * 0.15);
+  ctx.lineTo(centerX + w * 0.35, centerY - h * 0.1);
+  ctx.stroke();
+  
+  // White highlight along cracks (to show depth)
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(centerX - 1, centerY);
+  ctx.lineTo(centerX - w * 0.33, centerY - h * 0.28);
+  ctx.stroke();
+  
+  ctx.beginPath();
+  ctx.moveTo(centerX + 4, centerY + 3);
+  ctx.lineTo(centerX + w * 0.28, centerY + h * 0.33);
+  ctx.stroke();
+}
+
+// Draw metal brick with matte texture (original)
+const drawMetalBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  const borderRadius = 4;
+  const borderWidth = 2;
+  
+  // Drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.roundRect(x + 2, y + 2, w, h, borderRadius);
+  ctx.fill();
+  
+  // Main metal body
+  const metalGrad = ctx.createLinearGradient(x, y, x, y + h);
+  metalGrad.addColorStop(0, colors.light);
+  metalGrad.addColorStop(0.3, colors.base);
+  metalGrad.addColorStop(0.7, colors.dark);
+  metalGrad.addColorStop(1, colors.shadow);
+  
+  ctx.fillStyle = metalGrad;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, borderRadius);
+  ctx.fill();
+  
+  // Subtle texture noise
+  ctx.fillStyle = colors.accent;
+  ctx.globalAlpha = 0.15;
+  for (let i = 0; i < 8; i++) {
+    const dotX = x + Math.random() * w;
+    const dotY = y + Math.random() * h;
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, 1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  
+  // Highlight edge
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.4;
+  ctx.beginPath();
+  ctx.moveTo(x + borderRadius, y + 1);
+  ctx.lineTo(x + w - borderRadius, y + 1);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+};
+
+// Draw wood brick with grain
+const drawWoodBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  const borderRadius = 3;
+  const borderWidth = 3;
+  
+  // Dark frame
+  ctx.fillStyle = colors.shadow;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, borderRadius);
+  ctx.fill();
+  
+  // Wood surface
+  const woodGrad = ctx.createLinearGradient(x, y, x, y + h);
+  woodGrad.addColorStop(0, colors.light);
+  woodGrad.addColorStop(0.5, colors.base);
+  woodGrad.addColorStop(1, colors.dark);
+  
+  ctx.fillStyle = woodGrad;
+  ctx.beginPath();
+  ctx.roundRect(x + borderWidth, y + borderWidth, w - borderWidth * 2, h - borderWidth * 2, 1);
+  ctx.fill();
+  
+  // Wood grain lines
+  ctx.strokeStyle = colors.accent;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.5;
+  for (let i = 0; i < 3; i++) {
+    const lineY = y + borderWidth + (h - borderWidth * 2) * (0.25 + i * 0.25);
+    ctx.beginPath();
+    ctx.moveTo(x + borderWidth + 2, lineY);
+    ctx.lineTo(x + w - borderWidth - 2, lineY);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  
+  // Top highlight
+  ctx.fillStyle = colors.highlight;
+  ctx.globalAlpha = 0.25;
+  ctx.beginPath();
+  ctx.roundRect(x + borderWidth + 2, y + borderWidth + 1, w - borderWidth * 2 - 4, h * 0.2, 1);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+};
+
+// Draw glass/gem brick
+const drawGlassBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  const borderRadius = 4;
+  const bevelSize = 4;
+  
+  // Drop shadow
+  ctx.shadowColor = colors.shadow;
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 2;
+  
+  // Main body
+  ctx.fillStyle = colors.base;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, borderRadius);
+  ctx.fill();
+  
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  
+  // Top bevel (light)
+  const topGrad = ctx.createLinearGradient(x, y, x, y + bevelSize);
+  topGrad.addColorStop(0, colors.highlight);
+  topGrad.addColorStop(1, colors.light);
+  ctx.fillStyle = topGrad;
+  ctx.beginPath();
+  ctx.moveTo(x + borderRadius, y);
+  ctx.lineTo(x + w - borderRadius, y);
+  ctx.lineTo(x + w - borderRadius - bevelSize, y + bevelSize);
+  ctx.lineTo(x + borderRadius + bevelSize, y + bevelSize);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Bottom bevel (dark)
+  const bottomGrad = ctx.createLinearGradient(x, y + h - bevelSize, x, y + h);
+  bottomGrad.addColorStop(0, colors.base);
+  bottomGrad.addColorStop(1, colors.dark);
+  ctx.fillStyle = bottomGrad;
+  ctx.beginPath();
+  ctx.moveTo(x + borderRadius + bevelSize, y + h - bevelSize);
+  ctx.lineTo(x + w - borderRadius - bevelSize, y + h - bevelSize);
+  ctx.lineTo(x + w - borderRadius, y + h);
+  ctx.lineTo(x + borderRadius, y + h);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Inner surface gradient
+  const innerGrad = ctx.createLinearGradient(x, y + bevelSize, x, y + h - bevelSize);
+  innerGrad.addColorStop(0, colors.light);
+  innerGrad.addColorStop(0.4, colors.base);
+  innerGrad.addColorStop(1, colors.dark);
+  ctx.fillStyle = innerGrad;
+  ctx.fillRect(x + bevelSize, y + bevelSize, w - bevelSize * 2, h - bevelSize * 2);
+  
+  // Glossy highlight
+  const glossGrad = ctx.createRadialGradient(x + w * 0.25, y + h * 0.25, 0, x + w * 0.25, y + h * 0.25, w * 0.5);
+  glossGrad.addColorStop(0, 'rgba(255,255,255,0.5)');
+  glossGrad.addColorStop(0.5, 'rgba(255,255,255,0.15)');
+  glossGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = glossGrad;
+  ctx.fillRect(x + bevelSize, y + bevelSize, w - bevelSize * 2, (h - bevelSize * 2) * 0.6);
+  
+  // Outer glow
+  ctx.shadowColor = colors.light;
+  ctx.shadowBlur = 8;
+  ctx.strokeStyle = colors.highlight;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  ctx.roundRect(x + 1, y + 1, w - 2, h - 2, borderRadius - 1);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+};
+
+// Draw diamond brick with facets
+const drawDiamondBrick = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, colors: ReturnType<typeof getMaterialColors>) => {
+  const borderRadius = 3;
+  const borderWidth = 3;
+  
+  // Dark border
+  ctx.fillStyle = colors.shadow;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, borderRadius);
+  ctx.fill();
+  
+  // Main diamond surface
+  const diamondGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+  diamondGrad.addColorStop(0, colors.light);
+  diamondGrad.addColorStop(0.25, colors.base);
+  diamondGrad.addColorStop(0.5, colors.highlight);
+  diamondGrad.addColorStop(0.75, colors.base);
+  diamondGrad.addColorStop(1, colors.light);
+  
+  ctx.fillStyle = diamondGrad;
+  ctx.beginPath();
+  ctx.roundRect(x + borderWidth, y + borderWidth, w - borderWidth * 2, h - borderWidth * 2, 1);
+  ctx.fill();
+  
+  // Facet lines (diamond cuts)
+  ctx.strokeStyle = colors.dark;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.4;
+  
+  // Diagonal facets
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.2, y + borderWidth);
+  ctx.lineTo(x + w * 0.4, y + h - borderWidth);
+  ctx.moveTo(x + w * 0.5, y + borderWidth);
+  ctx.lineTo(x + w * 0.3, y + h - borderWidth);
+  ctx.moveTo(x + w * 0.6, y + borderWidth);
+  ctx.lineTo(x + w * 0.8, y + h - borderWidth);
+  ctx.moveTo(x + w * 0.8, y + borderWidth);
+  ctx.lineTo(x + w * 0.6, y + h - borderWidth);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  
+  // Highlight sparkles
+  ctx.fillStyle = colors.highlight;
+  ctx.globalAlpha = 0.8;
+  ctx.beginPath();
+  ctx.arc(x + w * 0.25, y + h * 0.35, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + w * 0.6, y + h * 0.25, 1.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + w * 0.75, y + h * 0.6, 1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+};
+
+// ============ MAIN BRICK RENDERER ============
+
 export const drawPremiumBrick = (
   ctx: CanvasRenderingContext2D,
-  brick: Brick
+  brick: Brick,
+  gameTime: number = 0
 ): void => {
-  if (brick.destroyed) return;
-
-  const { x, y, width: w, height: h, color, type, hits, maxHits } = brick;
-  const cacheKey = `${color}_${type}_${w}_${h}_${hits}_${maxHits}`;
-
-  const sprite = getCachedBrickSprite(cacheKey, w, h, (c) => {
-    const m = getMaterial(color, type);
-    const r = 7;
-
-    // Soft glow
-    c.shadowColor = m.mid;
-    c.shadowBlur = 12;
-    c.fillStyle = m.bot;
-    c.beginPath();
-    c.roundRect(0, 0, w, h, r);
-    c.fill();
-    c.shadowBlur = 0;
-
-    // Main body gradient
-    const body = c.createLinearGradient(0, 0, 0, h);
-    body.addColorStop(0, m.top);
-    body.addColorStop(0.45, m.mid);
-    body.addColorStop(1, m.bot);
-    c.fillStyle = body;
-    c.beginPath();
-    c.roundRect(0, 0, w, h, r);
-    c.fill();
-
-    // Strong top shine (glass effect)
-    const shine = c.createLinearGradient(0, 0, 0, h * 0.5);
-    shine.addColorStop(0, m.shine);
-    shine.addColorStop(0.7, 'rgba(255,255,255,0.08)');
-    shine.addColorStop(1, 'rgba(255,255,255,0)');
-    c.fillStyle = shine;
-    c.beginPath();
-    c.roundRect(3, 2, w - 6, h * 0.42, r - 2);
-    c.fill();
-
-    // Inner border
-    c.strokeStyle = 'rgba(255,255,255,0.22)';
-    c.lineWidth = 1.5;
-    c.beginPath();
-    c.roundRect(2, 2, w - 4, h - 4, r - 1);
-    c.stroke();
-
-    // Bottom dark edge
-    c.strokeStyle = 'rgba(0,0,0,0.45)';
-    c.lineWidth = 2;
-    c.beginPath();
-    c.moveTo(r, h - 1.5);
-    c.lineTo(w - r, h - 1.5);
-    c.stroke();
-
-    // ===== Special Icons =====
-    c.save();
-    c.translate(w / 2, h / 2);
-
-    if (type === 'indestructible') {
-      // Rivets
-      c.fillStyle = m.accent;
-      [[-w*0.32, -h*0.28], [w*0.32, -h*0.28], [-w*0.32, h*0.28], [w*0.32, h*0.28]].forEach(([rx, ry]) => {
-        c.beginPath();
-        c.arc(rx, ry, 2.8, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = 'rgba(255,255,255,0.6)';
-        c.beginPath();
-        c.arc(rx - 0.8, ry - 0.8, 1, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = m.accent;
-      });
-    } else if (type === 'explosive') {
-      // Simple bomb / circle
-      c.fillStyle = 'rgba(255,100,0,0.9)';
-      c.beginPath();
-      c.arc(0, 0, 5, 0, Math.PI * 2);
-      c.fill();
-    } else if (hits < maxHits) {
-      // Crack
-      c.strokeStyle = 'rgba(0,0,0,0.4)';
-      c.lineWidth = 1.4;
-      c.beginPath();
-      c.moveTo(-w * 0.25, -h * 0.3);
-      c.lineTo(-w * 0.05, 0);
-      c.lineTo(-w * 0.2, h * 0.3);
-      c.stroke();
-    } else {
-      // Small center detail for normal bricks
-      c.fillStyle = 'rgba(255,255,255,0.25)';
-      c.beginPath();
-      c.arc(0, 0, 2.5, 0, Math.PI * 2);
-      c.fill();
+  const { x, y, width, height, color, type, hits, maxHits } = brick;
+  
+  // Ghost bricks: ALWAYS render fully visible (background stays stable).
+  // Pass-through collision behavior is handled in GameCanvas via isGhostInvisible.
+  
+  const damageRatio = hits / maxHits;
+  
+  // For static bricks (not ghost, not rainbow, not moving), use sprite cache
+  const isAnimated = type === 'ghost' || type === 'rainbow' || type === 'moving';
+  
+  if (!isAnimated) {
+    const cacheKey = `${color}_${type}_${width}_${height}_${hits}_${maxHits}`;
+    const sprite = getCachedBrickSprite(cacheKey, width, height, (offCtx) => {
+      // Draw the brick at origin (0,0) on the offscreen canvas
+      const material = getMaterialType(color, type);
+      const colors = getMaterialColors(material);
+      
+      if (type === 'coin') {
+        const borderRadius = 4;
+        const borderWidth = 3;
+        offCtx.fillStyle = 'hsl(35, 80%, 30%)';
+        offCtx.beginPath();
+        offCtx.roundRect(0, 0, width, height, borderRadius);
+        offCtx.fill();
+        const goldGrad = offCtx.createLinearGradient(0, 0, width, height);
+        goldGrad.addColorStop(0, 'hsl(45, 100%, 75%)');
+        goldGrad.addColorStop(0.2, 'hsl(42, 90%, 60%)');
+        goldGrad.addColorStop(0.5, 'hsl(48, 100%, 70%)');
+        goldGrad.addColorStop(0.8, 'hsl(40, 85%, 55%)');
+        goldGrad.addColorStop(1, 'hsl(45, 100%, 65%)');
+        offCtx.fillStyle = goldGrad;
+        offCtx.beginPath();
+        offCtx.roundRect(borderWidth, borderWidth, width - borderWidth * 2, height - borderWidth * 2, borderRadius - 1);
+        offCtx.fill();
+        offCtx.fillStyle = 'rgba(255, 255, 200, 0.5)';
+        offCtx.beginPath();
+        offCtx.roundRect(borderWidth + 2, borderWidth + 1, width - borderWidth * 2 - 4, height * 0.25, 2);
+        offCtx.fill();
+        offCtx.fillStyle = 'rgba(255, 220, 80, 0.95)';
+        offCtx.font = 'bold 12px sans-serif';
+        offCtx.textAlign = 'center';
+        offCtx.textBaseline = 'middle';
+        offCtx.fillText('$', width / 2, height / 2 + 1);
+      } else if (type === 'indestructible' || type === 'steel') {
+        drawSteelBrick(offCtx, 0, 0, width, height);
+        if (type === 'steel' && hits < maxHits && maxHits === 2) {
+          drawSteelCracks(offCtx, 0, 0, width, height);
+        }
+      } else {
+        switch (material) {
+          case 'copper': drawCopperBrick(offCtx, 0, 0, width, height, colors); break;
+          case 'ice': drawIceBrick(offCtx, 0, 0, width, height, colors); break;
+          case 'metal': drawMetalBrick(offCtx, 0, 0, width, height, colors); break;
+          case 'wood': drawWoodBrick(offCtx, 0, 0, width, height, colors); break;
+          case 'diamond': drawDiamondBrick(offCtx, 0, 0, width, height, colors); break;
+          default: drawGlassBrick(offCtx, 0, 0, width, height, colors);
+        }
+      }
+      
+      // Draw type indicator at origin
+      const fakeBrick = { ...brick, x: 0, y: 0 };
+      drawBrickTypeIndicator(offCtx, fakeBrick, 0);
+      
+      // Damage cracks
+      if (damageRatio < 0.7 && maxHits > 1 && type !== 'steel') {
+        drawDamageCracks(offCtx, fakeBrick, damageRatio);
+      }
+    });
+    
+    // Draw cached sprite at logical size (sprite is rendered at DPR resolution)
+    ctx.save();
+    if (damageRatio < 1 && maxHits > 1) {
+      ctx.globalAlpha = 0.6 + damageRatio * 0.4;
     }
-
-    c.restore();
-  });
-
-  ctx.drawImage(sprite, x - 4, y - 4, w + 8, h + 8);
+    ctx.drawImage(sprite, x - 2, y - 2, width + 4, height + 4);
+    ctx.restore();
+    return;
+  }
+  
+  // Animated bricks - draw directly (ghost, rainbow, moving)
+  const material = getMaterialType(color, type);
+  const colors = getMaterialColors(material);
+  
+  ctx.save();
+  
+  if (type === 'ghost') {
+    const transition = gameTime % 1;
+    const phase = Math.floor(gameTime) % 2;
+    if (phase === 1 && transition > 0.8) {
+      ctx.globalAlpha = (transition - 0.8) * 5;
+    } else if (phase === 1 && transition < 0.2) {
+      ctx.globalAlpha = 1 - transition * 5;
+    }
+  }
+  
+  if (damageRatio < 1 && maxHits > 1) {
+    ctx.globalAlpha = Math.min(ctx.globalAlpha, 0.6 + damageRatio * 0.4);
+  }
+  
+  if ((type as string) === 'coin') {
+    const borderRadius = 4;
+    const borderWidth = 3;
+    ctx.fillStyle = 'hsl(35, 80%, 30%)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, borderRadius);
+    ctx.fill();
+    const goldGrad = ctx.createLinearGradient(x, y, x + width, y + height);
+    goldGrad.addColorStop(0, 'hsl(45, 100%, 75%)');
+    goldGrad.addColorStop(0.2, 'hsl(42, 90%, 60%)');
+    goldGrad.addColorStop(0.5, 'hsl(48, 100%, 70%)');
+    goldGrad.addColorStop(0.8, 'hsl(40, 85%, 55%)');
+    goldGrad.addColorStop(1, 'hsl(45, 100%, 65%)');
+    ctx.fillStyle = goldGrad;
+    ctx.beginPath();
+    ctx.roundRect(x + borderWidth, y + borderWidth, width - borderWidth * 2, height - borderWidth * 2, borderRadius - 1);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255, 255, 200, 0.5)';
+    ctx.beginPath();
+    ctx.roundRect(x + borderWidth + 2, y + borderWidth + 1, width - borderWidth * 2 - 4, height * 0.25, 2);
+    ctx.fill();
+    ctx.shadowColor = 'hsl(45, 100%, 60%)';
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = 'hsla(45, 100%, 70%, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x + 1, y + 1, width - 2, height - 2, borderRadius);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  } else if ((type as string) === 'indestructible' || (type as string) === 'steel') {
+    drawSteelBrick(ctx, x, y, width, height);
+    if ((type as string) === 'steel' && hits < maxHits && maxHits === 2) {
+      drawSteelCracks(ctx, x, y, width, height);
+    }
+  } else {
+    switch (material) {
+      case 'copper': drawCopperBrick(ctx, x, y, width, height, colors); break;
+      case 'ice': drawIceBrick(ctx, x, y, width, height, colors); break;
+      case 'metal': drawMetalBrick(ctx, x, y, width, height, colors); break;
+      case 'wood': drawWoodBrick(ctx, x, y, width, height, colors); break;
+      case 'diamond': drawDiamondBrick(ctx, x, y, width, height, colors); break;
+      default: drawGlassBrick(ctx, x, y, width, height, colors);
+    }
+  }
+  
+  drawBrickTypeIndicator(ctx, brick, gameTime);
+  
+  if (damageRatio < 0.7 && maxHits > 1 && (type as string) !== 'steel') {
+    drawDamageCracks(ctx, brick, damageRatio);
+  }
+  
+  ctx.restore();
 };
 
-// Keep old export name working
-export const drawBrick = drawPremiumBrick;
-// ====================== PREMIUM BALL ======================
-export const drawPremiumBall = (
+// Draw special brick type indicators
+const drawBrickTypeIndicator = (
   ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  radius: number,
-  isFireball: boolean = false,
-  isBigBall: boolean = false
-) => {
-  const r = isBigBall ? radius * 1.15 : radius;
-
-  // Outer glow
-  const glow = ctx.createRadialGradient(x, y, r * 0.3, x, y, r * 2.1);
-  if (isFireball) {
-    glow.addColorStop(0, 'rgba(255, 120, 0, 0.65)');
-    glow.addColorStop(1, 'transparent');
-  } else {
-    glow.addColorStop(0, 'rgba(100, 200, 255, 0.5)');
-    glow.addColorStop(1, 'transparent');
+  brick: Brick,
+  gameTime: number
+): void => {
+  const { x, y, width, height, type, hits, maxHits } = brick;
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+  
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  switch (type) {
+    case 'explosive':
+      // Black bomb icon
+      ctx.fillStyle = 'rgba(30, 30, 30, 0.95)';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY + 2, 7, 0, Math.PI * 2);
+      ctx.fill();
+      // Bomb outline
+      ctx.strokeStyle = 'rgba(80, 80, 80, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY + 2, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      // Fuse
+      ctx.strokeStyle = 'rgba(139, 90, 43, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY - 5);
+      ctx.lineTo(centerX + 2, centerY - 9);
+      ctx.stroke();
+      // Spark/flame
+      ctx.fillStyle = 'rgba(255, 200, 50, 0.95)';
+      ctx.beginPath();
+      ctx.arc(centerX + 2, centerY - 10, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 100, 50, 0.8)';
+      ctx.beginPath();
+      ctx.arc(centerX + 2, centerY - 10, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+      
+    case 'indestructible':
+    case 'steel':
+      // Steel rivets only, no X mark
+      break;
+      
+    case 'moving':
+      // Arrows
+      const arrowOffset = Math.sin(gameTime * 4) * 2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(centerX - 6 + arrowOffset, centerY);
+      ctx.lineTo(centerX - 10 + arrowOffset, centerY);
+      ctx.moveTo(centerX + 6 - arrowOffset, centerY);
+      ctx.lineTo(centerX + 10 - arrowOffset, centerY);
+      ctx.stroke();
+      break;
+      
+    case 'chain':
+      // Chain links
+      ctx.strokeStyle = 'rgba(255, 220, 100, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(centerX - 5, centerY, 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(centerX + 5, centerY, 4, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+      
+    case 'coin':
+      // Full gold colored brick - draw gold overlay on entire brick
+      ctx.fillStyle = 'hsla(45, 100%, 55%, 0.7)';
+      ctx.beginPath();
+      ctx.roundRect(x + 2, y + 2, width - 4, height - 4, 3);
+      ctx.fill();
+      // Gold coin symbol
+      ctx.fillStyle = 'rgba(255, 220, 80, 0.95)';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('$', centerX, centerY + 1);
+      // Gold shimmer
+      ctx.fillStyle = 'rgba(255, 255, 200, 0.4)';
+      ctx.beginPath();
+      ctx.roundRect(x + 3, y + 2, width - 6, height * 0.3, 2);
+      ctx.fill();
+      break;
+      
+    case 'rainbow':
+      // Shimmer
+      const hue = (gameTime * 120) % 360;
+      ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.5)`;
+      ctx.beginPath();
+      ctx.roundRect(x + 4, y + 4, width - 8, height - 8, 2);
+      ctx.fill();
+      break;
+      
+    case 'ghost':
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('👻', centerX, centerY);
+      break;
   }
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(x, y, r * 2.1, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Ball body
-  const body = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 0, x, y, r);
-  if (isFireball) {
-    body.addColorStop(0, '#fff0c0');
-    body.addColorStop(0.4, '#ff8c00');
-    body.addColorStop(1, '#c0392b');
-  } else {
-    body.addColorStop(0, '#ffffff');
-    body.addColorStop(0.35, '#7ec8ff');
-    body.addColorStop(1, '#1a6bb5');
-  }
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.beginPath();
-  ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.28, 0, Math.PI * 2);
-  ctx.fill();
+  
+  // No hit count numbers on normal bricks (removed per request)
 };
 
-// ====================== PREMIUM PADDLE ======================
+// Draw star shape
+const drawStar = (ctx: CanvasRenderingContext2D, cx: number, cy: number, spikes: number, outerRadius: number, innerRadius: number): void => {
+  let rot = (Math.PI / 2) * 3;
+  const step = Math.PI / spikes;
+  
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerRadius);
+  
+  for (let i = 0; i < spikes; i++) {
+    ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius);
+    rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius);
+    rot += step;
+  }
+  
+  ctx.lineTo(cx, cy - outerRadius);
+  ctx.closePath();
+};
+
+// Draw damage cracks
+const drawDamageCracks = (ctx: CanvasRenderingContext2D, brick: Brick, damageRatio: number): void => {
+  const { x, y, width, height } = brick;
+  const crackIntensity = 1 - damageRatio;
+  
+  ctx.strokeStyle = `rgba(0, 0, 0, ${0.2 + crackIntensity * 0.3})`;
+  ctx.lineWidth = 1;
+  ctx.lineCap = 'round';
+  
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+  const crackCount = Math.floor(crackIntensity * 3) + 1;
+  
+  for (let i = 0; i < crackCount; i++) {
+    const angle = (Math.PI * 2 / crackCount) * i + 0.3;
+    const length = width * 0.25 * (0.5 + crackIntensity * 0.5);
+    
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(centerX + Math.cos(angle) * length, centerY + Math.sin(angle) * length * 0.6);
+    ctx.stroke();
+  }
+};
+
+// ============ PADDLE AND BALL RENDERERS ============
+
 export const drawPremiumPaddle = (
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -247,65 +881,342 @@ export const drawPremiumPaddle = (
   hasMagnet: boolean = false,
   hasShield: boolean = false,
   isGhost: boolean = false
-) => {
-  const r = 10;
+): void => {
   ctx.save();
-  if (isGhost) ctx.globalAlpha = 0.45;
-
-  // Glow
-  ctx.shadowColor = hasLaser ? '#ff4444' : hasMagnet ? '#00e5ff' : '#4fc3f7';
-  ctx.shadowBlur = 14;
-
-  // Body
-  const body = ctx.createLinearGradient(x, y, x, y + height);
-  body.addColorStop(0, '#e0f7ff');
-  body.addColorStop(0.4, '#4fc3f7');
-  body.addColorStop(1, '#0277bd');
-  ctx.fillStyle = body;
+  
+  const h = 18;
+  const capR = 10;
+  const cx = x;
+  const centerY = y + height / 2;
+  
+  // Red left cap with gradient (3D look)
+  const leftCapGrad = ctx.createRadialGradient(cx + capR - 2, centerY - 2, 1, cx + capR, centerY, capR);
+  leftCapGrad.addColorStop(0, '#ff4444');
+  leftCapGrad.addColorStop(0.5, '#cc1100');
+  leftCapGrad.addColorStop(1, '#880000');
   ctx.beginPath();
-  ctx.roundRect(x, y, width, height, r);
+  ctx.arc(cx + capR, centerY, capR, 0, Math.PI * 2);
+  ctx.fillStyle = leftCapGrad;
+  ctx.fill();
+  // Cap highlight
+  ctx.beginPath();
+  ctx.arc(cx + capR - 2, centerY - 3, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 180, 180, 0.6)';
+  ctx.fill();
+  
+  // Red right cap with gradient (3D look)
+  const rightCapGrad = ctx.createRadialGradient(cx + width - capR - 2, centerY - 2, 1, cx + width - capR, centerY, capR);
+  rightCapGrad.addColorStop(0, '#ff4444');
+  rightCapGrad.addColorStop(0.5, '#cc1100');
+  rightCapGrad.addColorStop(1, '#880000');
+  ctx.beginPath();
+  ctx.arc(cx + width - capR, centerY, capR, 0, Math.PI * 2);
+  ctx.fillStyle = rightCapGrad;
+  ctx.fill();
+  // Cap highlight
+  ctx.beginPath();
+  ctx.arc(cx + width - capR - 2, centerY - 3, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 180, 180, 0.6)';
+  ctx.fill();
+  
+    // Chrome/silver middle body
+  const bodyGrad = ctx.createLinearGradient(cx + capR, centerY - h / 2, cx + capR, centerY + h / 2);
+  bodyGrad.addColorStop(0, '#ffffff');
+  bodyGrad.addColorStop(0.2, '#e8eef5');
+  bodyGrad.addColorStop(0.45, '#b8c4d0');
+  bodyGrad.addColorStop(0.7, '#8a96a4');
+  bodyGrad.addColorStop(1, '#5a6570');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.roundRect(cx + capR - 1, centerY - h / 2, width - capR * 2 + 2, h, 4);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillRect(cx + capR, centerY - h / 2 + 1, width - capR * 2, 2.5);
+
+  const cyanGrad = ctx.createLinearGradient(cx + capR, centerY, cx + width - capR, centerY);
+  cyanGrad.addColorStop(0, 'rgba(0, 220, 255, 0.25)');
+  cyanGrad.addColorStop(0.2, 'rgba(0, 255, 255, 0.95)');
+  cyanGrad.addColorStop(0.5, 'rgba(200, 255, 255, 1)');
+  cyanGrad.addColorStop(0.8, 'rgba(0, 255, 255, 0.95)');
+  cyanGrad.addColorStop(1, 'rgba(0, 220, 255, 0.25)');
+  ctx.shadowColor = 'rgba(0, 255, 255, 0.8)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = cyanGrad;
+  ctx.beginPath();
+  ctx.roundRect(cx + capR + 6, centerY - 2, width - capR * 2 - 12, 4, 2);
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  // Shine
-  const shine = ctx.createLinearGradient(x, y, x, y + height * 0.5);
-  shine.addColorStop(0, 'rgba(255,255,255,0.75)');
-  shine.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = shine;
-  ctx.beginPath();
-  ctx.roundRect(x + 3, y + 2, width - 6, height * 0.4, r - 2);
-  ctx.fill();
-
-  // Border
-  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.roundRect(x + 1, y + 1, width - 2, height - 2, r - 1);
-  ctx.stroke();
-
-  // Red end caps
-  ctx.fillStyle = '#e53935';
-  ctx.beginPath();
-  ctx.roundRect(x, y, 10, height, [r, 0, 0, r]);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.roundRect(x + width - 10, y, 10, height, [0, r, r, 0]);
-  ctx.fill();
-
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(cx + capR, centerY + h / 2 - 2, width - capR * 2, 2);
+  
+  // Laser turrets
   if (hasLaser) {
-    ctx.fillStyle = '#ff1744';
-    ctx.shadowColor = '#ff1744';
-    ctx.shadowBlur = 8;
-    ctx.fillRect(x + width * 0.3, y - 4, width * 0.4, 3);
+    const turretW = 8;
+    const turretH = 12;
+    const turret1X = x + width * 0.25 - turretW / 2;
+    const turret2X = x + width * 0.75 - turretW / 2;
+    
+    [turret1X, turret2X].forEach(tx => {
+      const tTop = centerY - h / 2;
+      // Turret base
+      const tGrad = ctx.createLinearGradient(tx, tTop - turretH, tx, tTop);
+      tGrad.addColorStop(0, 'hsl(210, 10%, 85%)');
+      tGrad.addColorStop(0.5, 'hsl(210, 8%, 70%)');
+      tGrad.addColorStop(1, 'hsl(215, 6%, 55%)');
+      ctx.fillStyle = tGrad;
+      ctx.beginPath();
+      ctx.roundRect(tx, tTop - turretH, turretW, turretH + 2, [2, 2, 0, 0]);
+      ctx.fill();
+      // Barrel
+      ctx.fillStyle = 'hsl(210, 5%, 50%)';
+      ctx.fillRect(tx + turretW / 2 - 1.5, tTop - turretH - 3, 3, 5);
+      // Rings
+      ctx.strokeStyle = 'hsl(210, 5%, 60%)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tx, tTop - turretH + 3);
+      ctx.lineTo(tx + turretW, tTop - turretH + 3);
+      ctx.moveTo(tx, tTop - turretH + 7);
+      ctx.lineTo(tx + turretW, tTop - turretH + 7);
+      ctx.stroke();
+    });
+  }
+  
+  // Ghost effect - emoji floating ABOVE paddle
+  if (isGhost) {
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const bobY = Math.sin(Date.now() / 300) * 3;
+    ctx.fillText('👻', x + width / 2, centerY - h / 2 - 14 + bobY);
+  }
+  
+  // Shield glow
+  if (hasShield) {
+    ctx.shadowColor = 'hsla(200, 100%, 60%, 0.8)';
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = 'hsla(200, 100%, 70%, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(x - 2, centerY - h / 2 - 2, width + 4, h + 4, h / 2 + 2);
+    ctx.stroke();
     ctx.shadowBlur = 0;
   }
+  
+  ctx.restore();
+};
 
-  if (hasMagnet) {
-    ctx.fillStyle = '#00e5ff';
+export const drawPremiumBall = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  isFireball: boolean = false,
+  isBigBall: boolean = false
+): void => {
+  ctx.save();
+  
+  if (isFireball) {
+    // Fireball effect - glowing powerful orange/fire ball
+    ctx.shadowColor = 'rgba(255, 100, 0, 0.8)';
+    ctx.shadowBlur = 15;
+    
+    // Fire trail effect
+    const outerGrad = ctx.createRadialGradient(x + radius * 0.3, y + radius * 0.3, 0, x, y, radius * 1.5);
+    outerGrad.addColorStop(0, 'hsl(50, 100%, 90%)');
+    outerGrad.addColorStop(0.3, 'hsl(35, 100%, 60%)');
+    outerGrad.addColorStop(0.6, 'hsl(20, 100%, 50%)');
+    outerGrad.addColorStop(1, 'hsla(0, 100%, 40%, 0)');
+    
+    ctx.fillStyle = outerGrad;
     ctx.beginPath();
-    ctx.arc(x + width / 2, y + height / 2, 4, 0, Math.PI * 2);
+    ctx.arc(x, y, radius * 1.3, 0, Math.PI * 2);
     ctx.fill();
-  }
+    
+    // Inner bright core
+    const coreGrad = ctx.createRadialGradient(x - radius * 0.2, y - radius * 0.2, 0, x, y, radius);
+    coreGrad.addColorStop(0, 'hsl(50, 100%, 95%)');
+    coreGrad.addColorStop(0.4, 'hsl(40, 100%, 70%)');
+    coreGrad.addColorStop(1, 'hsl(25, 100%, 55%)');
+    
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
 
+  } else if (isBigBall) {
+    // Big ball - pure HD steel/chrome appearance (same as normal ball but bigger with stronger glow)
+    ctx.shadowColor = 'rgba(150, 180, 220, 0.6)';
+    ctx.shadowBlur = 20;
+    
+    // Drop shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.beginPath();
+    ctx.arc(x + 3, y + 3, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Main metallic gradient (steel gray - HD quality)
+    const steelGrad = ctx.createRadialGradient(
+      x - radius * 0.4, y - radius * 0.4, 0,
+      x, y, radius
+    );
+    steelGrad.addColorStop(0, 'hsl(210, 20%, 98%)');   // Very bright highlight
+    steelGrad.addColorStop(0.1, 'hsl(210, 15%, 90%)'); // Light steel
+    steelGrad.addColorStop(0.3, 'hsl(215, 12%, 70%)'); // Mid light steel
+    steelGrad.addColorStop(0.5, 'hsl(218, 14%, 55%)'); // Mid steel
+    steelGrad.addColorStop(0.7, 'hsl(220, 16%, 42%)'); // Dark steel
+    steelGrad.addColorStop(1, 'hsl(225, 22%, 28%)');   // Edge shadow
+    
+    ctx.fillStyle = steelGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.shadowBlur = 0;
+    
+    // Chrome reflection band (horizontal highlight)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.clip();
+    
+    const reflectGrad = ctx.createLinearGradient(x - radius, y - radius * 0.3, x + radius, y - radius * 0.1);
+    reflectGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    reflectGrad.addColorStop(0.2, 'rgba(255, 255, 255, 0.5)');
+    reflectGrad.addColorStop(0.4, 'rgba(255, 255, 255, 0.75)');
+    reflectGrad.addColorStop(0.6, 'rgba(255, 255, 255, 0.75)');
+    reflectGrad.addColorStop(0.8, 'rgba(255, 255, 255, 0.5)');
+    reflectGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = reflectGrad;
+    ctx.fillRect(x - radius, y - radius * 0.5, radius * 2, radius * 0.55);
+    ctx.restore();
+    
+    // Main highlight (top-left bright spot)
+    const highlightGrad = ctx.createRadialGradient(
+      x - radius * 0.35, y - radius * 0.35, 0,
+      x - radius * 0.35, y - radius * 0.35, radius * 0.5
+    );
+    highlightGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    highlightGrad.addColorStop(0.25, 'rgba(255, 255, 255, 0.8)');
+    highlightGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+    highlightGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = highlightGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Secondary small highlight (adds depth)
+    const secondaryHighlight = ctx.createRadialGradient(
+      x + radius * 0.3, y + radius * 0.4, 0,
+      x + radius * 0.3, y + radius * 0.4, radius * 0.3
+    );
+    secondaryHighlight.addColorStop(0, 'rgba(200, 215, 230, 0.5)');
+    secondaryHighlight.addColorStop(1, 'rgba(200, 215, 230, 0)');
+    
+    ctx.fillStyle = secondaryHighlight;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Chrome rim highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, radius - 1, -Math.PI * 0.85, -Math.PI * 0.15);
+    ctx.stroke();
+
+  } else {
+    // Shiny steel/chrome ball
+    
+    // Drop shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 3;
+    
+    // Main metallic gradient (steel gray)
+    const steelGrad = ctx.createRadialGradient(
+      x - radius * 0.4, y - radius * 0.4, 0,
+      x, y, radius
+    );
+        steelGrad.addColorStop(0, 'hsl(210, 20%, 100%)');
+    steelGrad.addColorStop(0.12, 'hsl(210, 15%, 88%)');
+    steelGrad.addColorStop(0.35, 'hsl(215, 12%, 65%)');
+    steelGrad.addColorStop(0.65, 'hsl(220, 15%, 42%)');
+    steelGrad.addColorStop(1, 'hsl(225, 25%, 22%)');
+    
+    ctx.fillStyle = steelGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Chrome reflection band (horizontal highlight)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.clip();
+    
+    const reflectGrad = ctx.createLinearGradient(x - radius, y - radius * 0.3, x + radius, y - radius * 0.1);
+    reflectGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    reflectGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.4)');
+    reflectGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.6)');
+    reflectGrad.addColorStop(0.7, 'rgba(255, 255, 255, 0.4)');
+    reflectGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = reflectGrad;
+    ctx.fillRect(x - radius, y - radius * 0.5, radius * 2, radius * 0.6);
+    ctx.restore();
+    
+    // Main highlight (top-left bright spot)
+    const highlightGrad = ctx.createRadialGradient(
+      x - radius * 0.35, y - radius * 0.35, 0,
+      x - radius * 0.35, y - radius * 0.35, radius * 0.45
+    );
+    highlightGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+    highlightGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.6)');
+    highlightGrad.addColorStop(0.6, 'rgba(255, 255, 255, 0.2)');
+    highlightGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    ctx.fillStyle = highlightGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Secondary small highlight (adds depth)
+    const secondaryHighlight = ctx.createRadialGradient(
+      x + radius * 0.3, y + radius * 0.4, 0,
+      x + radius * 0.3, y + radius * 0.4, radius * 0.25
+    );
+    secondaryHighlight.addColorStop(0, 'rgba(200, 210, 220, 0.4)');
+    secondaryHighlight.addColorStop(1, 'rgba(200, 210, 220, 0)');
+    
+    ctx.fillStyle = secondaryHighlight;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Chrome rim highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, radius - 0.5, -Math.PI * 0.8, -Math.PI * 0.2);
+    ctx.stroke();
+    
+    // Subtle blue tint glow (steel reflection)
+    ctx.shadowColor = 'hsla(210, 50%, 70%, 0.4)';
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = 'hsla(210, 30%, 70%, 0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
   ctx.restore();
 };
