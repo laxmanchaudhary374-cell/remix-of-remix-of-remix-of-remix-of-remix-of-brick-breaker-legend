@@ -639,8 +639,8 @@ if (isShock) {
   }
     // Use fixed sub-steps for smoother physics (capped at 4 to prevent ball tunneling through bricks)
         const clampedDt = Math.min(deltaTime, 0.033);
-    const numSteps = Math.min(6, Math.max(3, Math.ceil(clampedDt / 0.006)));
-    const stepDt = clampedDt / numSteps;
+const numSteps = Math.min(4, Math.max(2, Math.ceil(clampedDt / 0.008)));
+const stepDt = clampedDt / numSteps;
     
     // Check emergency powerup activation
     if (emergencyRef?.current) {
