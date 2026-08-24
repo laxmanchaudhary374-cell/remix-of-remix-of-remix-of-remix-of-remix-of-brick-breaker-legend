@@ -356,59 +356,57 @@ useEffect(() => {
     }
   }, [gameState.level]);
 
-    const handleNextLevel = useCallback(() => {
-  const nextLevel = gameState.level + 1;
-  const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
-  const shouldShowAd =
-    nextLevel >= 15 &&
-    (nextLevel - 15) % 3 === 0 &&
-    online &&
-    !isAdsRemoved();
+      const handleNextLevel = useCallback(() => {
+    const nextLevel = gameState.level + 1;
+    const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+    const shouldShowAd =
+      nextLevel >= 15 &&
+      (nextLevel - 15) % 3 === 0 &&
+      online &&
+      !isAdsRemoved();
 
-  const startLevelClean = (lvl: number) => {
-    // Force full cleanup
-    setGameState(prev => ({ ...prev, status: 'menu' }));
-    setScreenState('menu');
+    const startLevelClean = (level: number) => {
+      setGameState(prev => ({ ...prev, status: 'menu' }));
+      setScreenState('menu');
 
-    setTimeout(() => {
-      setGameState({
-        status: 'playing',
-        score: 0,
-        lives: 3,
-        level: lvl,
-        highScore: getStoredHighScore(),
-        coins: 0,
-        combo: 0,
-        maxCombo: 0,
-      });
-      setScreenState('playing');
-      preloadInterstitial();
-      if (lvl > 5 && !isAdsRemoved()) showBannerAd();
-    }, 120);
-  };
+      window.setTimeout(() => {
+        setGameState({
+          status: 'playing',
+          score: 0,
+          lives: 3,
+          level,
+          highScore: getStoredHighScore(),
+          coins: 0,
+          combo: 0,
+          maxCombo: 0,
+        });
+        setScreenState('playing');
+        void preloadInterstitial();
+        if (level > 5 && !isAdsRemoved()) void showBannerAd();
+      }, 120);
+    };
 
-  if (shouldShowAd) {
+    if (!shouldShowAd) {
+      startLevelClean(nextLevel);
+      return;
+    }
+
     pendingNextLevelRef.current = nextLevel;
     audioManager.muteForAd();
-    showInterstitialAd(
-      "Between_Levels",
-      () => {},
+
+    void showInterstitialAd(
+      'Between_Levels',
       () => {
-        const lvl = pendingNextLevelRef.current;
+        // Ad started showing – do not start next level here
+      },
+      () => {
+        const level = pendingNextLevelRef.current;
         pendingNextLevelRef.current = null;
         audioManager.unmuteAfterAd();
-        if (!audioManager.isMuted) {
-          audioManager.startBackgroundMusic();
-        }
-        if (lvl) {
-          startLevelClean(lvl);
-        }
-      }
+        if (level !== null) startLevelClean(level);
+      },
     );
-  } else {
-    startLevelClean(nextLevel);
-  }
-}, [gameState.level]);
+  }, [gameState.level]);
 
   const handleReplayLevel = useCallback(() => {
     setIsNewHighScore(false);
