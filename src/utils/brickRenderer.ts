@@ -23,7 +23,7 @@ function getCachedBrickSprite(
     if (firstKey) brickSpriteCache.delete(firstKey);
   }
   
-  const dpr = Math.max(window.devicePixelRatio || 1, 2); // Minimum 2x for HD
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const offscreen = document.createElement('canvas');
   offscreen.width = (Math.ceil(width) + 4) * dpr;
   offscreen.height = (Math.ceil(height) + 4) * dpr;
