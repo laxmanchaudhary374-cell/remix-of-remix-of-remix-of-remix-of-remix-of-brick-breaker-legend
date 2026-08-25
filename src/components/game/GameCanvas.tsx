@@ -100,6 +100,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [balls, setBalls] = useState<Ball[]>([]);
   const [bricks, setBricks] = useState<Brick[]>([]);
   const [powerUps, setPowerUps] = useState<PowerUp[]>([]);
+const ballsRef = useRef<Ball[]>([]);
+const bricksRef = useRef<Brick[]>([]);
+const gameTimeRef = useRef(0);
+const lastHudSecondRef = useRef(-1);
+
   const [particles, setParticles] = useState<Particle[]>([]);
   const [lasers, setLasers] = useState<Laser[]>([]);
   const [coins, setCoins] = useState<Coin[]>([]);
@@ -198,7 +203,9 @@ useEffect(() => {
         originalX: brick.x,
       }));
     
-    setBricks(newBricks);
+    bricksRef.current = newBricks;
+setBricks(newBricks);
+
 
     // Monster level setup
     if (isMonsterLevel(gameState.level)) {
@@ -317,15 +324,22 @@ useEffect(() => {
       velocity: { dx: 0, dy: 0 },
       radius: BALL_RADIUS,
     };
-    setBalls([magnetBallRef.current]);
+    ballsRef.current = [magnetBallRef.current];
+setBalls([magnetBallRef.current]);
+
   }
 }, [gameState.status, gameState.level]);
 
   // Reset on game over
   useEffect(() => {
     if (gameState.status === 'menu' || gameState.status === 'gameover') {
-      setBricks([]);
-      setBalls([]);
+      bricksRef.current = [];
+ballsRef.current = [];
+setBricks([]);
+setBalls([]);
+gameTimeRef.current = 0;
+lastHudSecondRef.current = -1;
+
       setPowerUps([]);
       setParticles([]);
       setLasers([]);
@@ -343,6 +357,18 @@ useEffect(() => {
     }
 
   }, [gameState.status]);
+useEffect(() => {
+  ballsRef.current = balls;
+}, [balls]);
+
+useEffect(() => {
+  bricksRef.current = bricks;
+}, [bricks]);
+
+useEffect(() => {
+  paddleRef.current = paddle;
+}, [paddle]);
+
 
   // Track previous brick count for level completion check
   const prevBrickCountRef = useRef<number>(0);
@@ -508,7 +534,9 @@ if (isShock) {
 
   // Fire laser
   const paddleRef = useRef(paddle);
-  paddleRef.current = paddle;
+paddleRef.current = paddle;
+
+
   
   const fireLaser = useCallback(() => {
     // Don't fire if level is completing
@@ -970,7 +998,9 @@ const stepDt = clampedDt / numSteps;
           radius: BALL_RADIUS,
         };
         magnetBallRef.current = newBall;
-        setBalls([newBall]);
+ballsRef.current = [newBall];
+setBalls([newBall]);
+
         aimAngleRef.current = -Math.PI / 2;
 
         
