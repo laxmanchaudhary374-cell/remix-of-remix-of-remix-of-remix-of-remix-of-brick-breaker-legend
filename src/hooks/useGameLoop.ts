@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 
 export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: boolean) => {
   const cbRef = useRef(callback);
@@ -8,16 +8,31 @@ export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: bo
     if (!isRunning) return;
 
     let raf = 0;
-    let prev: number | undefined;
+let prev: number | undefined;
+let accumulator = 0;
 
-    const animate = (time: number) => {
-      if (prev !== undefined) {
-        const deltaTime = Math.min((time - prev) / 1000, 0.05);
-        cbRef.current(deltaTime);
-      }
-      prev = time;
-      raf = requestAnimationFrame(animate);
-    };
+const TARGET_FRAME_MS = 1000 / 60;
+
+const animate = (time: number) => {
+  raf = requestAnimationFrame(animate);
+
+  if (prev === undefined) {
+    prev = time;
+    return;
+  }
+
+  const elapsed = Math.min(time - prev, 100);
+  prev = time;
+  accumulator += elapsed;
+
+  if (accumulator < TARGET_FRAME_MS) return;
+
+  // Run exactly one game update at a stable 60 FPS.
+  // Discard excess time to prevent a CPU catch-up spike.
+  accumulator = 0;
+  cbRef.current(1 / 60);
+};
+
 
     raf = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(raf);
