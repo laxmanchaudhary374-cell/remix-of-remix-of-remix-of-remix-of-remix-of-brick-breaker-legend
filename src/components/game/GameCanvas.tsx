@@ -2530,7 +2530,11 @@ explosions.forEach(explosion => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        // Preserve the same logical game size while preventing excessive
+// backing-buffer pixels on high-density, lower-performance phones.
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+
     canvas.width = GAME_WIDTH * dpr;
     canvas.height = GAME_HEIGHT * dpr;
     canvas.style.width = `${GAME_WIDTH}px`;

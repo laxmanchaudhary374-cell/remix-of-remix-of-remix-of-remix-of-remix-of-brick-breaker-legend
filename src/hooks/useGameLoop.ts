@@ -1,40 +1,42 @@
 ﻿import { useEffect, useRef } from 'react';
 
-export const useGameLoop = (callback: (deltaTime: number) => void, isRunning: boolean) => {
-  const cbRef = useRef(callback);
-  cbRef.current = callback;
+export const useGameLoop = (
+  callback: (deltaTime: number) => void,
+  isRunning: boolean,
+) => {
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
 
   useEffect(() => {
     if (!isRunning) return;
 
-    let raf = 0;
-let prev: number | undefined;
-let accumulator = 0;
+    let animationFrame = 0;
+    let previousTime: number | undefined;
+    let accumulatedTime = 0;
+    const targetFrameMs = 1000 / 60;
 
-const TARGET_FRAME_MS = 1000 / 60;
+    const animate = (time: number) => {
+      animationFrame = requestAnimationFrame(animate);
 
-const animate = (time: number) => {
-  raf = requestAnimationFrame(animate);
+      if (previousTime === undefined) {
+        previousTime = time;
+        return;
+      }
 
-  if (prev === undefined) {
-    prev = time;
-    return;
-  }
+      const elapsed = Math.min(time - previousTime, 100);
+      previousTime = time;
+      accumulatedTime += elapsed;
 
-  const elapsed = Math.min(time - prev, 100);
-  prev = time;
-  accumulator += elapsed;
+      if (accumulatedTime < targetFrameMs) return;
 
-  if (accumulator < TARGET_FRAME_MS) return;
+      // Prevent 90/120 Hz phones from running the complete game loop
+      // more often than the game needs.
+      accumulatedTime = 0;
+      callbackRef.current(1 / 60);
+    };
 
-  // Run exactly one game update at a stable 60 FPS.
-  // Discard excess time to prevent a CPU catch-up spike.
-  accumulator = 0;
-  cbRef.current(1 / 60);
-};
+    animationFrame = requestAnimationFrame(animate);
 
-
-    raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
+    return () => cancelAnimationFrame(animationFrame);
   }, [isRunning]);
 };

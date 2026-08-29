@@ -361,7 +361,7 @@ useEffect(() => {
     const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
     const shouldShowAd =
       nextLevel >= 15 &&
-      (nextLevel - 15) % 3 === 0 &&
+      (nextLevel - 15) % 5 === 0 &&
       online &&
       !isAdsRemoved();
 
