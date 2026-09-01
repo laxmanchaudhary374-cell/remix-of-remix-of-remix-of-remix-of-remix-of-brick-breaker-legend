@@ -373,6 +373,13 @@ useEffect(() => {
   ballsRef.current = balls;
 }, [balls]);
 
+// Keep the mutable engine mirror in sync (cheap, once per commit).
+engineRef.current.ballSpeed = ballSpeed;
+engineRef.current.isAutoPaddle = isAutoPaddle;
+engineRef.current.paddleWidth = paddle.width;
+engineRef.current.hasMagnet = !!paddle.hasMagnet;
+
+
 useEffect(() => {
   bricksRef.current = bricks;
 }, [bricks]);
