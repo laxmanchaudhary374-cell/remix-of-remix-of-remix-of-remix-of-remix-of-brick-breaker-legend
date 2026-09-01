@@ -283,7 +283,7 @@ export async function showBannerAd(location: string = 'Main_Menu_Banner'): Promi
   }
 
   if (bannerRetryTimer) clearTimeout(bannerRetryTimer);
-  bannerRetryTimer = window.setTimeout(() => void showBannerAd(location), 20000);
+  bannerRetryTimer = setTimeout(() => void showBannerAd(location), 20000);
 }
 
 // ==================== INTERSTITIAL ADS ====================
