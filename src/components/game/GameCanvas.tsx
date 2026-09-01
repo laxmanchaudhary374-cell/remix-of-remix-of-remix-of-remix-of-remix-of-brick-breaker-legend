@@ -699,6 +699,7 @@ const stepDt = clampedDt / numSteps;
       switch(type) {
         case 'auto':
           setIsAutoPaddle(true);
+          engineRef.current.isAutoPaddle = true;
           setAutoPaddleEndTime(gameTime + 15);
           userOverrideRef.current = false;
           break;
@@ -751,7 +752,14 @@ const stepDt = clampedDt / numSteps;
     // Check auto-paddle expiry
     if (isAutoPaddle && autoPaddleEndTime > 0 && gameTime >= autoPaddleEndTime) {
       setIsAutoPaddle(false);
+      engineRef.current.isAutoPaddle = false;
       setAutoPaddleEndTime(0);
+    }
+
+    // Check shield expiry (game-time driven, same tick as ball physics)
+    if (shieldEndTime > 0 && gameTime >= shieldEndTime) {
+      setShieldEndTime(0);
+      setPaddle(prev => (prev.hasShield ? { ...prev, hasShield: false } : prev));
     }
     
     // Update auto timer in HUD
@@ -1579,19 +1587,19 @@ explosions.forEach(explosion => {
               setTimeout(() => setPaddle(prev => ({ ...prev, hasMagnet: false })), 10000);
               break;
             case 'shield':
+              // Expiry is driven by game time inside the loop (not setTimeout),
+              // so a notification / app pause can never desync shield collision.
               if (shieldTimerRef.current) {
                 clearTimeout(shieldTimerRef.current);
+                shieldTimerRef.current = null;
               }
               setPaddle(prev => ({ ...prev, hasShield: true }));
               setShieldEndTime(gameTime + 15);
-              shieldTimerRef.current = setTimeout(() => {
-                setPaddle(prev => ({ ...prev, hasShield: false }));
-                setShieldEndTime(0);
-              }, 15000);
               break;
             case 'autopaddle':
               // Auto-paddle: starts instantly, lasts 15 seconds
               setIsAutoPaddle(true);
+              engineRef.current.isAutoPaddle = true;
               setAutoPaddleEndTime(gameTime + 15);
               userOverrideRef.current = false;
               break;
@@ -1665,8 +1673,9 @@ explosions.forEach(explosion => {
         .filter(explosion => explosion.life > 0);
     });
 
-    // Update particles
-    setParticles(prevParticles => {
+    // Update particles (skip entirely when there are none - avoids a React
+    // commit + array allocation on every single frame)
+    if (particles.length > 0) setParticles(prevParticles => {
       return prevParticles
         .map(particle => ({
           ...particle,
