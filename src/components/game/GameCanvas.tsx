@@ -525,9 +525,11 @@ if (isShock) {
     const x = (clientX - rect.left) * scaleX;
     const y = (clientY - rect.top) * scaleY;
     
+    const pw = engineRef.current.paddleWidth;
+
     // During aiming (ball on paddle), rotate aim arrow
     if (magnetBallRef.current) {
-      const ball = balls.find(b => b.id === magnetBallRef.current?.id);
+      const ball = ballsRef.current.find(b => b.id === magnetBallRef.current?.id);
       if (ball) {
         const dx = x - ball.position.x;
         const dy = y - ball.position.y;
@@ -537,19 +539,20 @@ if (isShock) {
         aimAngleRef.current = angle;
       }
       // Only allow paddle movement during magnet powerup, NOT initial aiming
-      if (paddle.hasMagnet) {
-        paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
+      if (engineRef.current.hasMagnet) {
+        paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - pw, x - pw / 2));
       }
       return;
     }
     
     // Auto-paddle: user touching = instant override
-    if (isAutoPaddle) {
+    if (engineRef.current.isAutoPaddle) {
       userOverrideRef.current = true;
     }
     
-    paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
-  }, [paddle.width, balls, isAutoPaddle]);
+    paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - pw, x - pw / 2));
+  }, []);
+
 
   // Fire laser
   const paddleRef = useRef(paddle);
