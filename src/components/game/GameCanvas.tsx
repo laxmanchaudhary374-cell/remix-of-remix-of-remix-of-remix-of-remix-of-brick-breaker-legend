@@ -104,6 +104,7 @@ const ballsRef = useRef<Ball[]>([]);
 const bricksRef = useRef<Brick[]>([]);
 const gameTimeRef = useRef(0);
 const lastHudSecondRef = useRef(-1);
+const particleCountRef = useRef(0);
 
   const [particles, setParticles] = useState<Particle[]>([]);
   const [lasers, setLasers] = useState<Laser[]>([]);
@@ -127,8 +128,20 @@ const lastHudSecondRef = useRef(-1);
   const [isGhostPaddle, setIsGhostPaddle] = useState(false);
   const [shieldEndTime, setShieldEndTime] = useState(0);
   const [ghostEndTime, setGhostEndTime] = useState(0);
-    
+
+  // Authoritative mutable mirror of values the input/physics path needs every
+  // frame. Reading these from refs keeps event handlers stable so window
+  // listeners are NOT re-registered on every animation frame (major stutter
+  // + heat source on low-end phones).
+  const engineRef = useRef({
+    ballSpeed: 300,
+    isAutoPaddle: false,
+    paddleWidth: PADDLE_WIDTH,
+    hasMagnet: false,
+  });
+
   const paddleTargetRef = useRef(paddle.x);
+
   const magnetBallRef = useRef<Ball | null>(null);
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
   const aimAngleRef = useRef<number>(-Math.PI / 2);
@@ -361,6 +374,14 @@ useEffect(() => {
   ballsRef.current = balls;
 }, [balls]);
 
+// Keep the mutable engine mirror in sync (cheap, once per commit).
+engineRef.current.ballSpeed = ballSpeed;
+engineRef.current.isAutoPaddle = isAutoPaddle;
+engineRef.current.paddleWidth = paddle.width;
+engineRef.current.hasMagnet = !!paddle.hasMagnet;
+particleCountRef.current = particles.length;
+
+
 useEffect(() => {
   bricksRef.current = bricks;
 }, [bricks]);
@@ -506,9 +527,11 @@ if (isShock) {
     const x = (clientX - rect.left) * scaleX;
     const y = (clientY - rect.top) * scaleY;
     
+    const pw = engineRef.current.paddleWidth;
+
     // During aiming (ball on paddle), rotate aim arrow
     if (magnetBallRef.current) {
-      const ball = balls.find(b => b.id === magnetBallRef.current?.id);
+      const ball = ballsRef.current.find(b => b.id === magnetBallRef.current?.id);
       if (ball) {
         const dx = x - ball.position.x;
         const dy = y - ball.position.y;
@@ -518,19 +541,20 @@ if (isShock) {
         aimAngleRef.current = angle;
       }
       // Only allow paddle movement during magnet powerup, NOT initial aiming
-      if (paddle.hasMagnet) {
-        paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
+      if (engineRef.current.hasMagnet) {
+        paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - pw, x - pw / 2));
       }
       return;
     }
     
     // Auto-paddle: user touching = instant override
-    if (isAutoPaddle) {
+    if (engineRef.current.isAutoPaddle) {
       userOverrideRef.current = true;
     }
     
-    paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - paddle.width, x - paddle.width / 2));
-  }, [paddle.width, balls, isAutoPaddle]);
+    paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - pw, x - pw / 2));
+  }, []);
+
 
   // Fire laser
   const paddleRef = useRef(paddle);
@@ -576,7 +600,7 @@ paddleRef.current = paddle;
         audioManager.playMagnetRelease();
         setBalls(prevBalls => prevBalls.map(ball => {
           if (ball.id === ballId) {
-            const speed = ballSpeed;
+            const speed = engineRef.current.ballSpeed;
             return {
               ...ball,
               velocity: { 
@@ -603,7 +627,7 @@ paddleRef.current = paddle;
       if (magnetBallRef.current) {
         releaseMagnetBall();
       }
-      if (isAutoPaddle) {
+      if (engineRef.current.isAutoPaddle) {
         userOverrideRef.current = false;
       }
     };
@@ -627,7 +651,7 @@ paddleRef.current = paddle;
       window.removeEventListener('mouseup', handlePointerUp);
       window.removeEventListener('click', handleClick);
     };
-  }, [gameState.status, handlePointerMove, ballSpeed, isAutoPaddle]);
+  }, [gameState.status, handlePointerMove]);
   
   // Auto-fire laser when paddle has laser power-up
   useEffect(() => {
@@ -677,6 +701,7 @@ const stepDt = clampedDt / numSteps;
       switch(type) {
         case 'auto':
           setIsAutoPaddle(true);
+          engineRef.current.isAutoPaddle = true;
           setAutoPaddleEndTime(gameTime + 15);
           userOverrideRef.current = false;
           break;
@@ -729,7 +754,14 @@ const stepDt = clampedDt / numSteps;
     // Check auto-paddle expiry
     if (isAutoPaddle && autoPaddleEndTime > 0 && gameTime >= autoPaddleEndTime) {
       setIsAutoPaddle(false);
+      engineRef.current.isAutoPaddle = false;
       setAutoPaddleEndTime(0);
+    }
+
+    // Check shield expiry (game-time driven, same tick as ball physics)
+    if (shieldEndTime > 0 && gameTime >= shieldEndTime) {
+      setShieldEndTime(0);
+      setPaddle(prev => (prev.hasShield ? { ...prev, hasShield: false } : prev));
     }
     
     // Update auto timer in HUD
@@ -1557,19 +1589,19 @@ explosions.forEach(explosion => {
               setTimeout(() => setPaddle(prev => ({ ...prev, hasMagnet: false })), 10000);
               break;
             case 'shield':
+              // Expiry is driven by game time inside the loop (not setTimeout),
+              // so a notification / app pause can never desync shield collision.
               if (shieldTimerRef.current) {
                 clearTimeout(shieldTimerRef.current);
+                shieldTimerRef.current = null;
               }
               setPaddle(prev => ({ ...prev, hasShield: true }));
               setShieldEndTime(gameTime + 15);
-              shieldTimerRef.current = setTimeout(() => {
-                setPaddle(prev => ({ ...prev, hasShield: false }));
-                setShieldEndTime(0);
-              }, 15000);
               break;
             case 'autopaddle':
               // Auto-paddle: starts instantly, lasts 15 seconds
               setIsAutoPaddle(true);
+              engineRef.current.isAutoPaddle = true;
               setAutoPaddleEndTime(gameTime + 15);
               userOverrideRef.current = false;
               break;
@@ -1643,9 +1675,10 @@ explosions.forEach(explosion => {
         .filter(explosion => explosion.life > 0);
     });
 
-    // Update particles
-    setParticles(prevParticles => {
-      return prevParticles
+    // Update particles (skip entirely when there are none - avoids a React
+    // commit + array allocation on every single frame)
+    if (particleCountRef.current > 0) setParticles(prevParticles => {
+      const next = prevParticles
         .map(particle => ({
           ...particle,
           x: particle.x + particle.dx * deltaTime,
@@ -1654,6 +1687,8 @@ explosions.forEach(explosion => {
           life: particle.life - deltaTime * 2,
         }))
         .filter(particle => particle.life > 0);
+      particleCountRef.current = next.length;
+      return next;
     });
 
     // Update alien ships
