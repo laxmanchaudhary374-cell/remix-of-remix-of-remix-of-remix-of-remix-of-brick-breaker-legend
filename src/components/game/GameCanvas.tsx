@@ -598,7 +598,7 @@ paddleRef.current = paddle;
         audioManager.playMagnetRelease();
         setBalls(prevBalls => prevBalls.map(ball => {
           if (ball.id === ballId) {
-            const speed = ballSpeed;
+            const speed = engineRef.current.ballSpeed;
             return {
               ...ball,
               velocity: { 
@@ -625,7 +625,7 @@ paddleRef.current = paddle;
       if (magnetBallRef.current) {
         releaseMagnetBall();
       }
-      if (isAutoPaddle) {
+      if (engineRef.current.isAutoPaddle) {
         userOverrideRef.current = false;
       }
     };
@@ -649,7 +649,7 @@ paddleRef.current = paddle;
       window.removeEventListener('mouseup', handlePointerUp);
       window.removeEventListener('click', handleClick);
     };
-  }, [gameState.status, handlePointerMove, ballSpeed, isAutoPaddle]);
+  }, [gameState.status, handlePointerMove]);
   
   // Auto-fire laser when paddle has laser power-up
   useEffect(() => {
