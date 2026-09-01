@@ -104,6 +104,7 @@ const ballsRef = useRef<Ball[]>([]);
 const bricksRef = useRef<Brick[]>([]);
 const gameTimeRef = useRef(0);
 const lastHudSecondRef = useRef(-1);
+const particleCountRef = useRef(0);
 
   const [particles, setParticles] = useState<Particle[]>([]);
   const [lasers, setLasers] = useState<Laser[]>([]);
@@ -378,6 +379,7 @@ engineRef.current.ballSpeed = ballSpeed;
 engineRef.current.isAutoPaddle = isAutoPaddle;
 engineRef.current.paddleWidth = paddle.width;
 engineRef.current.hasMagnet = !!paddle.hasMagnet;
+particleCountRef.current = particles.length;
 
 
 useEffect(() => {
@@ -1675,8 +1677,8 @@ explosions.forEach(explosion => {
 
     // Update particles (skip entirely when there are none - avoids a React
     // commit + array allocation on every single frame)
-    if (particles.length > 0) setParticles(prevParticles => {
-      return prevParticles
+    if (particleCountRef.current > 0) setParticles(prevParticles => {
+      const next = prevParticles
         .map(particle => ({
           ...particle,
           x: particle.x + particle.dx * deltaTime,
@@ -1685,6 +1687,8 @@ explosions.forEach(explosion => {
           life: particle.life - deltaTime * 2,
         }))
         .filter(particle => particle.life > 0);
+      particleCountRef.current = next.length;
+      return next;
     });
 
     // Update alien ships
