@@ -127,8 +127,20 @@ const lastHudSecondRef = useRef(-1);
   const [isGhostPaddle, setIsGhostPaddle] = useState(false);
   const [shieldEndTime, setShieldEndTime] = useState(0);
   const [ghostEndTime, setGhostEndTime] = useState(0);
-    
+
+  // Authoritative mutable mirror of values the input/physics path needs every
+  // frame. Reading these from refs keeps event handlers stable so window
+  // listeners are NOT re-registered on every animation frame (major stutter
+  // + heat source on low-end phones).
+  const engineRef = useRef({
+    ballSpeed: 300,
+    isAutoPaddle: false,
+    paddleWidth: PADDLE_WIDTH,
+    hasMagnet: false,
+  });
+
   const paddleTargetRef = useRef(paddle.x);
+
   const magnetBallRef = useRef<Ball | null>(null);
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
   const aimAngleRef = useRef<number>(-Math.PI / 2);
