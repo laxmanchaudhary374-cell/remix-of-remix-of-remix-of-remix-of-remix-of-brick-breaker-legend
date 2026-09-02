@@ -719,6 +719,14 @@ useEffect(() => {
           </div>
         )}
 
+        {screenState === 'playing' && showEmCoach && (
+          <EmergencyTutorialCoach
+            coins={persistentCoins}
+            cost={EMERGENCY_PRICES.auto.cost}
+            onDismiss={dismissEmCoach}
+          />
+        )}
+
         {screenState === 'paused' && buyPrompt && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-lg z-50">
             <div className="text-center p-6 rounded-xl border border-neon-cyan/30" style={{ background: 'linear-gradient(135deg, hsl(220,60%,8%), hsl(220,50%,14%))' }}>
