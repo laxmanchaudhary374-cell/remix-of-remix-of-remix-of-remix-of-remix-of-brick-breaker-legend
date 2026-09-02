@@ -14,6 +14,7 @@ import DailyRewards, { checkDailyReward } from './DailyRewards';
 import LuckyWheel from './LuckyWheel';
 import ShopScreen, { ShopItem } from './ShopScreen';
 import TutorialOverlay, { hasSeenTutorial } from './TutorialOverlay';
+import EmergencyTutorialCoach, { hasSeenEmergencyTutorial, markEmergencyTutorialSeen } from './EmergencyTutorialCoach';
 import { audioManager } from '@/utils/audioManager';
 import { initBilling, restoreUnconsumedPurchases } from '@/utils/billing';
 import { initAdMob, showBannerAd, showInterstitialAd, preloadInterstitial, isAdActive, isAdsRemoved } from '@/utils/admob';
