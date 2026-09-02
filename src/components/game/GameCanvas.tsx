@@ -139,6 +139,8 @@ const particleCountRef = useRef(0);
     paddleWidth: PADDLE_WIDTH,
     hasMagnet: false,
   });
+const autoPaddleEndTimeRef = useRef(0);
+const shieldEndTimeRef = useRef(0);
 
   const paddleTargetRef = useRef(paddle.x);
 
@@ -686,6 +688,9 @@ paddleRef.current = paddle;
 
   // Game loop
   const gameLoop = useCallback((deltaTime: number) => {
+const nextGameTime = gameTimeRef.current + deltaTime;
+gameTimeRef.current = nextGameTime;
+
      if (levelCompletingRef.current) {
     return;
   }
@@ -733,7 +738,12 @@ const stepDt = clampedDt / numSteps;
       }
     }
 
-    setGameTime(prev => prev + deltaTime);
+    const hudSecond = Math.floor(nextGameTime);
+if (hudSecond !== lastHudSecondRef.current) {
+  lastHudSecondRef.current = hudSecond;
+  setGameTime(nextGameTime);
+}
+
     
     // Update combo timer
     setComboTimer(prev => {
@@ -751,58 +761,96 @@ const stepDt = clampedDt / numSteps;
     // Update screen shake
     setScreenShake(prev => Math.max(0, prev - deltaTime * 20));
 
-    // Check auto-paddle expiry
-    if (isAutoPaddle && autoPaddleEndTime > 0 && gameTime >= autoPaddleEndTime) {
-      setIsAutoPaddle(false);
-      engineRef.current.isAutoPaddle = false;
-      setAutoPaddleEndTime(0);
-    }
+    // Check auto-paddle expiry using the authoritative engine clock.
+if (
+  engineRef.current.isAutoPaddle &&
+  autoPaddleEndTimeRef.current > 0 &&
+  nextGameTime >= autoPaddleEndTimeRef.current
+) {
+  engineRef.current.isAutoPaddle = false;
+  autoPaddleEndTimeRef.current = 0;
+  setIsAutoPaddle(false);
+  setAutoPaddleEndTime(0);
+}
 
-    // Check shield expiry (game-time driven, same tick as ball physics)
-    if (shieldEndTime > 0 && gameTime >= shieldEndTime) {
-      setShieldEndTime(0);
-      setPaddle(prev => (prev.hasShield ? { ...prev, hasShield: false } : prev));
-    }
-    
-    // Update auto timer in HUD
-    if (isAutoPaddle && autoPaddleEndTime > 0) {
-      const remaining = Math.max(0, Math.ceil(autoPaddleEndTime - gameTime));
-      if (remaining !== lastAutoTimerRef.current) {
-        lastAutoTimerRef.current = remaining;
-        setGameState(prev => ({ ...prev, autoTimer: remaining }));
-      }
-    } else if (lastAutoTimerRef.current !== 0) {
-      lastAutoTimerRef.current = 0;
-      setGameState(prev => ({ ...prev, autoTimer: 0 }));
-    }
+// Check shield expiry using the authoritative engine clock.
+if (
+  shieldEndTimeRef.current > 0 &&
+  nextGameTime >= shieldEndTimeRef.current
+) {
+  shieldEndTimeRef.current = 0;
+  paddleRef.current = {
+    ...paddleRef.current,
+    hasShield: false,
+  };
+  setShieldEndTime(0);
+  setPaddle(prev => (prev.hasShield ? { ...prev, hasShield: false } : prev));
+}
 
-    // Update shield timer in HUD
-    if (shieldEndTime > 0) {
-      const shieldRemaining = Math.max(0, Math.ceil(shieldEndTime - gameTime));
-      setGameState(prev => {
-        if (prev.shieldTimer !== shieldRemaining) return { ...prev, shieldTimer: shieldRemaining };
-        return prev;
-      });
-    } else {
-      setGameState(prev => {
-        if (prev.shieldTimer !== 0) return { ...prev, shieldTimer: 0 };
-        return prev;
-      });
-    }
+// Update auto-paddle timer in the HUD.
+if (
+  engineRef.current.isAutoPaddle &&
+  autoPaddleEndTimeRef.current > 0
+) {
+  const remaining = Math.max(
+    0,
+    Math.ceil(autoPaddleEndTimeRef.current - nextGameTime),
+  );
 
-    // Update ghost timer in HUD
-    if (ghostEndTime > 0) {
-      const ghostRemaining = Math.max(0, Math.ceil(ghostEndTime - gameTime));
-      setGameState(prev => {
-        if (prev.ghostTimer !== ghostRemaining) return { ...prev, ghostTimer: ghostRemaining };
-        return prev;
-      });
-    } else {
-      setGameState(prev => {
-        if (prev.ghostTimer !== 0) return { ...prev, ghostTimer: 0 };
-        return prev;
-      });
+  if (remaining !== lastAutoTimerRef.current) {
+    lastAutoTimerRef.current = remaining;
+    setGameState(prev => ({ ...prev, autoTimer: remaining }));
+  }
+} else if (lastAutoTimerRef.current !== 0) {
+  lastAutoTimerRef.current = 0;
+  setGameState(prev => ({ ...prev, autoTimer: 0 }));
+}
+
+// Update shield timer in the HUD.
+if (shieldEndTimeRef.current > 0) {
+  const shieldRemaining = Math.max(
+    0,
+    Math.ceil(shieldEndTimeRef.current - nextGameTime),
+  );
+
+  setGameState(prev => {
+    if (prev.shieldTimer !== shieldRemaining) {
+      return { ...prev, shieldTimer: shieldRemaining };
     }
+    return prev;
+  });
+} else {
+  setGameState(prev => {
+    if (prev.shieldTimer !== 0) {
+      return { ...prev, shieldTimer: 0 };
+    }
+    return prev;
+  });
+}
+
+// Update ghost timer in the HUD.
+if (ghostEndTime > 0) {
+  const ghostRemaining = Math.max(
+    0,
+    Math.ceil(ghostEndTime - nextGameTime),
+  );
+
+  setGameState(prev => {
+    if (prev.ghostTimer !== ghostRemaining) {
+      return { ...prev, ghostTimer: ghostRemaining };
+    }
+    return prev;
+  });
+} else {
+  setGameState(prev => {
+    if (prev.ghostTimer !== 0) {
+      return { ...prev, ghostTimer: 0 };
+    }
+    return prev;
+  });
+}
+
+
 
     // Spawn plane if no power-up dropped for 90 seconds
     if (gameTime - lastPowerUpTime > 90 && !plane) {
@@ -1005,6 +1053,14 @@ const stepDt = clampedDt / numSteps;
         setIsShock(false);
         setIsAutoPaddle(false);
         setAutoPaddleEndTime(0);
+autoPaddleEndTimeRef.current = 0;
+shieldEndTimeRef.current = 0;
+engineRef.current.isAutoPaddle = false;
+paddleRef.current = {
+  ...paddleRef.current,
+  hasShield: false,
+};
+
         setIsGhostPaddle(false);
         setLasers([]);
         if (laserAutoFireRef.current) {
@@ -1148,6 +1204,14 @@ setBalls([newBall]);
         setIsShock(false);
         setIsAutoPaddle(false);
         setAutoPaddleEndTime(0);
+autoPaddleEndTimeRef.current = 0;
+shieldEndTimeRef.current = 0;
+engineRef.current.isAutoPaddle = false;
+paddleRef.current = {
+  ...paddleRef.current,
+  hasShield: false,
+};
+
         setIsGhostPaddle(false);
         setPaddle(prev => ({
           ...prev,
@@ -1588,23 +1652,35 @@ explosions.forEach(explosion => {
               setPaddle(prev => ({ ...prev, hasMagnet: true }));
               setTimeout(() => setPaddle(prev => ({ ...prev, hasMagnet: false })), 10000);
               break;
-            case 'shield':
-              // Expiry is driven by game time inside the loop (not setTimeout),
-              // so a notification / app pause can never desync shield collision.
-              if (shieldTimerRef.current) {
-                clearTimeout(shieldTimerRef.current);
-                shieldTimerRef.current = null;
-              }
-              setPaddle(prev => ({ ...prev, hasShield: true }));
-              setShieldEndTime(gameTime + 15);
-              break;
-            case 'autopaddle':
-              // Auto-paddle: starts instantly, lasts 15 seconds
-              setIsAutoPaddle(true);
-              engineRef.current.isAutoPaddle = true;
-              setAutoPaddleEndTime(gameTime + 15);
-              userOverrideRef.current = false;
-              break;
+            case 'shield': {
+  const endTime = nextGameTime + 15;
+  shieldEndTimeRef.current = endTime;
+
+  // Update the live paddle immediately for the current physics tick.
+  paddleRef.current = {
+    ...paddleRef.current,
+    hasShield: true,
+  };
+
+  // React mirrors the value for rendering/HUD only.
+  setPaddle(prev => ({ ...prev, hasShield: true }));
+  setShieldEndTime(endTime);
+  break;
+}
+
+            case 'autopaddle': {
+  const endTime = nextGameTime + 15;
+
+  engineRef.current.isAutoPaddle = true;
+  autoPaddleEndTimeRef.current = endTime;
+  userOverrideRef.current = false;
+
+  // React mirrors the value for the HUD; the engine ref is authoritative.
+  setIsAutoPaddle(true);
+  setAutoPaddleEndTime(endTime);
+  break;
+}
+
             case 'shock':
               setIsShock(true);
               if ((window as any).__shockTimer) clearTimeout((window as any).__shockTimer);
