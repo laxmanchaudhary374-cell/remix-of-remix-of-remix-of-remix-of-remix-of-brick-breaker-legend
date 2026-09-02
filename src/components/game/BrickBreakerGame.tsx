@@ -526,7 +526,7 @@ useEffect(() => {
       try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch {}
       return updated;
     });
-  }, [emergencyCounts, screenState]);
+  }, [emergencyCounts, screenState, showEmCoach, dismissEmCoach]);
 
   const handleBuyEmergency = useCallback(() => {
     if (!buyPrompt) return;
