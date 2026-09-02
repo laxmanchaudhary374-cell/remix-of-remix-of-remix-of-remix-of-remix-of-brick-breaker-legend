@@ -14,6 +14,7 @@ import DailyRewards, { checkDailyReward } from './DailyRewards';
 import LuckyWheel from './LuckyWheel';
 import ShopScreen, { ShopItem } from './ShopScreen';
 import TutorialOverlay, { hasSeenTutorial } from './TutorialOverlay';
+import EmergencyTutorialCoach, { hasSeenEmergencyTutorial, markEmergencyTutorialSeen } from './EmergencyTutorialCoach';
 import { audioManager } from '@/utils/audioManager';
 import { initBilling, restoreUnconsumedPurchases } from '@/utils/billing';
 import { initAdMob, showBannerAd, showInterstitialAd, preloadInterstitial, isAdActive, isAdsRemoved } from '@/utils/admob';
@@ -99,6 +100,7 @@ const BrickBreakerGame: React.FC = () => {
   const emergencyRef = useRef<string | null>(null);
   const pendingNextLevelRef = useRef<number | null>(null);
   const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | 'laser' | null>(null);
+  const [showEmCoach, setShowEmCoach] = useState(false);
   const [lives, setLives] = useState(getStoredLives);
   const [lastRegen, setLastRegen] = useState(getStoredLastRegen);
   const [showDaily, setShowDaily] = useState(false);
@@ -494,7 +496,22 @@ useEffect(() => {
     }
   }, [screenState]);
 
+  // One-time coach mark: first Level 1 play only.
+  useEffect(() => {
+    if (screenState === 'playing' && gameState.level === 1 && !hasSeenEmergencyTutorial()) {
+      setShowEmCoach(true);
+    } else if (screenState !== 'playing') {
+      setShowEmCoach(false);
+    }
+  }, [screenState, gameState.level]);
+
+  const dismissEmCoach = useCallback(() => {
+    markEmergencyTutorialSeen();
+    setShowEmCoach(false);
+  }, []);
+
   const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi' | 'laser') => {
+    if (showEmCoach) dismissEmCoach();
     if (screenState !== 'playing') return;
     if (emergencyCounts[type] <= 0) {
       setBuyPrompt(type);
@@ -509,7 +526,7 @@ useEffect(() => {
       try { localStorage.setItem(`neon_breaker_em_${type}`, newVal.toString()); } catch {}
       return updated;
     });
-  }, [emergencyCounts, screenState]);
+  }, [emergencyCounts, screenState, showEmCoach, dismissEmCoach]);
 
   const handleBuyEmergency = useCallback(() => {
     if (!buyPrompt) return;
@@ -700,6 +717,14 @@ useEffect(() => {
               </button>
             ))}
           </div>
+        )}
+
+        {screenState === 'playing' && showEmCoach && (
+          <EmergencyTutorialCoach
+            coins={persistentCoins}
+            cost={EMERGENCY_PRICES.auto.cost}
+            onDismiss={dismissEmCoach}
+          />
         )}
 
         {screenState === 'paused' && buyPrompt && (
