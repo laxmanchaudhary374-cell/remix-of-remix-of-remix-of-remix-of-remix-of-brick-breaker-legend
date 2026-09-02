@@ -496,7 +496,22 @@ useEffect(() => {
     }
   }, [screenState]);
 
+  // One-time coach mark: first Level 1 play only.
+  useEffect(() => {
+    if (screenState === 'playing' && gameState.level === 1 && !hasSeenEmergencyTutorial()) {
+      setShowEmCoach(true);
+    } else if (screenState !== 'playing') {
+      setShowEmCoach(false);
+    }
+  }, [screenState, gameState.level]);
+
+  const dismissEmCoach = useCallback(() => {
+    markEmergencyTutorialSeen();
+    setShowEmCoach(false);
+  }, []);
+
   const handleEmergencyPowerUp = useCallback((type: 'auto' | 'shock' | 'multi' | 'laser') => {
+    if (showEmCoach) dismissEmCoach();
     if (screenState !== 'playing') return;
     if (emergencyCounts[type] <= 0) {
       setBuyPrompt(type);
