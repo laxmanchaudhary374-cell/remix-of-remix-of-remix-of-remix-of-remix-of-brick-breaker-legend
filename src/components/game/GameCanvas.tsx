@@ -36,7 +36,7 @@ import { getMonsterImage, preloadMonsterImages } from '@/utils/monsterImages';
 const ENTRANCE_MS = 1300;
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
-// Haptics: ONLY Big Ball vibrates (0.10 second = 100ms)
+// Haptics: ONLY Big Ball vibrates (0.20 second = 200ms)
 // Normal ball = no vibration
 let lastVibrateAt = 0;
 let isBigBallActive = false;
