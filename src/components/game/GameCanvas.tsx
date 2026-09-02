@@ -395,6 +395,11 @@ useEffect(() => {
 
   // Track previous brick count for level completion check
   const prevBrickCountRef = useRef<number>(0);
+
+  // Imperative renderer handle (assigned below); called once per animation
+  // frame right after the physics update instead of on every React commit.
+  const renderRef = useRef<() => void>(() => {});
+
   
   // Check for level completion
   useEffect(() => {
