@@ -100,6 +100,7 @@ const BrickBreakerGame: React.FC = () => {
   const emergencyRef = useRef<string | null>(null);
   const pendingNextLevelRef = useRef<number | null>(null);
   const [buyPrompt, setBuyPrompt] = useState<'auto' | 'shock' | 'multi' | 'laser' | null>(null);
+  const [showEmCoach, setShowEmCoach] = useState(false);
   const [lives, setLives] = useState(getStoredLives);
   const [lastRegen, setLastRegen] = useState(getStoredLastRegen);
   const [showDaily, setShowDaily] = useState(false);
