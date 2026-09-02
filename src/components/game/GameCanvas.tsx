@@ -46,7 +46,7 @@ const impactVibrate = (ballRadius: number) => {
   if (now - lastVibrateAt < 80) return; // small throttle
   lastVibrateAt = now;
   try {
-    navigator.vibrate?.(100); // exactly 0.10 second
+    navigator.vibrate?.(200); // doubled: 0.20 second (big ball only)
   } catch {}
 };
 
