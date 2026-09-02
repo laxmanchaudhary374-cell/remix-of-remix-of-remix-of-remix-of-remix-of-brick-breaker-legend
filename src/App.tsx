@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { showBannerAd, initAdMob } from "./utils/admob";
 import Chartboost from "./utils/chartboost";
+import OfflineNotice from './components/OfflineNotice';
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,8 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
+<OfflineNotice />
+
       <I18nProvider>
         <TooltipProvider>
           <Toaster />
