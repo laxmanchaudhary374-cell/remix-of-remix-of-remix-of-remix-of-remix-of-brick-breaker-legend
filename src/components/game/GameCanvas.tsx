@@ -61,6 +61,24 @@ const checkBallShipCollision = (_x: number, _y: number, _r: number, _s: any) => 
 const checkLaserShipCollision = (_x: number, _y: number, _s: any) => false;
 const getShipScore = (_s: any) => 0;
 
+// ---------------------------------------------------------------------------
+// useRefState: a ref that is written through a setState-shaped API.
+// The value is ALWAYS current synchronously (no React scheduling delay), so
+// physics writes are visible to the renderer within the same animation frame.
+// ---------------------------------------------------------------------------
+type RefUpdater<T> = T | ((prev: T) => T);
+function useRefState<T>(initial: T) {
+  const ref = useRef<T>(initial);
+  const set = useCallback((updater: RefUpdater<T>) => {
+    ref.current =
+      typeof updater === 'function'
+        ? (updater as (prev: T) => T)(ref.current)
+        : updater;
+  }, []);
+  return [ref, set] as const;
+}
+
+
 interface GameCanvasProps {
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
@@ -84,7 +102,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const bgCacheSizeRef = useRef<{ w: number; h: number; dpr: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [paddle, setPaddle] = useState<Paddle>({
+  // ============================================================
+  // AUTHORITATIVE GAMEPLAY REFS
+  // Physics AND canvas rendering read/write these same refs, so a value
+  // written during a frame is visible to the renderer in the SAME frame.
+  // React state below is only kept for low-frequency HUD/lifecycle values.
+  // ============================================================
+  const [paddleRef, setPaddle] = useRefState<Paddle>({
     x: GAME_WIDTH / 2 - PADDLE_WIDTH / 2,
     y: GAME_HEIGHT - 70,
     width: PADDLE_WIDTH,
@@ -93,41 +117,50 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     hasMagnet: false,
     hasShield: false,
   });
-  
+
   // Track shield expiry time
   const shieldTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const [balls, setBalls] = useState<Ball[]>([]);
-  const [bricks, setBricks] = useState<Brick[]>([]);
-  const [powerUps, setPowerUps] = useState<PowerUp[]>([]);
-const ballsRef = useRef<Ball[]>([]);
-const bricksRef = useRef<Brick[]>([]);
-const gameTimeRef = useRef(0);
-const lastHudSecondRef = useRef(-1);
-const particleCountRef = useRef(0);
 
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [lasers, setLasers] = useState<Laser[]>([]);
-  const [coins, setCoins] = useState<Coin[]>([]);
-  const [explosions, setExplosions] = useState<Explosion[]>([]);
-  const [levelCoins, setLevelCoins] = useState<LevelCoin[]>([]);
-  const [plane, setPlane] = useState<Plane | null>(null);
-  const [alienShips, setAlienShips] = useState<any[]>([]);
-  const [alienBullets, setAlienBullets] = useState<any[]>([]);
-  const [ballSpeed, setBallSpeed] = useState(300);
-  const [isFireball, setIsFireball] = useState(false);
-  const [isShock, setIsShock] = useState(false);
-  const [isAutoPaddle, setIsAutoPaddle] = useState(false);
-  const [autoPaddleEndTime, setAutoPaddleEndTime] = useState(0);
-  const [screenShake, setScreenShake] = useState(0);
+  const [ballsRef, setBalls] = useRefState<Ball[]>([]);
+  const [bricksRef, setBricks] = useRefState<Brick[]>([]);
+  const [powerUpsRef, setPowerUps] = useRefState<PowerUp[]>([]);
+  const gameTimeRef = useRef(0);
+  const lastHudSecondRef = useRef(-1);
+  const particleCountRef = useRef(0);
+
+  const [particlesRef, setParticles] = useRefState<Particle[]>([]);
+  const [lasersRef, setLasers] = useRefState<Laser[]>([]);
+  const [coinsRef, setCoins] = useRefState<Coin[]>([]);
+  const [explosionsRef, setExplosions] = useRefState<Explosion[]>([]);
+  const [levelCoinsRef, setLevelCoins] = useRefState<LevelCoin[]>([]);
+  const [planeRef, setPlane] = useRefState<Plane | null>(null);
+  const [alienShipsRef, setAlienShips] = useRefState<any[]>([]);
+  const [alienBulletsRef, setAlienBullets] = useRefState<any[]>([]);
+  const [ballSpeedRef, setBallSpeed] = useRefState(300);
+  const [isFireballRef, setIsFireball] = useRefState(false);
+  const [isShockRef, setIsShock] = useRefState(false);
+  const [isAutoPaddleRef, setIsAutoPaddle] = useRefState(false);
+  const [autoPaddleEndTimeRef, setAutoPaddleEndTime] = useRefState(0);
+  const [screenShakeRef, setScreenShake] = useRefState(0);
+  const [comboRef, setCombo] = useRefState(0);
+  const [comboTimerRef, setComboTimer] = useRefState(0);
+  const [isBigBallRef, setIsBigBall] = useRefState(false);
+  const [lastPowerUpTimeRef, setLastPowerUpTime] = useRefState(0);
+  const [isGhostPaddleRef, setIsGhostPaddle] = useRefState(false);
+  const [shieldEndTimeRef, setShieldEndTime] = useRefState(0);
+  const [ghostEndTimeRef, setGhostEndTime] = useRefState(0);
+
+  // Game-clock based expiry for every timed power-up (no setTimeout).
+  const widenEndTimeRef = useRef(0);
+  const bigballEndTimeRef = useRef(0);
+  const slowEndTimeRef = useRef(0);
+  const fireballEndTimeRef = useRef(0);
+  const laserEndTimeRef = useRef(0);
+  const magnetEndTimeRef = useRef(0);
+  const shockEndTimeRef = useRef(0);
+
+  // HUD-only React state (updated at most once per second / on change)
   const [gameTime, setGameTime] = useState(0);
-  const [combo, setCombo] = useState(0);
-  const [comboTimer, setComboTimer] = useState(0);
-  const [isBigBall, setIsBigBall] = useState(false);
-  const [lastPowerUpTime, setLastPowerUpTime] = useState(0);
-  const [isGhostPaddle, setIsGhostPaddle] = useState(false);
-  const [shieldEndTime, setShieldEndTime] = useState(0);
-  const [ghostEndTime, setGhostEndTime] = useState(0);
 
   // Authoritative mutable mirror of values the input/physics path needs every
   // frame. Reading these from refs keeps event handlers stable so window
@@ -139,10 +172,8 @@ const particleCountRef = useRef(0);
     paddleWidth: PADDLE_WIDTH,
     hasMagnet: false,
   });
-const autoPaddleEndTimeRef = useRef(0);
-const shieldEndTimeRef = useRef(0);
 
-  const paddleTargetRef = useRef(paddle.x);
+  const paddleTargetRef = useRef(GAME_WIDTH / 2 - PADDLE_WIDTH / 2);
 
   const magnetBallRef = useRef<Ball | null>(null);
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
@@ -153,13 +184,14 @@ const shieldEndTimeRef = useRef(0);
   const monsterDirRef = useRef(1);
   const monsterTotalHpRef = useRef(0);
   const levelStartTimeRef = useRef(0);
-  const [monsterHp, setMonsterHp] = useState({ current: 0, max: 0 });
+  const [monsterHpRef, setMonsterHp] = useRefState<{ current: number; max: number }>({ current: 0, max: 0 });
   // Boss fireballs spat from the monster's mouth toward the paddle
-  const [monsterFires, setMonsterFires] = useState<
+  const [monsterFiresRef, setMonsterFires] = useRefState<
     { id: string; x: number; y: number; vx: number; vy: number }[]
   >([]);
   const monsterFireCdRef = useRef(1.8);
   const isMonster = isMonsterLevel(gameState.level);
+
 
 
   // Preload the boss artworks once so monster levels never start blank
@@ -372,25 +404,8 @@ lastHudSecondRef.current = -1;
     }
 
   }, [gameState.status]);
-useEffect(() => {
-  ballsRef.current = balls;
-}, [balls]);
-
-// Keep the mutable engine mirror in sync (cheap, once per commit).
-engineRef.current.ballSpeed = ballSpeed;
-engineRef.current.isAutoPaddle = isAutoPaddle;
-engineRef.current.paddleWidth = paddle.width;
-engineRef.current.hasMagnet = !!paddle.hasMagnet;
-particleCountRef.current = particles.length;
 
 
-useEffect(() => {
-  bricksRef.current = bricks;
-}, [bricks]);
-
-useEffect(() => {
-  paddleRef.current = paddle;
-}, [paddle]);
 
 
   // Track previous brick count for level completion check
@@ -401,11 +416,11 @@ useEffect(() => {
   const renderRef = useRef<() => void>(() => {});
 
   
-  // Check for level completion
-  useEffect(() => {
-    if (gameState.status !== 'playing') return;
+  // Check for level completion (called from the game loop — bricks live in a ref)
+  const checkLevelComplete = useCallback(() => {
     if (levelCompletingRef.current) return;
-        if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS + 300) return;
+    if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS + 300) return;
+    const bricks = bricksRef.current;
     // Need actual bricks loaded for this level
     if (bricks.length === 0) return;
 
@@ -433,8 +448,7 @@ useEffect(() => {
       }
       setTimeout(() => onLevelComplete(), 300);
     }
-
-  }, [bricks, alienShips, gameState.status, onLevelComplete]);
+  }, [onLevelComplete, setPaddle, setLasers, setExplosions, setIsShock, setIsFireball, setPowerUps, setMonsterFires]);
 
   // Create particles
     const createParticles = useCallback((x: number, y: number, color: string, count: number = 6) => {
@@ -458,14 +472,16 @@ useEffect(() => {
     setParticles(prev => {
       // Limit max particles to 50 to prevent heating
       const combined = [...prev, ...newParticles];
-      return combined.length > 50 ? combined.slice(-50) : combined;
+      const next = combined.length > 50 ? combined.slice(-50) : combined;
+      particleCountRef.current = next.length;
+      return next;
     });
-  }, []);
+  }, [setParticles]);
 
   // Trigger screen shake
   const triggerScreenShake = useCallback((intensity: number) => {
     setScreenShake(intensity);
-  }, []);
+  }, [setScreenShake]);
 
   // Handle explosion chain
   const handleExplosion = useCallback((x: number, y: number) => {
@@ -477,16 +493,17 @@ useEffect(() => {
     createParticles(x, y, 'hsl(25, 100%, 55%)', 20);
     createParticles(x, y, 'hsl(50, 100%, 55%)', 15);
     createParticles(x, y, 'hsl(0, 100%, 60%)', 10);
-  }, [createParticles, triggerScreenShake]);
+  }, [createParticles, triggerScreenShake, setExplosions]);
 
   // Handle brick destruction
   const destroyBrick = useCallback((brick: Brick, addScore: boolean = true) => {
     if (brick.destroyed || brick.type === 'indestructible') return null;
-    
+
+    const combo = comboRef.current;
     const scoreValue = brick.maxHits * 10 * (1 + combo * 0.1);
     
     audioManager.playBrickDestroy();
-if (isShock) {
+if (isShockRef.current) {
   audioManager.playElectricZap();
 }
     if (combo > 1) {
@@ -514,14 +531,15 @@ if (isShock) {
     if (shouldDropPowerUp() && brick.type !== 'coin') {
       const powerUp = createPowerUp(brick.x + brick.width / 2, brick.y + brick.height);
       setPowerUps(prev => [...prev, powerUp]);
-      setLastPowerUpTime(gameTime);
+      setLastPowerUpTime(gameTimeRef.current);
     }
     
     setCombo(prev => prev + 1);
     setComboTimer(2);
     
     return addScore ? scoreValue : 0;
-  }, [combo, createParticles, handleExplosion, gameTime]);
+  }, [createParticles, handleExplosion, comboRef, isShockRef, setCoins, setPowerUps, setLastPowerUpTime, setCombo, setComboTimer]);
+
 
   // Handle paddle movement and aim direction
   const handlePointerMove = useCallback((clientX: number, clientY: number) => {
@@ -563,12 +581,6 @@ if (isShock) {
   }, []);
 
 
-  // Fire laser
-  const paddleRef = useRef(paddle);
-paddleRef.current = paddle;
-
-
-  
   const fireLaser = useCallback(() => {
     // Don't fire if level is completing
     if (levelCompletingRef.current) return;
@@ -580,7 +592,8 @@ paddleRef.current = paddle;
         { id: generateId(), x: paddleRef.current.x + paddleRef.current.width - 10, y: paddleRef.current.y, speed: 600 },
       ]);
     }
-  }, []);
+  }, [paddleRef, setLasers]);
+
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -660,36 +673,10 @@ paddleRef.current = paddle;
     };
   }, [gameState.status, handlePointerMove]);
   
-  // Auto-fire laser when paddle has laser power-up
-  useEffect(() => {
-    if (laserAutoFireRef.current) {
-      clearInterval(laserAutoFireRef.current);
-      laserAutoFireRef.current = null;
-    }
-    
-    // Only fire laser when STRICTLY playing and level not completing
-    if (paddle.hasLaser && gameState.status === 'playing' && !levelCompletingRef.current) {
-      fireLaser();
-      
-      laserAutoFireRef.current = setInterval(() => {
-        if (paddleRef.current.hasLaser && !levelCompletingRef.current) {
-          fireLaser();
-        } else {
-          if (laserAutoFireRef.current) {
-            clearInterval(laserAutoFireRef.current);
-            laserAutoFireRef.current = null;
-          }
-        }
-      }, 300);
-    }
-    
-    return () => {
-      if (laserAutoFireRef.current) {
-        clearInterval(laserAutoFireRef.current);
-        laserAutoFireRef.current = null;
-      }
-    };
-  }, [paddle.hasLaser, gameState.status, fireLaser]);
+  // Laser auto-fire is driven by the game clock inside the loop (see below),
+  // so it can never keep running after a level ends or while paused.
+  const laserFireCdRef = useRef(0);
+
 
   // Game loop
   const gameLoop = useCallback((deltaTime: number) => {
@@ -699,10 +686,88 @@ gameTimeRef.current = nextGameTime;
      if (levelCompletingRef.current) {
     return;
   }
+
+    // ---- Frame snapshots of the authoritative refs -------------------------
+    // These replace the old React state variables. They are read at the start
+    // of the tick (exactly like the previous committed state was) while every
+    // write below goes straight into the ref, so the renderer at the end of
+    // this same frame draws the NEW positions (this removes the stutter).
+    const paddle = paddleRef.current;
+    const balls = ballsRef.current;
+    const bricks = bricksRef.current;
+    const explosions = explosionsRef.current;
+    const plane = planeRef.current;
+    const monsterFires = monsterFiresRef.current;
+    const monsterHp = monsterHpRef.current;
+    const alienShips = alienShipsRef.current;
+    const alienBullets = alienBulletsRef.current;
+    const ballSpeed = ballSpeedRef.current;
+    const isFireball = isFireballRef.current;
+    const isBigBall = isBigBallRef.current;
+    const isShock = isShockRef.current;
+    const isAutoPaddle = engineRef.current.isAutoPaddle;
+    const isGhostPaddle = isGhostPaddleRef.current;
+    const ghostEndTime = ghostEndTimeRef.current;
+    const lastPowerUpTime = lastPowerUpTimeRef.current;
+    const gameTime = nextGameTime;
+
     // Use fixed sub-steps for smoother physics (capped at 4 to prevent ball tunneling through bricks)
         const clampedDt = Math.min(deltaTime, 0.033);
 const numSteps = Math.min(4, Math.max(2, Math.ceil(clampedDt / 0.008)));
 const stepDt = clampedDt / numSteps;
+
+    // ---- Game-clock power-up expiry (no setTimeout anywhere in gameplay) ---
+    if (widenEndTimeRef.current > 0 && nextGameTime >= widenEndTimeRef.current) {
+      widenEndTimeRef.current = 0;
+      setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH }));
+    }
+    if (bigballEndTimeRef.current > 0 && nextGameTime >= bigballEndTimeRef.current) {
+      bigballEndTimeRef.current = 0;
+      setBalls(prev => prev.map(b => ({ ...b, radius: BALL_RADIUS })));
+      setIsBigBall(false);
+      isBigBallActive = false;
+    }
+    if (slowEndTimeRef.current > 0 && nextGameTime >= slowEndTimeRef.current) {
+      slowEndTimeRef.current = 0;
+      setBalls(prev => prev.map(ball => {
+        const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2);
+        if (speed === 0) return ball;
+        const factor = ballSpeedRef.current / speed;
+        return { ...ball, velocity: { dx: ball.velocity.dx * factor, dy: ball.velocity.dy * factor } };
+      }));
+    }
+    if (fireballEndTimeRef.current > 0 && nextGameTime >= fireballEndTimeRef.current) {
+      fireballEndTimeRef.current = 0;
+      setIsFireball(false);
+    }
+    if (laserEndTimeRef.current > 0 && nextGameTime >= laserEndTimeRef.current) {
+      laserEndTimeRef.current = 0;
+      setPaddle(prev => ({ ...prev, hasLaser: false }));
+    }
+    if (magnetEndTimeRef.current > 0 && nextGameTime >= magnetEndTimeRef.current) {
+      magnetEndTimeRef.current = 0;
+      setPaddle(prev => ({ ...prev, hasMagnet: false }));
+    }
+    if (shockEndTimeRef.current > 0 && nextGameTime >= shockEndTimeRef.current) {
+      shockEndTimeRef.current = 0;
+      setIsShock(false);
+    }
+    if (ghostEndTimeRef.current > 0 && nextGameTime >= ghostEndTimeRef.current) {
+      setGhostEndTime(0);
+      setIsGhostPaddle(false);
+    }
+
+    // Laser auto-fire on the game clock (was a setInterval)
+    if (paddleRef.current.hasLaser) {
+      laserFireCdRef.current -= deltaTime;
+      if (laserFireCdRef.current <= 0) {
+        laserFireCdRef.current = 0.3;
+        fireLaser();
+      }
+    } else {
+      laserFireCdRef.current = 0;
+    }
+
     
     // Check emergency powerup activation
     if (emergencyRef?.current) {
