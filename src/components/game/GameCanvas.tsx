@@ -673,36 +673,10 @@ if (isShockRef.current) {
     };
   }, [gameState.status, handlePointerMove]);
   
-  // Auto-fire laser when paddle has laser power-up
-  useEffect(() => {
-    if (laserAutoFireRef.current) {
-      clearInterval(laserAutoFireRef.current);
-      laserAutoFireRef.current = null;
-    }
-    
-    // Only fire laser when STRICTLY playing and level not completing
-    if (paddle.hasLaser && gameState.status === 'playing' && !levelCompletingRef.current) {
-      fireLaser();
-      
-      laserAutoFireRef.current = setInterval(() => {
-        if (paddleRef.current.hasLaser && !levelCompletingRef.current) {
-          fireLaser();
-        } else {
-          if (laserAutoFireRef.current) {
-            clearInterval(laserAutoFireRef.current);
-            laserAutoFireRef.current = null;
-          }
-        }
-      }, 300);
-    }
-    
-    return () => {
-      if (laserAutoFireRef.current) {
-        clearInterval(laserAutoFireRef.current);
-        laserAutoFireRef.current = null;
-      }
-    };
-  }, [paddle.hasLaser, gameState.status, fireLaser]);
+  // Laser auto-fire is driven by the game clock inside the loop (see below),
+  // so it can never keep running after a level ends or while paused.
+  const laserFireCdRef = useRef(0);
+
 
   // Game loop
   const gameLoop = useCallback((deltaTime: number) => {
