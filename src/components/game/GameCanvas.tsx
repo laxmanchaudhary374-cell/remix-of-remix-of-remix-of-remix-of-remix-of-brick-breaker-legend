@@ -416,11 +416,11 @@ lastHudSecondRef.current = -1;
   const renderRef = useRef<() => void>(() => {});
 
   
-  // Check for level completion
-  useEffect(() => {
-    if (gameState.status !== 'playing') return;
+  // Check for level completion (called from the game loop — bricks live in a ref)
+  const checkLevelComplete = useCallback(() => {
     if (levelCompletingRef.current) return;
-        if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS + 300) return;
+    if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS + 300) return;
+    const bricks = bricksRef.current;
     // Need actual bricks loaded for this level
     if (bricks.length === 0) return;
 
@@ -448,8 +448,7 @@ lastHudSecondRef.current = -1;
       }
       setTimeout(() => onLevelComplete(), 300);
     }
-
-  }, [bricks, alienShips, gameState.status, onLevelComplete]);
+  }, [onLevelComplete, setPaddle, setLasers, setExplosions, setIsShock, setIsFireball, setPowerUps, setMonsterFires]);
 
   // Create particles
     const createParticles = useCallback((x: number, y: number, color: string, count: number = 6) => {
@@ -473,14 +472,16 @@ lastHudSecondRef.current = -1;
     setParticles(prev => {
       // Limit max particles to 50 to prevent heating
       const combined = [...prev, ...newParticles];
-      return combined.length > 50 ? combined.slice(-50) : combined;
+      const next = combined.length > 50 ? combined.slice(-50) : combined;
+      particleCountRef.current = next.length;
+      return next;
     });
-  }, []);
+  }, [setParticles]);
 
   // Trigger screen shake
   const triggerScreenShake = useCallback((intensity: number) => {
     setScreenShake(intensity);
-  }, []);
+  }, [setScreenShake]);
 
   // Handle explosion chain
   const handleExplosion = useCallback((x: number, y: number) => {
@@ -492,16 +493,17 @@ lastHudSecondRef.current = -1;
     createParticles(x, y, 'hsl(25, 100%, 55%)', 20);
     createParticles(x, y, 'hsl(50, 100%, 55%)', 15);
     createParticles(x, y, 'hsl(0, 100%, 60%)', 10);
-  }, [createParticles, triggerScreenShake]);
+  }, [createParticles, triggerScreenShake, setExplosions]);
 
   // Handle brick destruction
   const destroyBrick = useCallback((brick: Brick, addScore: boolean = true) => {
     if (brick.destroyed || brick.type === 'indestructible') return null;
-    
+
+    const combo = comboRef.current;
     const scoreValue = brick.maxHits * 10 * (1 + combo * 0.1);
     
     audioManager.playBrickDestroy();
-if (isShock) {
+if (isShockRef.current) {
   audioManager.playElectricZap();
 }
     if (combo > 1) {
@@ -529,14 +531,15 @@ if (isShock) {
     if (shouldDropPowerUp() && brick.type !== 'coin') {
       const powerUp = createPowerUp(brick.x + brick.width / 2, brick.y + brick.height);
       setPowerUps(prev => [...prev, powerUp]);
-      setLastPowerUpTime(gameTime);
+      setLastPowerUpTime(gameTimeRef.current);
     }
     
     setCombo(prev => prev + 1);
     setComboTimer(2);
     
     return addScore ? scoreValue : 0;
-  }, [combo, createParticles, handleExplosion, gameTime]);
+  }, [createParticles, handleExplosion, comboRef, isShockRef, setCoins, setPowerUps, setLastPowerUpTime, setCombo, setComboTimer]);
+
 
   // Handle paddle movement and aim direction
   const handlePointerMove = useCallback((clientX: number, clientY: number) => {
