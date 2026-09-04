@@ -581,12 +581,6 @@ if (isShockRef.current) {
   }, []);
 
 
-  // Fire laser
-  const paddleRef = useRef(paddle);
-paddleRef.current = paddle;
-
-
-  
   const fireLaser = useCallback(() => {
     // Don't fire if level is completing
     if (levelCompletingRef.current) return;
@@ -598,7 +592,8 @@ paddleRef.current = paddle;
         { id: generateId(), x: paddleRef.current.x + paddleRef.current.width - 10, y: paddleRef.current.y, speed: 600 },
       ]);
     }
-  }, []);
+  }, [paddleRef, setLasers]);
+
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
