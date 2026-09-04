@@ -84,7 +84,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const bgCacheSizeRef = useRef<{ w: number; h: number; dpr: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [paddle, setPaddle] = useState<Paddle>({
+  // ============================================================
+  // AUTHORITATIVE GAMEPLAY REFS
+  // Physics AND canvas rendering read/write these same refs, so a value
+  // written during a frame is visible to the renderer in the SAME frame.
+  // React state below is only kept for low-frequency HUD/lifecycle values.
+  // ============================================================
+  const [paddleRef, setPaddle] = useRefState<Paddle>({
     x: GAME_WIDTH / 2 - PADDLE_WIDTH / 2,
     y: GAME_HEIGHT - 70,
     width: PADDLE_WIDTH,
@@ -93,41 +99,50 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     hasMagnet: false,
     hasShield: false,
   });
-  
+
   // Track shield expiry time
   const shieldTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const [balls, setBalls] = useState<Ball[]>([]);
-  const [bricks, setBricks] = useState<Brick[]>([]);
-  const [powerUps, setPowerUps] = useState<PowerUp[]>([]);
-const ballsRef = useRef<Ball[]>([]);
-const bricksRef = useRef<Brick[]>([]);
-const gameTimeRef = useRef(0);
-const lastHudSecondRef = useRef(-1);
-const particleCountRef = useRef(0);
 
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [lasers, setLasers] = useState<Laser[]>([]);
-  const [coins, setCoins] = useState<Coin[]>([]);
-  const [explosions, setExplosions] = useState<Explosion[]>([]);
-  const [levelCoins, setLevelCoins] = useState<LevelCoin[]>([]);
-  const [plane, setPlane] = useState<Plane | null>(null);
-  const [alienShips, setAlienShips] = useState<any[]>([]);
-  const [alienBullets, setAlienBullets] = useState<any[]>([]);
-  const [ballSpeed, setBallSpeed] = useState(300);
-  const [isFireball, setIsFireball] = useState(false);
-  const [isShock, setIsShock] = useState(false);
-  const [isAutoPaddle, setIsAutoPaddle] = useState(false);
-  const [autoPaddleEndTime, setAutoPaddleEndTime] = useState(0);
-  const [screenShake, setScreenShake] = useState(0);
+  const [ballsRef, setBalls] = useRefState<Ball[]>([]);
+  const [bricksRef, setBricks] = useRefState<Brick[]>([]);
+  const [powerUpsRef, setPowerUps] = useRefState<PowerUp[]>([]);
+  const gameTimeRef = useRef(0);
+  const lastHudSecondRef = useRef(-1);
+  const particleCountRef = useRef(0);
+
+  const [particlesRef, setParticles] = useRefState<Particle[]>([]);
+  const [lasersRef, setLasers] = useRefState<Laser[]>([]);
+  const [coinsRef, setCoins] = useRefState<Coin[]>([]);
+  const [explosionsRef, setExplosions] = useRefState<Explosion[]>([]);
+  const [levelCoinsRef, setLevelCoins] = useRefState<LevelCoin[]>([]);
+  const [planeRef, setPlane] = useRefState<Plane | null>(null);
+  const [alienShipsRef, setAlienShips] = useRefState<any[]>([]);
+  const [alienBulletsRef, setAlienBullets] = useRefState<any[]>([]);
+  const [ballSpeedRef, setBallSpeed] = useRefState(300);
+  const [isFireballRef, setIsFireball] = useRefState(false);
+  const [isShockRef, setIsShock] = useRefState(false);
+  const [isAutoPaddleRef, setIsAutoPaddle] = useRefState(false);
+  const [autoPaddleEndTimeRef, setAutoPaddleEndTime] = useRefState(0);
+  const [screenShakeRef, setScreenShake] = useRefState(0);
+  const [comboRef, setCombo] = useRefState(0);
+  const [comboTimerRef, setComboTimer] = useRefState(0);
+  const [isBigBallRef, setIsBigBall] = useRefState(false);
+  const [lastPowerUpTimeRef, setLastPowerUpTime] = useRefState(0);
+  const [isGhostPaddleRef, setIsGhostPaddle] = useRefState(false);
+  const [shieldEndTimeRef, setShieldEndTime] = useRefState(0);
+  const [ghostEndTimeRef, setGhostEndTime] = useRefState(0);
+
+  // Game-clock based expiry for every timed power-up (no setTimeout).
+  const widenEndTimeRef = useRef(0);
+  const bigballEndTimeRef = useRef(0);
+  const slowEndTimeRef = useRef(0);
+  const fireballEndTimeRef = useRef(0);
+  const laserEndTimeRef = useRef(0);
+  const magnetEndTimeRef = useRef(0);
+  const shockEndTimeRef = useRef(0);
+
+  // HUD-only React state (updated at most once per second / on change)
   const [gameTime, setGameTime] = useState(0);
-  const [combo, setCombo] = useState(0);
-  const [comboTimer, setComboTimer] = useState(0);
-  const [isBigBall, setIsBigBall] = useState(false);
-  const [lastPowerUpTime, setLastPowerUpTime] = useState(0);
-  const [isGhostPaddle, setIsGhostPaddle] = useState(false);
-  const [shieldEndTime, setShieldEndTime] = useState(0);
-  const [ghostEndTime, setGhostEndTime] = useState(0);
 
   // Authoritative mutable mirror of values the input/physics path needs every
   // frame. Reading these from refs keeps event handlers stable so window
@@ -139,10 +154,8 @@ const particleCountRef = useRef(0);
     paddleWidth: PADDLE_WIDTH,
     hasMagnet: false,
   });
-const autoPaddleEndTimeRef = useRef(0);
-const shieldEndTimeRef = useRef(0);
 
-  const paddleTargetRef = useRef(paddle.x);
+  const paddleTargetRef = useRef(GAME_WIDTH / 2 - PADDLE_WIDTH / 2);
 
   const magnetBallRef = useRef<Ball | null>(null);
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
@@ -153,13 +166,14 @@ const shieldEndTimeRef = useRef(0);
   const monsterDirRef = useRef(1);
   const monsterTotalHpRef = useRef(0);
   const levelStartTimeRef = useRef(0);
-  const [monsterHp, setMonsterHp] = useState({ current: 0, max: 0 });
+  const [monsterHpRef, setMonsterHp] = useRefState<{ current: number; max: number }>({ current: 0, max: 0 });
   // Boss fireballs spat from the monster's mouth toward the paddle
-  const [monsterFires, setMonsterFires] = useState<
+  const [monsterFiresRef, setMonsterFires] = useRefState<
     { id: string; x: number; y: number; vx: number; vy: number }[]
   >([]);
   const monsterFireCdRef = useRef(1.8);
   const isMonster = isMonsterLevel(gameState.level);
+
 
 
   // Preload the boss artworks once so monster levels never start blank
