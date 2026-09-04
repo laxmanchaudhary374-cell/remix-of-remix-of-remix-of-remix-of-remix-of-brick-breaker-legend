@@ -404,25 +404,8 @@ lastHudSecondRef.current = -1;
     }
 
   }, [gameState.status]);
-useEffect(() => {
-  ballsRef.current = balls;
-}, [balls]);
-
-// Keep the mutable engine mirror in sync (cheap, once per commit).
-engineRef.current.ballSpeed = ballSpeed;
-engineRef.current.isAutoPaddle = isAutoPaddle;
-engineRef.current.paddleWidth = paddle.width;
-engineRef.current.hasMagnet = !!paddle.hasMagnet;
-particleCountRef.current = particles.length;
 
 
-useEffect(() => {
-  bricksRef.current = bricks;
-}, [bricks]);
-
-useEffect(() => {
-  paddleRef.current = paddle;
-}, [paddle]);
 
 
   // Track previous brick count for level completion check
