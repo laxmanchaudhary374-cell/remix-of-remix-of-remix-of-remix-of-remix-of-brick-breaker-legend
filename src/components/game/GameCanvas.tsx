@@ -61,6 +61,24 @@ const checkBallShipCollision = (_x: number, _y: number, _r: number, _s: any) => 
 const checkLaserShipCollision = (_x: number, _y: number, _s: any) => false;
 const getShipScore = (_s: any) => 0;
 
+// ---------------------------------------------------------------------------
+// useRefState: a ref that is written through a setState-shaped API.
+// The value is ALWAYS current synchronously (no React scheduling delay), so
+// physics writes are visible to the renderer within the same animation frame.
+// ---------------------------------------------------------------------------
+type RefUpdater<T> = T | ((prev: T) => T);
+function useRefState<T>(initial: T) {
+  const ref = useRef<T>(initial);
+  const set = useCallback((updater: RefUpdater<T>) => {
+    ref.current =
+      typeof updater === 'function'
+        ? (updater as (prev: T) => T)(ref.current)
+        : updater;
+  }, []);
+  return [ref, set] as const;
+}
+
+
 interface GameCanvasProps {
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
