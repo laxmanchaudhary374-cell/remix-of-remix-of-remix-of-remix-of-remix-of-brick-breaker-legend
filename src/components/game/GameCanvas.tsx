@@ -686,10 +686,88 @@ gameTimeRef.current = nextGameTime;
      if (levelCompletingRef.current) {
     return;
   }
+
+    // ---- Frame snapshots of the authoritative refs -------------------------
+    // These replace the old React state variables. They are read at the start
+    // of the tick (exactly like the previous committed state was) while every
+    // write below goes straight into the ref, so the renderer at the end of
+    // this same frame draws the NEW positions (this removes the stutter).
+    const paddle = paddleRef.current;
+    const balls = ballsRef.current;
+    const bricks = bricksRef.current;
+    const explosions = explosionsRef.current;
+    const plane = planeRef.current;
+    const monsterFires = monsterFiresRef.current;
+    const monsterHp = monsterHpRef.current;
+    const alienShips = alienShipsRef.current;
+    const alienBullets = alienBulletsRef.current;
+    const ballSpeed = ballSpeedRef.current;
+    const isFireball = isFireballRef.current;
+    const isBigBall = isBigBallRef.current;
+    const isShock = isShockRef.current;
+    const isAutoPaddle = engineRef.current.isAutoPaddle;
+    const isGhostPaddle = isGhostPaddleRef.current;
+    const ghostEndTime = ghostEndTimeRef.current;
+    const lastPowerUpTime = lastPowerUpTimeRef.current;
+    const gameTime = nextGameTime;
+
     // Use fixed sub-steps for smoother physics (capped at 4 to prevent ball tunneling through bricks)
         const clampedDt = Math.min(deltaTime, 0.033);
 const numSteps = Math.min(4, Math.max(2, Math.ceil(clampedDt / 0.008)));
 const stepDt = clampedDt / numSteps;
+
+    // ---- Game-clock power-up expiry (no setTimeout anywhere in gameplay) ---
+    if (widenEndTimeRef.current > 0 && nextGameTime >= widenEndTimeRef.current) {
+      widenEndTimeRef.current = 0;
+      setPaddle(prev => ({ ...prev, width: PADDLE_WIDTH }));
+    }
+    if (bigballEndTimeRef.current > 0 && nextGameTime >= bigballEndTimeRef.current) {
+      bigballEndTimeRef.current = 0;
+      setBalls(prev => prev.map(b => ({ ...b, radius: BALL_RADIUS })));
+      setIsBigBall(false);
+      isBigBallActive = false;
+    }
+    if (slowEndTimeRef.current > 0 && nextGameTime >= slowEndTimeRef.current) {
+      slowEndTimeRef.current = 0;
+      setBalls(prev => prev.map(ball => {
+        const speed = Math.sqrt(ball.velocity.dx ** 2 + ball.velocity.dy ** 2);
+        if (speed === 0) return ball;
+        const factor = ballSpeedRef.current / speed;
+        return { ...ball, velocity: { dx: ball.velocity.dx * factor, dy: ball.velocity.dy * factor } };
+      }));
+    }
+    if (fireballEndTimeRef.current > 0 && nextGameTime >= fireballEndTimeRef.current) {
+      fireballEndTimeRef.current = 0;
+      setIsFireball(false);
+    }
+    if (laserEndTimeRef.current > 0 && nextGameTime >= laserEndTimeRef.current) {
+      laserEndTimeRef.current = 0;
+      setPaddle(prev => ({ ...prev, hasLaser: false }));
+    }
+    if (magnetEndTimeRef.current > 0 && nextGameTime >= magnetEndTimeRef.current) {
+      magnetEndTimeRef.current = 0;
+      setPaddle(prev => ({ ...prev, hasMagnet: false }));
+    }
+    if (shockEndTimeRef.current > 0 && nextGameTime >= shockEndTimeRef.current) {
+      shockEndTimeRef.current = 0;
+      setIsShock(false);
+    }
+    if (ghostEndTimeRef.current > 0 && nextGameTime >= ghostEndTimeRef.current) {
+      setGhostEndTime(0);
+      setIsGhostPaddle(false);
+    }
+
+    // Laser auto-fire on the game clock (was a setInterval)
+    if (paddleRef.current.hasLaser) {
+      laserFireCdRef.current -= deltaTime;
+      if (laserFireCdRef.current <= 0) {
+        laserFireCdRef.current = 0.3;
+        fireLaser();
+      }
+    } else {
+      laserFireCdRef.current = 0;
+    }
+
     
     // Check emergency powerup activation
     if (emergencyRef?.current) {
