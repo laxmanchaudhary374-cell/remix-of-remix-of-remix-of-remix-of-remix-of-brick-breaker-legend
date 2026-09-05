@@ -209,11 +209,19 @@ useEffect(() => {
         }
       }
     });
-    // Initialize AdMob
+        // Initialize AdMob
     initAdMob().then(ok => { 
       console.log('[AdMob] Init result:', ok);
-            if (ok) { preloadInterstitial(); } 
+      if (ok) { preloadInterstitial(); } 
     });
+    // Retry preloading interstitial every 30 seconds.
+    // Safe because preloadInterstitial() already guards against duplicate
+    // requests — it returns immediately if an ad is already loaded or loading.
+    const adRetryInterval = setInterval(() => {
+      if (!isAdActive()) {
+        preloadInterstitial();
+      }
+    }, 30000);
     initDailyReminder();
   }, []);
 
@@ -383,7 +391,12 @@ useEffect(() => {
           maxCombo: 0,
         });
         setScreenState('playing');
-        void preloadInterstitial();
+                // Preload interstitial only when approaching an ad-eligible level (15, 20, 25, 30...)
+        // level = the level the player is about to play
+        // So preload when entering 14, 19, 24, 29 (one level before the ad)
+        if (level >= 14 && (level + 1 - 15) % 5 === 0) {
+          void preloadInterstitial();
+        }
         if (level > 5 && !isAdsRemoved()) void showBannerAd();
       }, 120);
     };
