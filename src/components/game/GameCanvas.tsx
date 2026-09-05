@@ -149,7 +149,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [isGhostPaddleRef, setIsGhostPaddle] = useRefState(false);
   const [shieldEndTimeRef, setShieldEndTime] = useRefState(0);
   const [ghostEndTimeRef, setGhostEndTime] = useRefState(0);
-
+  const lastShieldTimerRef = useRef(0);
+  const lastGhostTimerRef = useRef(0);
   // Game-clock based expiry for every timed power-up (no setTimeout).
   const widenEndTimeRef = useRef(0);
   const bigballEndTimeRef = useRef(0);
@@ -877,48 +878,28 @@ if (
 }
 
 // Update shield timer in the HUD.
-if (shieldEndTimeRef.current > 0) {
-  const shieldRemaining = Math.max(
-    0,
-    Math.ceil(shieldEndTimeRef.current - nextGameTime),
-  );
-
-  setGameState(prev => {
-    if (prev.shieldTimer !== shieldRemaining) {
-      return { ...prev, shieldTimer: shieldRemaining };
+  if (shieldEndTimeRef.current > 0) {
+    const shieldRemaining = Math.max(0, Math.ceil(shieldEndTimeRef.current - nextGameTime));
+    if (lastShieldTimerRef.current !== shieldRemaining) {
+      lastShieldTimerRef.current = shieldRemaining;
+      setGameState(prev => ({ ...prev, shieldTimer: shieldRemaining }));
     }
-    return prev;
-  });
-} else {
-  setGameState(prev => {
-    if (prev.shieldTimer !== 0) {
-      return { ...prev, shieldTimer: 0 };
-    }
-    return prev;
-  });
-}
+  } else if (lastShieldTimerRef.current !== 0) {
+    lastShieldTimerRef.current = 0;
+    setGameState(prev => ({ ...prev, shieldTimer: 0 }));
+  }
 
 // Update ghost timer in the HUD.
-if (ghostEndTime > 0) {
-  const ghostRemaining = Math.max(
-    0,
-    Math.ceil(ghostEndTime - nextGameTime),
-  );
-
-  setGameState(prev => {
-    if (prev.ghostTimer !== ghostRemaining) {
-      return { ...prev, ghostTimer: ghostRemaining };
+  if (ghostEndTime > 0) {
+    const ghostRemaining = Math.max(0, Math.ceil(ghostEndTime - nextGameTime));
+    if (lastGhostTimerRef.current !== ghostRemaining) {
+      lastGhostTimerRef.current = ghostRemaining;
+      setGameState(prev => ({ ...prev, ghostTimer: ghostRemaining }));
     }
-    return prev;
-  });
-} else {
-  setGameState(prev => {
-    if (prev.ghostTimer !== 0) {
-      return { ...prev, ghostTimer: 0 };
-    }
-    return prev;
-  });
-}
+  } else if (lastGhostTimerRef.current !== 0) {
+    lastGhostTimerRef.current = 0;
+    setGameState(prev => ({ ...prev, ghostTimer: 0 }));
+  }
 
 
 
@@ -1935,6 +1916,9 @@ explosions.forEach(explosion => {
         });
       });
     }
+        // Check if level is complete (all bricks destroyed)
+    checkLevelComplete();
+
     // Draw the frame synchronously with the physics we just computed.
     renderRef.current();
   }, [gameState.score, gameState.level, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState, triggerScreenShake, handleExplosion, checkLevelComplete, fireLaser, isMonster]);
