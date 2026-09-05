@@ -223,6 +223,7 @@ useEffect(() => {
       }
     }, 30000);
     initDailyReminder();
+      return () => clearInterval(adRetryInterval);
   }, []);
 
   useEffect(() => {
