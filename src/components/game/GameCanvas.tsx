@@ -830,7 +830,9 @@ if (hudSecond !== lastHudSecondRef.current) {
     });
     
     // Update screen shake
-    setScreenShake(prev => Math.max(0, prev - deltaTime * 20));
+        if (screenShakeRef.current > 0) {
+      setScreenShake(prev => Math.max(0, prev - deltaTime * 20));
+        }
 
     // Check auto-paddle expiry using the authoritative engine clock.
 if (
