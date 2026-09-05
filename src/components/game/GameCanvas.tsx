@@ -2732,7 +2732,17 @@ explosions.forEach(explosion => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo, isMonster, monsterHp, monsterFires, gameState.level]);
+  }, [isMonster, gameState.level]);
+
+  // Keep the loop's render hook pointing at the latest draw function.
+  renderRef.current = renderCanvas;
+
+  // Low-frequency render for non-playing states (menu, pause, game over) so
+  // the last frame stays on screen. There is no second animation loop.
+  useEffect(() => {
+    if (gameState.status === 'playing') return;
+    renderCanvas();
+  }, [gameState.status, gameState.level, gameState.lives, renderCanvas]);
 
   // Set up HiDPI canvas rendering
   useEffect(() => {
