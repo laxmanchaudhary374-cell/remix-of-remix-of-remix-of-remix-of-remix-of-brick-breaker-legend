@@ -1935,17 +1935,45 @@ explosions.forEach(explosion => {
         });
       });
     }
-  }, [paddle, balls, bricks, alienShips, alienBullets, gameState.score, gameState.level, ballSpeed, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, shieldEndTime, ghostEndTime, explosions, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState, plane, lastPowerUpTime, gameTime, levelCoins]);
+    // Draw the frame synchronously with the physics we just computed.
+    renderRef.current();
+  }, [gameState.score, gameState.level, createParticles, destroyBrick, onScoreChange, onLevelComplete, onGameOver, setGameState, triggerScreenShake, handleExplosion, checkLevelComplete, fireLaser, isMonster]);
 
   useGameLoop(gameLoop, gameState.status === 'playing');
 
-  // Render
-  useEffect(() => {
+  // ---- Single render path -------------------------------------------------
+  // The complete drawing body lives here and reads the SAME authoritative refs
+  // the physics writes, so nothing is ever a frame behind.
+  const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    const paddle = paddleRef.current;
+    const balls = ballsRef.current;
+    const bricks = bricksRef.current;
+    const powerUps = powerUpsRef.current;
+    const particles = particlesRef.current;
+    const lasers = lasersRef.current;
+    const coins = coinsRef.current;
+    const explosions = explosionsRef.current;
+    const levelCoins = levelCoinsRef.current;
+    const plane = planeRef.current;
+    const alienShips = alienShipsRef.current;
+    const alienBullets = alienBulletsRef.current;
+    const isFireball = isFireballRef.current;
+    const isBigBall = isBigBallRef.current;
+    const isShock = isShockRef.current;
+    const isAutoPaddle = isAutoPaddleRef.current;
+    const autoPaddleEndTime = autoPaddleEndTimeRef.current;
+    const isGhostPaddle = isGhostPaddleRef.current;
+    const screenShake = screenShakeRef.current;
+    const combo = comboRef.current;
+    const gameTime = gameTimeRef.current;
+    const monsterHp = monsterHpRef.current;
+    const monsterFires = monsterFiresRef.current;
 
     // Reset transform fully to prevent drift between frames
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2704,7 +2732,17 @@ explosions.forEach(explosion => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
 
-  }, [paddle, balls, bricks, powerUps, particles, lasers, coins, explosions, levelCoins, plane, alienShips, alienBullets, isFireball, isBigBall, isShock, isAutoPaddle, autoPaddleEndTime, isGhostPaddle, screenShake, gameTime, combo, isMonster, monsterHp, monsterFires, gameState.level]);
+  }, [isMonster, gameState.level]);
+
+  // Keep the loop's render hook pointing at the latest draw function.
+  renderRef.current = renderCanvas;
+
+  // Low-frequency render for non-playing states (menu, pause, game over) so
+  // the last frame stays on screen. There is no second animation loop.
+  useEffect(() => {
+    if (gameState.status === 'playing') return;
+    renderCanvas();
+  }, [gameState.status, gameState.level, gameState.lives, renderCanvas]);
 
   // Set up HiDPI canvas rendering
   useEffect(() => {
