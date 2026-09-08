@@ -2681,31 +2681,43 @@ explosions.forEach(explosion => {
 
         // Draw balls with premium 3D rendering
     balls.forEach(ball => {
-      // Glowing comet trail — smooth streak with glow
+            // Smooth glowing trail streak
       if (ball.history && ball.history.length > 1) {
         const hist = ball.history;
         ctx.save();
-        // Draw trail from oldest to newest
-        for (let i = 0; i < hist.length - 1; i++) {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Glow layer — thick semi-transparent line
+        for (let i = 1; i < hist.length; i++) {
           const t = i / hist.length;
-          const alpha = (1 - t) * 0.45;
-          const size = ball.radius * (1 - t * 0.55);
-          if (size < 0.5) continue;
-
-          // Glow layer (larger, very transparent)
-          ctx.globalAlpha = alpha * 0.4;
-          ctx.fillStyle = isFireball ? 'rgb(255, 120, 20)' : 'rgb(80, 180, 255)';
-          ctx.beginPath();
-          ctx.arc(hist[i].x, hist[i].y, size * 1.6, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Core layer (smaller, brighter)
+          const alpha = (1 - t) * 0.35;
+          const w = ball.radius * (1 - t * 0.6) * 2.2;
+          if (w < 0.5) continue;
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = isFireball ? 'rgb(255, 200, 80)' : 'rgb(200, 240, 255)';
+          ctx.strokeStyle = isFireball ? 'rgb(255, 120, 20)' : 'rgb(100, 180, 255)';
+          ctx.lineWidth = w;
           ctx.beginPath();
-          ctx.arc(hist[i].x, hist[i].y, size, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.moveTo(hist[i - 1].x, hist[i - 1].y);
+          ctx.lineTo(hist[i].x, hist[i].y);
+          ctx.stroke();
         }
+
+        // Core layer — thin bright line on top
+        for (let i = 1; i < hist.length; i++) {
+          const t = i / hist.length;
+          const alpha = (1 - t) * 0.7;
+          const w = ball.radius * (1 - t * 0.7);
+          if (w < 0.5) continue;
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = isFireball ? 'rgb(255, 220, 120)' : 'rgb(220, 245, 255)';
+          ctx.lineWidth = w;
+          ctx.beginPath();
+          ctx.moveTo(hist[i - 1].x, hist[i - 1].y);
+          ctx.lineTo(hist[i].x, hist[i].y);
+          ctx.stroke();
+        }
+
         ctx.globalAlpha = 1;
         ctx.restore();
       }
