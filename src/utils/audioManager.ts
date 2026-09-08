@@ -276,12 +276,15 @@ startMonsterMusic(): void {
     this.playSynth(600, 0.1, 'sine', true);
   }
 
-  playMonsterRoar(): void {
+    playMonsterRoar(): void {
     if (!this.audioContext) return;
-    this.playSynth(90, 0.28, 'sawtooth', true);
-    setTimeout(() => this.playSynth(62, 0.34, 'square', true), 70);
-    setTimeout(() => this.playSynth(140, 0.18, 'sawtooth', true), 150);
-  }
+    // Deep impact roar — louder and longer
+    this.playSynth(55, 0.5, 'sawtooth', true);
+    this.playSynth(82, 0.45, 'square', true);
+    setTimeout(() => this.playSynth(41, 0.6, 'sine', true), 100);
+    setTimeout(() => this.playSynth(110, 0.3, 'sawtooth', true), 200);
+    setTimeout(() => this.playSynth(165, 0.25, 'square', true, -20), 350);
+    }
 
   async startBackgroundMusic(): Promise<void> {
     if (!this.audioContext || !this.musicGain) return;
@@ -341,7 +344,8 @@ startMonsterMusic(): void {
       if (this.backgroundMusic) {
         try { this.backgroundMusic.stop(); } catch {}
         this.backgroundMusic = null;
-      }
+       // Dramatic entrance roar when boss mode starts
+      this.playMonsterRoar();
 
       const motif = [73.4, 87.3, 98.0, 110.0, 130.8, 110.0, 98.0, 87.3];
       let step = 0;
@@ -349,18 +353,27 @@ startMonsterMusic(): void {
         if (!this.audioContext || this._masterVolume === 0 || document.hidden) return;
         if (!this.bossMode) return;
 
-        this.playSynth(45, 0.28, 'sine', true);
-        setTimeout(() => this.playSynth(38, 0.32, 'sine', true), 120);
+        // Deep bass pulse — louder and deeper
+        this.playSynth(41, 0.3, 'sine', true);
+        setTimeout(() => this.playSynth(31, 0.35, 'sine', true), 100);
 
+        // Dramatic melody — sawtooth for aggression
         const n = motif[step % motif.length];
-        this.playSynth(n, 0.35, 'sawtooth', true);
-        setTimeout(() => this.playSynth(n * 1.5, 0.2, 'triangle', true), 180);
+        this.playSynth(n, 0.38, 'sawtooth', true);
+        setTimeout(() => this.playSynth(n * 1.5, 0.22, 'triangle', true), 160);
 
+        // Drum-like hit every 2nd beat (noise burst simulation)
+        if (step % 2 === 0) {
+          this.playSynth(60, 0.08, 'square', true);
+        }
+
+        // High accent every 4th beat for tension
         if (step % 4 === 0) {
-          setTimeout(() => this.playSynth(n * 2, 0.25, 'square', true), 240);
+          setTimeout(() => this.playSynth(n * 2, 0.25, 'square', true), 220);
+          setTimeout(() => this.playSynth(n * 3, 0.15, 'triangle', true), 280);
         }
         step++;
-      }, 520);
+      }, 500);
     } else {
       this.applyMusicGain();
       if (this.isMusicPlaying && this._masterVolume > 0 && !document.hidden) {
