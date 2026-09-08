@@ -934,12 +934,14 @@ export const drawPremiumPaddle = (
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.fillRect(cx + capR, centerY - h / 2 + 1, width - capR * 2, 2.5);
 
+    // Animated pulsing cyan light strip
+  const pulseAmount = 0.7 + Math.sin(Date.now() / 600) * 0.3;
   const cyanGrad = ctx.createLinearGradient(cx + capR, centerY, cx + width - capR, centerY);
-  cyanGrad.addColorStop(0, 'rgba(0, 220, 255, 0.25)');
-  cyanGrad.addColorStop(0.2, 'rgba(0, 255, 255, 0.95)');
-  cyanGrad.addColorStop(0.5, 'rgba(200, 255, 255, 1)');
-  cyanGrad.addColorStop(0.8, 'rgba(0, 255, 255, 0.95)');
-  cyanGrad.addColorStop(1, 'rgba(0, 220, 255, 0.25)');
+  cyanGrad.addColorStop(0, `rgba(0, 220, 255, ${0.25 * pulseAmount})`);
+  cyanGrad.addColorStop(0.2, `rgba(0, 255, 255, ${0.95 * pulseAmount})`);
+  cyanGrad.addColorStop(0.5, `rgba(200, 255, 255, ${1 * pulseAmount})`);
+  cyanGrad.addColorStop(0.8, `rgba(0, 255, 255, ${0.95 * pulseAmount})`);
+  cyanGrad.addColorStop(1, `rgba(0, 220, 255, ${0.25 * pulseAmount})`);
   ctx.shadowColor = 'rgba(0, 255, 255, 0.8)';
   ctx.shadowBlur = 10;
   ctx.fillStyle = cyanGrad;
