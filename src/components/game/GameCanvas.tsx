@@ -2681,23 +2681,33 @@ explosions.forEach(explosion => {
 
         // Draw balls with premium 3D rendering
     balls.forEach(ball => {
-      // Light ball trail — simple circles with alpha, no gradients
+      // Glowing comet trail — smooth streak with glow
       if (ball.history && ball.history.length > 1) {
         const hist = ball.history;
+        ctx.save();
+        // Draw trail from oldest to newest
         for (let i = 0; i < hist.length - 1; i++) {
           const t = i / hist.length;
-          const alpha = (1 - t) * 0.5;
-          const size = ball.radius * (1 - t * 0.6);
+          const alpha = (1 - t) * 0.45;
+          const size = ball.radius * (1 - t * 0.55);
           if (size < 0.5) continue;
+
+          // Glow layer (larger, very transparent)
+          ctx.globalAlpha = alpha * 0.4;
+          ctx.fillStyle = isFireball ? 'rgb(255, 120, 20)' : 'rgb(80, 180, 255)';
+          ctx.beginPath();
+          ctx.arc(hist[i].x, hist[i].y, size * 1.6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Core layer (smaller, brighter)
           ctx.globalAlpha = alpha;
-          ctx.fillStyle = isFireball
-            ? `rgb(255, 140, 30)`
-            : `rgb(120, 200, 255)`;
+          ctx.fillStyle = isFireball ? 'rgb(255, 200, 80)' : 'rgb(200, 240, 255)';
           ctx.beginPath();
           ctx.arc(hist[i].x, hist[i].y, size, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.globalAlpha = 1;
+        ctx.restore();
       }
 
       drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall);
