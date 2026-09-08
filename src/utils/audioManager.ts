@@ -344,7 +344,8 @@ startMonsterMusic(): void {
       if (this.backgroundMusic) {
         try { this.backgroundMusic.stop(); } catch {}
         this.backgroundMusic = null;
-       // Dramatic entrance roar when boss mode starts
+      }
+      // Dramatic entrance roar when boss mode starts
       this.playMonsterRoar();
 
       const motif = [73.4, 87.3, 98.0, 110.0, 130.8, 110.0, 98.0, 87.3];
