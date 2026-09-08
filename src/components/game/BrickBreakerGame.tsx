@@ -210,9 +210,8 @@ useEffect(() => {
       }
     });
         // Initialize AdMob
-    initAdMob().then(ok => { 
+        initAdMob().then(ok => { 
       console.log('[AdMob] Init result:', ok);
-      if (ok) { preloadInterstitial(); } 
     });
     // Retry preloading interstitial every 30 seconds.
     // Safe because preloadInterstitial() already guards against duplicate
@@ -339,9 +338,9 @@ useEffect(() => {
       maxCombo: 0,
     });
     setScreenState('playing');
-    if (level > 5 && !isAdsRemoved()) {
+        if (!isAdsRemoved()) {
       showBannerAd();
-    }
+        }
   }, []);
 
   const handleGameOver = useCallback(() => {
@@ -370,9 +369,9 @@ useEffect(() => {
       const handleNextLevel = useCallback(() => {
     const nextLevel = gameState.level + 1;
     const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
-    const shouldShowAd =
-      nextLevel >= 15 &&
-      (nextLevel - 15) % 5 === 0 &&
+        const shouldShowAd =
+      nextLevel >= 5 &&
+      (nextLevel - 5) % 5 === 0 &&
       online &&
       !isAdsRemoved();
 
@@ -392,13 +391,13 @@ useEffect(() => {
           maxCombo: 0,
         });
         setScreenState('playing');
-                // Preload interstitial only when approaching an ad-eligible level (15, 20, 25, 30...)
+                        // Preload interstitial only when approaching an ad-eligible level (5, 10, 15, 20...)
         // level = the level the player is about to play
-        // So preload when entering 14, 19, 24, 29 (one level before the ad)
-        if (level >= 14 && (level + 1 - 15) % 5 === 0) {
+        // So preload when entering 4, 9, 14, 19 (one level before the ad)
+        if (level >= 4 && (level + 1 - 5) % 5 === 0) {
           void preloadInterstitial();
         }
-        if (level > 5 && !isAdsRemoved()) void showBannerAd();
+                if (!isAdsRemoved()) void showBannerAd();
       }, 120);
     };
 
