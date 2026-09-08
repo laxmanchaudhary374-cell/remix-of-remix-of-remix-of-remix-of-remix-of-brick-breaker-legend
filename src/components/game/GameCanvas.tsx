@@ -2561,16 +2561,31 @@ explosions.forEach(explosion => {
           }
           ctx.stroke();
         }
-        ctx.shadowBlur = 0;
+                ctx.shadowBlur = 0;
         ctx.globalAlpha = Math.min(1, fade * 1.6);
-        ctx.fillStyle = 'hsl(0, 100%, 65%)';
-        ctx.font = 'bold 26px sans-serif';
+
+        // BOSS label — big and red
+        ctx.fillStyle = 'hsl(0, 100%, 60%)';
+        ctx.font = 'bold 36px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('⚠ DANGER ⚠', GAME_WIDTH / 2, GAME_HEIGHT * 0.35);
-        ctx.font = 'bold 18px sans-serif';
+        ctx.shadowColor = 'hsl(0, 100%, 50%)';
+        ctx.shadowBlur = 20;
+        ctx.fillText('BOSS', GAME_WIDTH / 2, GAME_HEIGHT * 0.3);
+
+        // Monster name — large white with glow
+        ctx.shadowColor = 'rgba(100, 200, 255, 0.8)';
+        ctx.shadowBlur = 15;
         ctx.fillStyle = '#fff';
-        ctx.fillText(getMonsterName(gameState.level), GAME_WIDTH / 2, GAME_HEIGHT * 0.35 + 30);
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText(getMonsterName(gameState.level), GAME_WIDTH / 2, GAME_HEIGHT * 0.3 + 40);
+
+        // Warning text below
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'hsl(0, 100%, 70%)';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.globalAlpha = Math.min(1, fade * 2);
+        ctx.fillText('⚠ DANGER ⚠', GAME_WIDTH / 2, GAME_HEIGHT * 0.3 + 70);
         ctx.restore();
       }
     }
