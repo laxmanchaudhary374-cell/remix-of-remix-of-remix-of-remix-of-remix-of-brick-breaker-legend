@@ -381,6 +381,7 @@ startMonsterMusic(): void {
       }
     }
   }
+
   stopBackgroundMusic(): void {
     this.isMusicPlaying = false;
     if (this.backgroundMusic) {
