@@ -1131,49 +1131,49 @@ export const drawPremiumBall = (
     ctx.arc(x, y, radius - 1, -Math.PI * 0.85, -Math.PI * 0.15);
     ctx.stroke();
 
-    } else {
-    // Glowing energy ball — blue/white with outer glow
-    ctx.shadowColor = 'rgba(100, 200, 255, 0.6)';
-    ctx.shadowBlur = 10;
+        } else {
+    // Bright white/silver ball with subtle glow
+    ctx.shadowColor = 'rgba(200, 220, 255, 0.5)';
+    ctx.shadowBlur = 8;
 
-    // Outer glow circle
-    ctx.fillStyle = 'rgba(100, 180, 255, 0.2)';
+    // Subtle outer glow
+    ctx.fillStyle = 'rgba(180, 200, 240, 0.15)';
     ctx.beginPath();
-    ctx.arc(x, y, radius * 1.4, 0, Math.PI * 2);
+    ctx.arc(x, y, radius * 1.3, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.shadowBlur = 0;
 
-    // Main ball — blue/white energy gradient
+    // Main ball — white/silver gradient
     const ballGrad = ctx.createRadialGradient(
       x - radius * 0.35, y - radius * 0.35, 0,
       x, y, radius
     );
     ballGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    ballGrad.addColorStop(0.2, 'rgba(230, 245, 255, 1)');
-    ballGrad.addColorStop(0.4, 'rgba(170, 215, 255, 1)');
-    ballGrad.addColorStop(0.6, 'rgba(100, 170, 240, 1)');
-    ballGrad.addColorStop(0.85, 'rgba(50, 110, 200, 1)');
-    ballGrad.addColorStop(1, 'rgba(30, 60, 140, 1)');
+    ballGrad.addColorStop(0.15, 'rgba(245, 248, 252, 1)');
+    ballGrad.addColorStop(0.35, 'rgba(210, 220, 235, 1)');
+    ballGrad.addColorStop(0.55, 'rgba(170, 185, 205, 1)');
+    ballGrad.addColorStop(0.75, 'rgba(130, 145, 170, 1)');
+    ballGrad.addColorStop(1, 'rgba(90, 105, 130, 1)');
 
     ctx.fillStyle = ballGrad;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bright highlight (top-left)
+    // Bright specular highlight (top-left)
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.clip();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.beginPath();
-    ctx.arc(x - radius * 0.35, y - radius * 0.35, radius * 0.4, 0, Math.PI * 2);
+    ctx.arc(x - radius * 0.35, y - radius * 0.35, radius * 0.35, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
     // Rim light
-    ctx.strokeStyle = 'rgba(150, 220, 255, 0.4)';
+    ctx.strokeStyle = 'rgba(200, 220, 255, 0.3)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(x, y, radius - 0.5, 0, Math.PI * 2);
