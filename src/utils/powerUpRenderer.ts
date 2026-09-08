@@ -1,5 +1,5 @@
 // Premium Power-Up Renderer
-// Each power-up uses a unique colored glossy 3D button look with a text label
+// Each power-up uses a unique colored glossy 3D button look without text labels
 
 import { PowerUp, PowerUpType } from '@/types/game';
 
@@ -89,25 +89,6 @@ const POWERUP_COLOR_CONFIG: Record<string, {
   ghost:      { inner: 'hsl(270, 50%, 50%)',  outer: 'hsl(260, 50%, 25%)',  border: 'hsl(280, 60%, 60%)',   label: 'GHOST' },
 };
 
-// Draw text label at the bottom of the circle
-const drawLabel = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, text: string) => {
-  const r = size * 0.42;
-  // Dark translucent banner across bottom
-  ctx.save();
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.clip();
-  ctx.fillRect(x - r, y + r * 0.25, r * 2, r * 0.75);
-  // White text
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.font = `bold ${Math.max(7, Math.floor(r * 0.35))}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x, y + r * 0.55);
-  ctx.restore();
-};
-
 // ============ ICON DRAWING FUNCTIONS ============
 
 // Draw fiery ball icon (ball engulfed in flames inside glossy circle)
@@ -143,8 +124,6 @@ const drawFireballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, s
   ctx.beginPath();
   ctx.arc(x, y, size * 0.12, 0, Math.PI * 2);
   ctx.fill();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw multi-ball icon (2 white balls in glossy circle)
@@ -165,8 +144,6 @@ const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
     ctx.arc(bx, y, ballRadius, 0, Math.PI * 2);
     ctx.fill();
   });
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw 7-ball icon (3 white balls in triangle pattern inside glossy circle)
@@ -193,8 +170,6 @@ const drawSevenballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
     ctx.arc(bx, by, ballRadius, 0, Math.PI * 2);
     ctx.fill();
   });
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw big ball icon (large steel ball in glossy circle)
@@ -222,8 +197,6 @@ const drawBigballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, si
   ctx.beginPath();
   ctx.arc(x - ballRadius * 0.3, y - ballRadius * 0.3, ballRadius * 0.25, 0, Math.PI * 2);
   ctx.fill();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw slow icon (arrow pointing DOWN in glossy circle)
@@ -235,17 +208,15 @@ const drawSlowIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size:
   ctx.fillStyle = 'white';
   ctx.beginPath();
   const s = size * 0.15;
-  ctx.moveTo(x, y + s * 1.2);              // Bottom point
-  ctx.lineTo(x + s * 0.9, y - s * 0.1);    // Top right of head
-  ctx.lineTo(x + s * 0.35, y - s * 0.1);   // Inner right
-  ctx.lineTo(x + s * 0.35, y - s * 1.0);   // Top right of stem
-  ctx.lineTo(x - s * 0.35, y - s * 1.0);   // Top left of stem
-  ctx.lineTo(x - s * 0.35, y - s * 0.1);   // Inner left
-  ctx.lineTo(x - s * 0.9, y - s * 0.1);    // Top left of head
+  ctx.moveTo(x, y + s * 1.2);
+  ctx.lineTo(x + s * 0.9, y - s * 0.1);
+  ctx.lineTo(x + s * 0.35, y - s * 0.1);
+  ctx.lineTo(x + s * 0.35, y - s * 1.0);
+  ctx.lineTo(x - s * 0.35, y - s * 1.0);
+  ctx.lineTo(x - s * 0.35, y - s * 0.1);
+  ctx.lineTo(x - s * 0.9, y - s * 0.1);
   ctx.closePath();
   ctx.fill();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw speed up icon (arrow pointing UP in glossy circle)
@@ -257,17 +228,15 @@ const drawSpeedupIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, si
   ctx.fillStyle = 'white';
   ctx.beginPath();
   const s = size * 0.15;
-  ctx.moveTo(x, y - s * 1.2);              // Top point
-  ctx.lineTo(x + s * 0.9, y + s * 0.1);    // Bottom right of head
-  ctx.lineTo(x + s * 0.35, y + s * 0.1);   // Inner right
-  ctx.lineTo(x + s * 0.35, y + s * 1.0);   // Bottom right of stem
-  ctx.lineTo(x - s * 0.35, y + s * 1.0);   // Bottom left of stem
-  ctx.lineTo(x - s * 0.35, y + s * 0.1);   // Inner left
-  ctx.lineTo(x - s * 0.9, y + s * 0.1);    // Bottom left of head
+  ctx.moveTo(x, y - s * 1.2);
+  ctx.lineTo(x + s * 0.9, y + s * 0.1);
+  ctx.lineTo(x + s * 0.35, y + s * 0.1);
+  ctx.lineTo(x + s * 0.35, y + s * 1.0);
+  ctx.lineTo(x - s * 0.35, y + s * 1.0);
+  ctx.lineTo(x - s * 0.35, y + s * 0.1);
+  ctx.lineTo(x - s * 0.9, y + s * 0.1);
   ctx.closePath();
   ctx.fill();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw widen paddle icon (BIG paddle with outward arrows in glossy circle)
@@ -308,8 +277,6 @@ const drawWidenIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.moveTo(x + paddleWidth/2 + size * 0.18, y);
   ctx.lineTo(x + paddleWidth/2 + size * 0.12, y + size * 0.07);
   ctx.stroke();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw shrink paddle icon (SMALL paddle with inward arrows in glossy circle)
@@ -350,8 +317,6 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.moveTo(x + paddleWidth/2 + size * 0.03, y);
   ctx.lineTo(x + paddleWidth/2 + size * 0.09, y + size * 0.06);
   ctx.stroke();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw clear horseshoe magnet logo (easy to understand)
@@ -400,8 +365,6 @@ const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.fillText('S', s * 0.415, s * 0.46);
 
   ctx.restore();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw auto paddle icon ("AUTO" text in glossy circle)
@@ -418,8 +381,6 @@ const drawAutoPaddleIcon = (ctx: CanvasRenderingContext2D, x: number, y: number,
   ctx.shadowBlur = 3;
   ctx.fillText('AUTO', x, y);
   ctx.shadowBlur = 0;
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw shock/lightning icon (white bolt in glossy circle)
@@ -439,8 +400,6 @@ const drawShockIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.lineTo(x - s * 0.1, y + s * 0.1);
   ctx.closePath();
   ctx.fill();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw laser icon (paddle with laser beams in glossy circle)
@@ -474,8 +433,6 @@ const drawLaserIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.lineTo(x + paddleWidth * 0.35 - size * 0.02, y - size * 0.28);
   ctx.lineTo(x + paddleWidth * 0.35, y - size * 0.2);
   ctx.fill();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw shield icon (barrier in glossy circle)
@@ -507,8 +464,6 @@ const drawShieldIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.lineTo(x + size * 0.1, y - size * 0.05);
   ctx.closePath();
   ctx.stroke();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw extra life icon (large heart in glossy circle)
@@ -536,8 +491,6 @@ const drawExtraLifeIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.beginPath();
   ctx.arc(x - heartSize * 0.25, y - heartSize * 0.2, heartSize * 0.2, 0, Math.PI * 2);
   ctx.fill();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // Draw ghost icon (white ghost in glossy circle)
@@ -577,8 +530,6 @@ const drawGhostIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.beginPath();
   ctx.ellipse(x, y + gs * 0.05, gs * 0.2, gs * 0.15, 0, 0, Math.PI * 2);
   ctx.fill();
-
-  drawLabel(ctx, x, y, size, c.label);
 };
 
 // ============ MAIN RENDERER ============
@@ -692,3 +643,4 @@ const getPowerUpColors = (type: PowerUpType): { bgColor: string; glowColor: stri
 
 // Export power-up dimensions for game utils
 export const POWERUP_DIMENSIONS = { width: POWERUP_WIDTH, height: POWERUP_HEIGHT };
+
