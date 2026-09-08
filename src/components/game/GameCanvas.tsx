@@ -2664,9 +2664,26 @@ explosions.forEach(explosion => {
       }
     }
 
-    // Draw balls with premium 3D rendering
+        // Draw balls with premium 3D rendering
     balls.forEach(ball => {
-      // Ball trail removed - clean normal ball
+      // Light ball trail — simple circles with alpha, no gradients
+      if (ball.history && ball.history.length > 1) {
+        const hist = ball.history;
+        for (let i = 0; i < hist.length - 1; i++) {
+          const t = i / hist.length;
+          const alpha = (1 - t) * 0.5;
+          const size = ball.radius * (1 - t * 0.6);
+          if (size < 0.5) continue;
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = isFireball
+            ? `rgb(255, 140, 30)`
+            : `rgb(120, 200, 255)`;
+          ctx.beginPath();
+          ctx.arc(hist[i].x, hist[i].y, size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
 
       drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall);
       
