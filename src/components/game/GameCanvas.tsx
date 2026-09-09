@@ -2681,50 +2681,38 @@ explosions.forEach(explosion => {
 
         // Draw balls with premium 3D rendering
     balls.forEach(ball => {
-                  // Dark streak trail — like reference game
+                      balls.forEach(ball => {
+      // Dark streak trail — Meta AI
       if (ball.history && ball.history.length > 1) {
         const hist = ball.history;
         ctx.save();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-
-        // Dark trail layer
-        for (let i = 1; i < hist.length; i++) {
-          const t = i / hist.length;
-          const alpha = (1 - t) * 0.5;
-          const w = ball.radius * (1 - t * 0.6) * 1.8;
-          if (w < 0.5) continue;
-          ctx.globalAlpha = alpha;
-          ctx.strokeStyle = isFireball
-            ? `rgba(180, 80, 0, ${alpha})`
-            : `rgba(40, 60, 100, ${alpha})`;
-          ctx.lineWidth = w;
+        for (let i = 0; i < hist.length - 1; i++) {
+          const t = i / (hist.length - 1);
+          const p1 = hist[i];
+          const p2 = hist[i+1];
+          const alpha = Math.pow(t, 1.6) * 0.52;
+          const w = ball.radius * (0.15 + t * 1.1);
           ctx.beginPath();
-          ctx.moveTo(hist[i - 1].x, hist[i - 1].y);
-          ctx.lineTo(hist[i].x, hist[i].y);
-          ctx.stroke();
-        }
-
-        // Bright thin core line on top
-        for (let i = 1; i < hist.length; i++) {
-          const t = i / hist.length;
-          const alpha = (1 - t) * 0.6;
-          const w = ball.radius * (1 - t * 0.7) * 0.5;
-          if (w < 0.5) continue;
-          ctx.globalAlpha = alpha;
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
           ctx.strokeStyle = isFireball
-            ? `rgba(255, 200, 100, ${alpha})`
-            : `rgba(150, 200, 255, ${alpha})`;
+            ? `rgba(200, 120, 40, ${alpha})`
+            : `rgba(175, 185, 205, ${alpha})`;
           ctx.lineWidth = w;
-          ctx.beginPath();
-          ctx.moveTo(hist[i - 1].x, hist[i - 1].y);
-          ctx.lineTo(hist[i].x, hist[i].y);
           ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(p1.x, p1.y, w/2, 0, Math.PI*2);
+          ctx.fillStyle = isFireball
+            ? `rgba(200,120,40,${alpha*0.85})`
+            : `rgba(175,185,205,${alpha*0.85})`;
+          ctx.fill();
         }
-
-        ctx.globalAlpha = 1;
         ctx.restore();
       }
+
+      drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall);
 
       drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall);
       
