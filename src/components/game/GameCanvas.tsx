@@ -2681,21 +2681,23 @@ explosions.forEach(explosion => {
 
         // Draw balls with premium 3D rendering
     balls.forEach(ball => {
-            // Smooth glowing trail streak
+                  // Dark streak trail — like reference game
       if (ball.history && ball.history.length > 1) {
         const hist = ball.history;
         ctx.save();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // Glow layer — thick semi-transparent line
+        // Dark trail layer
         for (let i = 1; i < hist.length; i++) {
           const t = i / hist.length;
-          const alpha = (1 - t) * 0.35;
-          const w = ball.radius * (1 - t * 0.6) * 2.2;
+          const alpha = (1 - t) * 0.5;
+          const w = ball.radius * (1 - t * 0.6) * 1.8;
           if (w < 0.5) continue;
           ctx.globalAlpha = alpha;
-          ctx.strokeStyle = isFireball ? 'rgb(255, 120, 20)' : 'rgb(100, 180, 255)';
+          ctx.strokeStyle = isFireball
+            ? `rgba(180, 80, 0, ${alpha})`
+            : `rgba(40, 60, 100, ${alpha})`;
           ctx.lineWidth = w;
           ctx.beginPath();
           ctx.moveTo(hist[i - 1].x, hist[i - 1].y);
@@ -2703,14 +2705,16 @@ explosions.forEach(explosion => {
           ctx.stroke();
         }
 
-        // Core layer — thin bright line on top
+        // Bright thin core line on top
         for (let i = 1; i < hist.length; i++) {
           const t = i / hist.length;
-          const alpha = (1 - t) * 0.7;
-          const w = ball.radius * (1 - t * 0.7);
+          const alpha = (1 - t) * 0.6;
+          const w = ball.radius * (1 - t * 0.7) * 0.5;
           if (w < 0.5) continue;
           ctx.globalAlpha = alpha;
-          ctx.strokeStyle = isFireball ? 'rgb(255, 220, 120)' : 'rgb(220, 245, 255)';
+          ctx.strokeStyle = isFireball
+            ? `rgba(255, 200, 100, ${alpha})`
+            : `rgba(150, 200, 255, ${alpha})`;
           ctx.lineWidth = w;
           ctx.beginPath();
           ctx.moveTo(hist[i - 1].x, hist[i - 1].y);
