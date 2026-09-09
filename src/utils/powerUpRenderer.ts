@@ -1,15 +1,34 @@
-// Premium Power-Up Renderer
-// Each power-up uses a unique colored glossy 3D button look without text labels
+// Premium Power-Up Renderer V2
+// Bright saturated backgrounds + SILVER metallic icons = high contrast
+// No text labels
 
 import { PowerUp, PowerUpType } from '@/types/game';
 
-// Power-up pill dimensions - made bigger for mobile visibility
 const POWERUP_WIDTH = 50;
 const POWERUP_HEIGHT = 26;
 
-// ============ SHARED HELPER ============
+// ============ SHARED HELPERS ============
 
-// Draw glossy 3D circle background with custom colors per power-up type
+// Draw a silver/metallic small sphere (used for icons inside power-ups)
+const drawSilverSphere = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) => {
+  const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  grad.addColorStop(0.2, 'rgba(240, 245, 250, 1)');
+  grad.addColorStop(0.5, 'rgba(180, 195, 215, 1)');
+  grad.addColorStop(0.8, 'rgba(120, 140, 165, 1)');
+  grad.addColorStop(1, 'rgba(80, 100, 130, 1)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  // Bright highlight
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.beginPath();
+  ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+};
+
+// Draw glossy 3D circle background — BRIGHT saturated colors
 const drawGlossyBackground = (
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -23,12 +42,12 @@ const drawGlossyBackground = (
 
   // Outer glow
   ctx.shadowColor = borderColor;
-  ctx.shadowBlur = 12;
+  ctx.shadowBlur = 14;
 
-  // Main circle with radial gradient (glossy 3D look)
+  // Main circle — bright gradient
   const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
   grad.addColorStop(0, innerColor);
-  grad.addColorStop(0.6, outerColor);
+  grad.addColorStop(0.7, outerColor);
   grad.addColorStop(1, outerColor);
 
   ctx.fillStyle = grad;
@@ -38,14 +57,14 @@ const drawGlossyBackground = (
 
   ctx.shadowBlur = 0;
 
-  // Glossy highlight (top-left arc — simulates light reflection)
+  // Glossy highlight (top half — simulates 3D sphere)
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.clip();
-  const glossGrad = ctx.createLinearGradient(x, y - r, x, y);
-  glossGrad.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
-  glossGrad.addColorStop(0.4, 'rgba(255, 255, 255, 0.1)');
+  const glossGrad = ctx.createLinearGradient(x, y - r, x, y + r * 0.3);
+  glossGrad.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
+  glossGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
   glossGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = glossGrad;
   ctx.beginPath();
@@ -53,50 +72,41 @@ const drawGlossyBackground = (
   ctx.fill();
   ctx.restore();
 
-  // Bright outer border
+  // Bright glowing border
   ctx.strokeStyle = borderColor;
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.stroke();
-
-  // Inner highlight ring (top arc)
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(x, y, r - 3, -Math.PI * 0.8, -Math.PI * 0.2);
-  ctx.stroke();
 };
 
-// Unique color scheme per power-up type
+// Bright color config — each power-up has a DISTINCT bright color
 const POWERUP_COLOR_CONFIG: Record<string, {
-  inner: string; outer: string; border: string; label: string;
+  inner: string; outer: string; border: string;
 }> = {
-  fireball:   { inner: 'hsl(20, 100%, 65%)',  outer: 'hsl(10, 100%, 40%)',  border: 'hsl(35, 100%, 60%)',  label: 'FIRE' },
-  multiball:  { inner: 'hsl(30, 100%, 65%)',  outer: 'hsl(25, 100%, 35%)',  border: 'hsl(45, 100%, 55%)',  label: 'x3' },
-  sevenball:  { inner: 'hsl(280, 80%, 65%)',  outer: 'hsl(270, 80%, 35%)',  border: 'hsl(290, 90%, 65%)',  label: 'x7' },
-  bigball:    { inner: 'hsl(210, 60%, 50%)',  outer: 'hsl(220, 80%, 20%)',  border: 'hsl(195, 100%, 60%)',  label: 'BIG BALL' },
-  slow:       { inner: 'hsl(160, 70%, 50%)',  outer: 'hsl(170, 80%, 25%)',  border: 'hsl(150, 100%, 50%)',  label: 'SLOW' },
-  widen:      { inner: 'hsl(120, 70%, 50%)',  outer: 'hsl(130, 80%, 25%)',  border: 'hsl(100, 100%, 50%)',  label: 'WIDE' },
-  shrink:     { inner: 'hsl(0, 70%, 50%)',    outer: 'hsl(0, 80%, 25%)',    border: 'hsl(0, 100%, 50%)',    label: 'SHRINK' },
-  extralife:  { inner: 'hsl(340, 80%, 60%)',  outer: 'hsl(340, 80%, 30%)',  border: 'hsl(350, 100%, 60%)',  label: '+1 LIFE' },
-  laser:      { inner: 'hsl(0, 100%, 50%)',   outer: 'hsl(0, 100%, 25%)',   border: 'hsl(15, 100%, 55%)',   label: 'LASER' },
-  magnet:     { inner: 'hsl(200, 80%, 55%)',  outer: 'hsl(210, 90%, 25%)',  border: 'hsl(190, 100%, 60%)',  label: 'MAGNET' },
-  shield:     { inner: 'hsl(200, 60%, 50%)',  outer: 'hsl(210, 70%, 25%)',  border: 'hsl(195, 100%, 60%)',  label: 'SHIELD' },
-  speedup:    { inner: 'hsl(280, 80%, 55%)',  outer: 'hsl(270, 80%, 25%)',  border: 'hsl(290, 90%, 60%)',   label: 'SPEED+' },
-  autopaddle: { inner: 'hsl(180, 60%, 50%)',  outer: 'hsl(180, 70%, 25%)',  border: 'hsl(170, 100%, 50%)',  label: 'AUTO' },
-  shock:      { inner: 'hsl(50, 100%, 55%)',  outer: 'hsl(40, 100%, 30%)',  border: 'hsl(55, 100%, 60%)',   label: 'SHOCK' },
-  ghost:      { inner: 'hsl(270, 50%, 50%)',  outer: 'hsl(260, 50%, 25%)',  border: 'hsl(280, 60%, 60%)',   label: 'GHOST' },
+  fireball:   { inner: 'hsl(20, 100%, 60%)',  outer: 'hsl(15, 100%, 45%)',  border: 'hsl(35, 100%, 60%)' },
+  multiball:  { inner: 'hsl(45, 100%, 60%)',  outer: 'hsl(35, 100%, 45%)',  border: 'hsl(50, 100%, 55%)' },
+  sevenball:  { inner: 'hsl(280, 90%, 65%)',  outer: 'hsl(270, 85%, 50%)',  border: 'hsl(290, 90%, 65%)' },
+  bigball:    { inner: 'hsl(200, 80%, 55%)',  outer: 'hsl(210, 85%, 40%)',  border: 'hsl(195, 100%, 60%)' },
+  slow:       { inner: 'hsl(160, 80%, 50%)',  outer: 'hsl(165, 80%, 38%)',  border: 'hsl(150, 100%, 50%)' },
+  widen:      { inner: 'hsl(120, 70%, 50%)',  outer: 'hsl(130, 80%, 38%)',  border: 'hsl(100, 100%, 50%)' },
+  shrink:     { inner: 'hsl(0, 80%, 55%)',    outer: 'hsl(0, 80%, 40%)',    border: 'hsl(10, 100%, 55%)' },
+  extralife:  { inner: 'hsl(340, 90%, 60%)',  outer: 'hsl(340, 85%, 45%)',  border: 'hsl(350, 100%, 60%)' },
+  laser:      { inner: 'hsl(0, 90%, 55%)',    outer: 'hsl(0, 85%, 40%)',    border: 'hsl(15, 100%, 55%)' },
+  magnet:     { inner: 'hsl(200, 80%, 55%)',  outer: 'hsl(210, 85%, 40%)',  border: 'hsl(190, 100%, 60%)' },
+  shield:     { inner: 'hsl(195, 80%, 55%)',  outer: 'hsl(200, 80%, 40%)',  border: 'hsl(190, 100%, 60%)' },
+  speedup:    { inner: 'hsl(280, 80%, 60%)',  outer: 'hsl(270, 80%, 45%)',  border: 'hsl(290, 90%, 60%)' },
+  autopaddle: { inner: 'hsl(180, 70%, 50%)',  outer: 'hsl(180, 75%, 38%)',  border: 'hsl(170, 100%, 50%)' },
+  shock:      { inner: 'hsl(50, 100%, 55%)',  outer: 'hsl(40, 100%, 42%)',  border: 'hsl(55, 100%, 60%)' },
+  ghost:      { inner: 'hsl(270, 60%, 55%)',  outer: 'hsl(260, 55%, 40%)',  border: 'hsl(280, 60%, 60%)' },
 };
 
 // ============ ICON DRAWING FUNCTIONS ============
 
-// Draw fiery ball icon (ball engulfed in flames inside glossy circle)
 const drawFireballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.fireball;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
-  // Flame tongues around the ball
+  // Silver ball with orange flames
   ctx.fillStyle = 'hsl(30, 100%, 55%)';
   for (let i = 0; i < 6; i++) {
     const angle = (i / 6) * Math.PI * 2;
@@ -107,105 +117,48 @@ const drawFireballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, s
     const base1Y = y + Math.sin(angle - 0.3) * size * 0.1;
     const base2X = x + Math.cos(angle + 0.3) * size * 0.1;
     const base2Y = y + Math.sin(angle + 0.3) * size * 0.1;
-
     ctx.beginPath();
     ctx.moveTo(base1X, base1Y);
     ctx.quadraticCurveTo(tipX, tipY, base2X, base2Y);
     ctx.fill();
   }
-
-  // Main ball (hot core - white/yellow)
-  const ballGrad = ctx.createRadialGradient(x - size * 0.05, y - size * 0.05, 0, x, y, size * 0.12);
-  ballGrad.addColorStop(0, 'white');
-  ballGrad.addColorStop(0.5, 'hsl(45, 100%, 70%)');
-  ballGrad.addColorStop(1, 'hsl(30, 100%, 55%)');
-
-  ctx.fillStyle = ballGrad;
-  ctx.beginPath();
-  ctx.arc(x, y, size * 0.12, 0, Math.PI * 2);
-  ctx.fill();
+  drawSilverSphere(ctx, x, y, size * 0.12);
 };
 
-// Draw multi-ball icon (2 white balls in glossy circle)
 const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.multiball;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
   const ballRadius = size * 0.12;
   const spacing = size * 0.15;
-
-  [x - spacing, x + spacing].forEach(bx => {
-    const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, y - ballRadius * 0.3, 0, bx, y, ballRadius);
-    ballGrad.addColorStop(0, 'white');
-    ballGrad.addColorStop(0.5, 'hsl(0, 0%, 90%)');
-    ballGrad.addColorStop(1, 'hsl(0, 0%, 75%)');
-    ctx.fillStyle = ballGrad;
-    ctx.beginPath();
-    ctx.arc(bx, y, ballRadius, 0, Math.PI * 2);
-    ctx.fill();
-  });
+  drawSilverSphere(ctx, x - spacing, y, ballRadius);
+  drawSilverSphere(ctx, x + spacing, y, ballRadius);
 };
 
-// Draw 7-ball icon (3 white balls in triangle pattern inside glossy circle)
 const drawSevenballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.sevenball;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
   const ballRadius = size * 0.09;
   const positions = [
     { dx: 0, dy: -0.12 },
     { dx: -0.13, dy: 0.1 },
     { dx: 0.13, dy: 0.1 },
   ];
-
   positions.forEach(pos => {
-    const bx = x + pos.dx * size;
-    const by = y + pos.dy * size;
-    const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, by - ballRadius * 0.3, 0, bx, by, ballRadius);
-    ballGrad.addColorStop(0, 'white');
-    ballGrad.addColorStop(0.5, 'hsl(0, 0%, 90%)');
-    ballGrad.addColorStop(1, 'hsl(0, 0%, 75%)');
-    ctx.fillStyle = ballGrad;
-    ctx.beginPath();
-    ctx.arc(bx, by, ballRadius, 0, Math.PI * 2);
-    ctx.fill();
+    drawSilverSphere(ctx, x + pos.dx * size, y + pos.dy * size, ballRadius);
   });
 };
 
-// Draw big ball icon (large steel ball in glossy circle)
 const drawBigballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.bigball;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
-  const ballRadius = size * 0.25;
-
-  // Main steel ball
-  const ballGrad = ctx.createRadialGradient(x - ballRadius * 0.3, y - ballRadius * 0.3, 0, x, y, ballRadius);
-  ballGrad.addColorStop(0, 'hsl(210, 15%, 95%)');
-  ballGrad.addColorStop(0.2, 'hsl(210, 10%, 80%)');
-  ballGrad.addColorStop(0.5, 'hsl(215, 12%, 60%)');
-  ballGrad.addColorStop(0.8, 'hsl(220, 15%, 45%)');
-  ballGrad.addColorStop(1, 'hsl(225, 20%, 30%)');
-
-  ctx.fillStyle = ballGrad;
-  ctx.beginPath();
-  ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Highlight
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  ctx.beginPath();
-  ctx.arc(x - ballRadius * 0.3, y - ballRadius * 0.3, ballRadius * 0.25, 0, Math.PI * 2);
-  ctx.fill();
+  drawSilverSphere(ctx, x, y, size * 0.25);
 };
 
-// Draw slow icon (arrow pointing DOWN in glossy circle)
 const drawSlowIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.slow;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
-  // White arrow pointing DOWN
-  ctx.fillStyle = 'white';
+  // Silver arrow pointing DOWN
+  ctx.fillStyle = 'rgba(220, 230, 240, 1)';
   ctx.beginPath();
   const s = size * 0.15;
   ctx.moveTo(x, y + s * 1.2);
@@ -219,13 +172,11 @@ const drawSlowIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size:
   ctx.fill();
 };
 
-// Draw speed up icon (arrow pointing UP in glossy circle)
 const drawSpeedupIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.speedup;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
-  // White arrow pointing UP
-  ctx.fillStyle = 'white';
+  // Silver arrow pointing UP
+  ctx.fillStyle = 'rgba(220, 230, 240, 1)';
   ctx.beginPath();
   const s = size * 0.15;
   ctx.moveTo(x, y - s * 1.2);
@@ -239,26 +190,24 @@ const drawSpeedupIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, si
   ctx.fill();
 };
 
-// Draw widen paddle icon (BIG paddle with outward arrows in glossy circle)
 const drawWidenIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.widen;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
   const paddleWidth = size * 0.50;
   const paddleHeight = size * 0.14;
-
-  // Big white paddle
-  ctx.fillStyle = 'white';
+  // Silver paddle
+  const grad = ctx.createLinearGradient(x, y - paddleHeight/2, x, y + paddleHeight/2);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  grad.addColorStop(0.5, 'rgba(200, 215, 230, 1)');
+  grad.addColorStop(1, 'rgba(140, 155, 175, 1)');
+  ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.roundRect(x - paddleWidth/2, y - paddleHeight/2, paddleWidth, paddleHeight, paddleHeight/2);
   ctx.fill();
-
-  // Outward arrows
-  ctx.strokeStyle = 'white';
+  // Silver arrows
+  ctx.strokeStyle = 'rgba(220, 230, 240, 1)';
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
-
-  // Left arrow
   ctx.beginPath();
   ctx.moveTo(x - paddleWidth/2 - size * 0.03, y);
   ctx.lineTo(x - paddleWidth/2 - size * 0.18, y);
@@ -266,10 +215,6 @@ const drawWidenIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.lineTo(x - paddleWidth/2 - size * 0.12, y - size * 0.07);
   ctx.moveTo(x - paddleWidth/2 - size * 0.18, y);
   ctx.lineTo(x - paddleWidth/2 - size * 0.12, y + size * 0.07);
-  ctx.stroke();
-
-  // Right arrow
-  ctx.beginPath();
   ctx.moveTo(x + paddleWidth/2 + size * 0.03, y);
   ctx.lineTo(x + paddleWidth/2 + size * 0.18, y);
   ctx.moveTo(x + paddleWidth/2 + size * 0.18, y);
@@ -279,26 +224,22 @@ const drawWidenIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.stroke();
 };
 
-// Draw shrink paddle icon (SMALL paddle with inward arrows in glossy circle)
 const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.shrink;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
   const paddleWidth = size * 0.18;
   const paddleHeight = size * 0.09;
-
-  // Small white paddle
-  ctx.fillStyle = 'white';
+  const grad = ctx.createLinearGradient(x, y - paddleHeight/2, x, y + paddleHeight/2);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  grad.addColorStop(0.5, 'rgba(200, 215, 230, 1)');
+  grad.addColorStop(1, 'rgba(140, 155, 175, 1)');
+  ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.roundRect(x - paddleWidth/2, y - paddleHeight/2, paddleWidth, paddleHeight, paddleHeight/2);
   ctx.fill();
-
-  // Inward arrows
-  ctx.strokeStyle = 'white';
+  ctx.strokeStyle = 'rgba(220, 230, 240, 1)';
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
-
-  // Left arrow (pointing right/inward)
   ctx.beginPath();
   ctx.moveTo(x - size * 0.28, y);
   ctx.lineTo(x - paddleWidth/2 - size * 0.03, y);
@@ -306,10 +247,6 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.lineTo(x - paddleWidth/2 - size * 0.09, y - size * 0.06);
   ctx.moveTo(x - paddleWidth/2 - size * 0.03, y);
   ctx.lineTo(x - paddleWidth/2 - size * 0.09, y + size * 0.06);
-  ctx.stroke();
-
-  // Right arrow (pointing left/inward)
-  ctx.beginPath();
   ctx.moveTo(x + size * 0.28, y);
   ctx.lineTo(x + paddleWidth/2 + size * 0.03, y);
   ctx.moveTo(x + paddleWidth/2 + size * 0.03, y);
@@ -319,16 +256,12 @@ const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.stroke();
 };
 
-// Draw clear horseshoe magnet logo (easy to understand)
 const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.magnet;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
   const s = size * 0.38;
   ctx.save();
   ctx.translate(x, y + s * 0.08);
-
-  // Horseshoe shape
   ctx.beginPath();
   ctx.moveTo(-s * 0.55, s * 0.55);
   ctx.lineTo(-s * 0.55, -s * 0.15);
@@ -341,8 +274,7 @@ const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.quadraticCurveTo(-s * 0.28, -s * 0.28, -s * 0.28, -s * 0.05);
   ctx.lineTo(-s * 0.28, s * 0.55);
   ctx.closePath();
-
-  // Classic red-blue magnet gradient
+  // Silver/red-blue magnet
   const grad = ctx.createLinearGradient(-s * 0.55, 0, s * 0.55, 0);
   grad.addColorStop(0, '#e53935');
   grad.addColorStop(0.48, '#e53935');
@@ -350,46 +282,35 @@ const drawMagnetIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   grad.addColorStop(1, '#1e88e5');
   ctx.fillStyle = grad;
   ctx.fill();
-
-  // White poles
-  ctx.fillStyle = '#ffffff';
+  // Silver poles
+  ctx.fillStyle = '#e0e8f0';
   ctx.fillRect(-s * 0.55, s * 0.35, s * 0.27, s * 0.22);
   ctx.fillRect(s * 0.28, s * 0.35, s * 0.27, s * 0.22);
-
-  // Small "N" and "S"
   ctx.fillStyle = '#111';
   ctx.font = `bold ${s * 0.22}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('N', -s * 0.415, s * 0.46);
   ctx.fillText('S', s * 0.415, s * 0.46);
-
   ctx.restore();
 };
 
-// Draw auto paddle icon ("AUTO" text in glossy circle)
 const drawAutoPaddleIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.autopaddle;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
-  // Yellow "AUTO" text
-  ctx.fillStyle = 'hsl(50, 100%, 55%)';
-  ctx.font = `bold ${size * 0.2}px Orbitron, sans-serif`;
+  // Silver "A" icon
+  ctx.fillStyle = 'rgba(230, 240, 250, 1)';
+  ctx.font = `bold ${size * 0.28}px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'hsl(50, 100%, 40%)';
-  ctx.shadowBlur = 3;
-  ctx.fillText('AUTO', x, y);
-  ctx.shadowBlur = 0;
+  ctx.fillText('A', x, y);
 };
 
-// Draw shock/lightning icon (white bolt in glossy circle)
 const drawShockIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.shock;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
-  // White lightning bolt
-  ctx.fillStyle = 'white';
+  // Silver lightning bolt
+  ctx.fillStyle = 'rgba(230, 240, 250, 1)';
   ctx.beginPath();
   const s = size * 0.2;
   ctx.moveTo(x + s * 0.15, y - s * 1.1);
@@ -402,32 +323,28 @@ const drawShockIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.fill();
 };
 
-// Draw laser icon (paddle with laser beams in glossy circle)
 const drawLaserIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.laser;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
   const paddleWidth = size * 0.4;
   const paddleHeight = size * 0.1;
-
-  // White paddle
-  ctx.fillStyle = 'white';
+  // Silver paddle
+  const grad = ctx.createLinearGradient(x, y + size * 0.1, x, y + size * 0.1 + paddleHeight);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  grad.addColorStop(1, 'rgba(140, 155, 175, 1)');
+  ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.roundRect(x - paddleWidth/2, y + size * 0.1, paddleWidth, paddleHeight, paddleHeight/2);
   ctx.fill();
-
   // Red laser beams
-  ctx.fillStyle = 'hsl(0, 85%, 55%)';
+  ctx.fillStyle = 'hsl(0, 90%, 60%)';
   ctx.fillRect(x - paddleWidth * 0.35, y - size * 0.2, size * 0.04, size * 0.28);
   ctx.fillRect(x + paddleWidth * 0.35 - size * 0.04, y - size * 0.2, size * 0.04, size * 0.28);
-
-  // Laser tips
   ctx.beginPath();
   ctx.moveTo(x - paddleWidth * 0.35, y - size * 0.2);
   ctx.lineTo(x - paddleWidth * 0.35 + size * 0.02, y - size * 0.28);
   ctx.lineTo(x - paddleWidth * 0.35 + size * 0.04, y - size * 0.2);
   ctx.fill();
-
   ctx.beginPath();
   ctx.moveTo(x + paddleWidth * 0.35 - size * 0.04, y - size * 0.2);
   ctx.lineTo(x + paddleWidth * 0.35 - size * 0.02, y - size * 0.28);
@@ -435,13 +352,15 @@ const drawLaserIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.fill();
 };
 
-// Draw shield icon (barrier in glossy circle)
 const drawShieldIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.shield;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
-  // Shield shape
-  ctx.fillStyle = 'white';
+  // Silver shield
+  const grad = ctx.createRadialGradient(x - size * 0.05, y - size * 0.15, 0, x, y, size * 0.25);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  grad.addColorStop(0.5, 'rgba(200, 215, 230, 1)');
+  grad.addColorStop(1, 'rgba(130, 150, 175, 1)');
+  ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.moveTo(x, y - size * 0.25);
   ctx.lineTo(x - size * 0.18, y - size * 0.12);
@@ -451,64 +370,39 @@ const drawShieldIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, siz
   ctx.lineTo(x + size * 0.18, y - size * 0.12);
   ctx.closePath();
   ctx.fill();
-
-  // Inner shield detail
-  ctx.strokeStyle = 'hsl(200, 80%, 50%)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(x, y - size * 0.15);
-  ctx.lineTo(x - size * 0.1, y - size * 0.05);
-  ctx.lineTo(x - size * 0.1, y + size * 0.05);
-  ctx.quadraticCurveTo(x - size * 0.08, y + size * 0.12, x, y + size * 0.15);
-  ctx.quadraticCurveTo(x + size * 0.08, y + size * 0.12, x + size * 0.1, y + size * 0.05);
-  ctx.lineTo(x + size * 0.1, y - size * 0.05);
-  ctx.closePath();
-  ctx.stroke();
 };
 
-// Draw extra life icon (large heart in glossy circle)
 const drawExtraLifeIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.extralife;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
   const heartSize = size * 0.30;
-
-  // Red heart - BIGGER
   const heartGrad = ctx.createRadialGradient(x - heartSize * 0.2, y - heartSize * 0.3, 0, x, y, heartSize);
   heartGrad.addColorStop(0, 'hsl(350, 100%, 75%)');
   heartGrad.addColorStop(0.5, 'hsl(350, 90%, 55%)');
   heartGrad.addColorStop(1, 'hsl(340, 80%, 40%)');
-
   ctx.fillStyle = heartGrad;
   ctx.beginPath();
   ctx.moveTo(x, y + heartSize * 0.5);
   ctx.bezierCurveTo(x - heartSize * 1.2, y - heartSize * 0.2, x - heartSize * 0.6, y - heartSize * 0.9, x, y - heartSize * 0.3);
   ctx.bezierCurveTo(x + heartSize * 0.6, y - heartSize * 0.9, x + heartSize * 1.2, y - heartSize * 0.2, x, y + heartSize * 0.5);
   ctx.fill();
-
-  // Highlight
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   ctx.beginPath();
   ctx.arc(x - heartSize * 0.25, y - heartSize * 0.2, heartSize * 0.2, 0, Math.PI * 2);
   ctx.fill();
 };
 
-// Draw ghost icon (white ghost in glossy circle)
 const drawGhostIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   const c = POWERUP_COLOR_CONFIG.ghost;
   drawGlossyBackground(ctx, x, y, size, c.inner, c.outer, c.border);
-
   const gs = size * 0.28;
-
-  // Ghost body (white)
-  ctx.fillStyle = 'white';
+  ctx.fillStyle = 'rgba(240, 245, 250, 0.95)';
   ctx.beginPath();
   ctx.moveTo(x - gs, y + gs * 0.6);
   ctx.lineTo(x - gs, y - gs * 0.3);
   ctx.quadraticCurveTo(x - gs, y - gs, x, y - gs);
   ctx.quadraticCurveTo(x + gs, y - gs, x + gs, y - gs * 0.3);
   ctx.lineTo(x + gs, y + gs * 0.6);
-  // Wavy bottom
   ctx.lineTo(x + gs * 0.6, y + gs * 0.3);
   ctx.lineTo(x + gs * 0.3, y + gs * 0.6);
   ctx.lineTo(x, y + gs * 0.3);
@@ -516,8 +410,6 @@ const drawGhostIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.lineTo(x - gs * 0.6, y + gs * 0.3);
   ctx.closePath();
   ctx.fill();
-
-  // Eyes
   ctx.fillStyle = 'hsl(220, 30%, 15%)';
   ctx.beginPath();
   ctx.ellipse(x - gs * 0.3, y - gs * 0.2, gs * 0.15, gs * 0.2, 0, 0, Math.PI * 2);
@@ -525,8 +417,6 @@ const drawGhostIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.beginPath();
   ctx.ellipse(x + gs * 0.3, y - gs * 0.2, gs * 0.15, gs * 0.2, 0, 0, Math.PI * 2);
   ctx.fill();
-
-  // Mouth
   ctx.beginPath();
   ctx.ellipse(x, y + gs * 0.05, gs * 0.2, gs * 0.15, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -545,22 +435,12 @@ export const drawPowerUp = (
   const iconSize = Math.min(width, height) * 1.3;
 
   ctx.save();
-
-  // Animated pulse
   const pulse = 1 + Math.sin(gameTime * 5) * 0.08;
-
-  // Get glow color
   const { glowColor } = getPowerUpColors(type);
-
-  // Subtle glow
   ctx.shadowColor = glowColor;
   ctx.shadowBlur = 15 * pulse;
-
   ctx.shadowBlur = 0;
-
-  // Draw the icon
   drawPowerUpIcon(ctx, type, centerX, centerY, iconSize);
-
   ctx.restore();
 };
 
@@ -572,75 +452,44 @@ const drawPowerUpIcon = (
   size: number
 ): void => {
   switch (type) {
-    case 'fireball':
-      drawFireballIcon(ctx, x, y, size);
-      break;
-    case 'multiball':
-      drawMultiballIcon(ctx, x, y, size);
-      break;
-    case 'sevenball':
-      drawSevenballIcon(ctx, x, y, size);
-      break;
-    case 'bigball':
-      drawBigballIcon(ctx, x, y, size);
-      break;
-    case 'slow':
-      drawSlowIcon(ctx, x, y, size);
-      break;
-    case 'widen':
-      drawWidenIcon(ctx, x, y, size);
-      break;
-    case 'shrink':
-      drawShrinkIcon(ctx, x, y, size);
-      break;
-    case 'extralife':
-      drawExtraLifeIcon(ctx, x, y, size);
-      break;
-    case 'laser':
-      drawLaserIcon(ctx, x, y, size);
-      break;
-    case 'magnet':
-      drawMagnetIcon(ctx, x, y, size);
-      break;
-    case 'shield':
-      drawShieldIcon(ctx, x, y, size);
-      break;
-    case 'speedup':
-      drawSpeedupIcon(ctx, x, y, size);
-      break;
-    case 'autopaddle':
-      drawAutoPaddleIcon(ctx, x, y, size);
-      break;
-    case 'shock':
-      drawShockIcon(ctx, x, y, size);
-      break;
-    case 'ghost':
-      drawGhostIcon(ctx, x, y, size);
-      break;
+    case 'fireball': drawFireballIcon(ctx, x, y, size); break;
+    case 'multiball': drawMultiballIcon(ctx, x, y, size); break;
+    case 'sevenball': drawSevenballIcon(ctx, x, y, size); break;
+    case 'bigball': drawBigballIcon(ctx, x, y, size); break;
+    case 'slow': drawSlowIcon(ctx, x, y, size); break;
+    case 'widen': drawWidenIcon(ctx, x, y, size); break;
+    case 'shrink': drawShrinkIcon(ctx, x, y, size); break;
+    case 'extralife': drawExtraLifeIcon(ctx, x, y, size); break;
+    case 'laser': drawLaserIcon(ctx, x, y, size); break;
+    case 'magnet': drawMagnetIcon(ctx, x, y, size); break;
+    case 'shield': drawShieldIcon(ctx, x, y, size); break;
+    case 'speedup': drawSpeedupIcon(ctx, x, y, size); break;
+    case 'autopaddle': drawAutoPaddleIcon(ctx, x, y, size); break;
+    case 'shock': drawShockIcon(ctx, x, y, size); break;
+    case 'ghost': drawGhostIcon(ctx, x, y, size); break;
   }
 };
 
 const getPowerUpColors = (type: PowerUpType): { bgColor: string; glowColor: string; isNegative: boolean } => {
   const configs: Record<PowerUpType, { bgColor: string; glowColor: string; isNegative: boolean }> = {
-    fireball: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    multiball: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    sevenball: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    bigball: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    slow: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    widen: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    shrink: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: true },
-    extralife: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    laser: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    magnet: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    shield: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    speedup: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: true },
-    autopaddle: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    shock: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
-    ghost: { bgColor: 'hsl(200, 85%, 50%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: true },
+    fireball: { bgColor: 'hsl(20, 100%, 50%)', glowColor: 'hsla(20, 100%, 60%, 0.7)', isNegative: false },
+    multiball: { bgColor: 'hsl(45, 100%, 50%)', glowColor: 'hsla(45, 100%, 60%, 0.7)', isNegative: false },
+    sevenball: { bgColor: 'hsl(280, 80%, 50%)', glowColor: 'hsla(280, 80%, 60%, 0.7)', isNegative: false },
+    bigball: { bgColor: 'hsl(210, 80%, 45%)', glowColor: 'hsla(200, 100%, 60%, 0.7)', isNegative: false },
+    slow: { bgColor: 'hsl(160, 80%, 40%)', glowColor: 'hsla(160, 100%, 50%, 0.7)', isNegative: false },
+    widen: { bgColor: 'hsl(120, 70%, 40%)', glowColor: 'hsla(100, 100%, 50%, 0.7)', isNegative: false },
+    shrink: { bgColor: 'hsl(0, 80%, 45%)', glowColor: 'hsla(0, 100%, 55%, 0.7)', isNegative: true },
+    extralife: { bgColor: 'hsl(340, 80%, 45%)', glowColor: 'hsla(350, 100%, 60%, 0.7)', isNegative: false },
+    laser: { bgColor: 'hsl(0, 90%, 45%)', glowColor: 'hsla(15, 100%, 55%, 0.7)', isNegative: false },
+    magnet: { bgColor: 'hsl(210, 80%, 45%)', glowColor: 'hsla(190, 100%, 60%, 0.7)', isNegative: false },
+    shield: { bgColor: 'hsl(200, 80%, 45%)', glowColor: 'hsla(195, 100%, 60%, 0.7)', isNegative: false },
+    speedup: { bgColor: 'hsl(280, 80%, 45%)', glowColor: 'hsla(290, 90%, 60%, 0.7)', isNegative: true },
+    autopaddle: { bgColor: 'hsl(180, 70%, 40%)', glowColor: 'hsla(170, 100%, 50%, 0.7)', isNegative: false },
+    shock: { bgColor: 'hsl(50, 100%, 45%)', glowColor: 'hsla(55, 100%, 60%, 0.7)', isNegative: false },
+    ghost: { bgColor: 'hsl(270, 50%, 40%)', glowColor: 'hsla(280, 60%, 60%, 0.7)', isNegative: true },
   };
   return configs[type];
 };
 
-// Export power-up dimensions for game utils
 export const POWERUP_DIMENSIONS = { width: POWERUP_WIDTH, height: POWERUP_HEIGHT };
 
