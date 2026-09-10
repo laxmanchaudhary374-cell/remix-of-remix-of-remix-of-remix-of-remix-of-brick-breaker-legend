@@ -871,7 +871,7 @@ const drawDamageCracks = (ctx: CanvasRenderingContext2D, brick: Brick, damageRat
 
 // ============ PADDLE AND BALL RENDERERS ============
 
-export const drawPaddle = (
+export const drawPremiumPaddle = (
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -882,84 +882,85 @@ export const drawPaddle = (
   hasShield: boolean = false,
   isGhost: boolean = false
 ): void => {
-  const r = height/2;
-  const capW = r;
-  const midX = x + capW;
-  const midW = width - capW*2;
   ctx.save();
+  
+  const h = 18;
+  const capR = 10;
+  const cx = x;
+  const centerY = y + height / 2;
+  
+  // Red left cap with gradient (3D look)
+  const leftCapGrad = ctx.createRadialGradient(cx + capR - 2, centerY - 2, 1, cx + capR, centerY, capR);
+  leftCapGrad.addColorStop(0, '#ff4444');
+  leftCapGrad.addColorStop(0.5, '#cc1100');
+  leftCapGrad.addColorStop(1, '#880000');
+  ctx.beginPath();
+  ctx.arc(cx + capR, centerY, capR, 0, Math.PI * 2);
+  ctx.fillStyle = leftCapGrad;
+  ctx.fill();
+  // Cap highlight
+  ctx.beginPath();
+  ctx.arc(cx + capR - 2, centerY - 3, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 180, 180, 0.6)';
+  ctx.fill();
+  
+  // Red right cap with gradient (3D look)
+  const rightCapGrad = ctx.createRadialGradient(cx + width - capR - 2, centerY - 2, 1, cx + width - capR, centerY, capR);
+  rightCapGrad.addColorStop(0, '#ff4444');
+  rightCapGrad.addColorStop(0.5, '#cc1100');
+  rightCapGrad.addColorStop(1, '#880000');
+  ctx.beginPath();
+  ctx.arc(cx + width - capR, centerY, capR, 0, Math.PI * 2);
+  ctx.fillStyle = rightCapGrad;
+  ctx.fill();
+  // Cap highlight
+  ctx.beginPath();
+  ctx.arc(cx + width - capR - 2, centerY - 3, 3, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 180, 180, 0.6)';
+  ctx.fill();
+  
+    // Chrome/silver middle body
+  const bodyGrad = ctx.createLinearGradient(cx + capR, centerY - h / 2, cx + capR, centerY + h / 2);
+  bodyGrad.addColorStop(0, '#ffffff');
+  bodyGrad.addColorStop(0.2, '#e8eef5');
+  bodyGrad.addColorStop(0.45, '#b8c4d0');
+  bodyGrad.addColorStop(0.7, '#8a96a4');
+  bodyGrad.addColorStop(1, '#5a6570');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.roundRect(cx + capR - 1, centerY - h / 2, width - capR * 2 + 2, h, 4);
+  ctx.fill();
 
-  // middle silver metallic body
-  const silver = ctx.createLinearGradient(0, y, 0, y+height);
-  silver.addColorStop(0, '#ffffff');
-  silver.addColorStop(0.18, '#e9e9e9');
-  silver.addColorStop(0.45, '#b5b5b5');
-  silver.addColorStop(0.75, '#d5d5d5');
-  silver.addColorStop(1, '#8e8e8e');
-  ctx.fillStyle = silver;
-  ctx.fillRect(midX, y, midW, height);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillRect(cx + capR, centerY - h / 2 + 1, width - capR * 2, 2.5);
 
-  // red end caps - glossy
-  const drawCap = (cx: number, isLeft: boolean) => {
-    const grad = ctx.createRadialGradient(cx - r*0.25, y + r*0.3, r*0.1, cx, y + r, r);
-    grad.addColorStop(0, '#ff8a8a');
-    grad.addColorStop(0.35, '#e53935');
-    grad.addColorStop(0.75, '#b71c1c');
-    grad.addColorStop(1, '#5a0000');
-    ctx.beginPath();
-    if (isLeft) {
-      ctx.moveTo(cx + r*0.15, y);
-      ctx.lineTo(cx + r, y);
-      ctx.arc(cx, y+r, r, -Math.PI/2, Math.PI/2, false);
-      ctx.lineTo(cx + r*0.15, y+height);
-    } else {
-      ctx.moveTo(cx - r*0.15, y);
-      ctx.lineTo(cx - r, y);
-      ctx.arc(cx, y+r, r, -Math.PI/2, Math.PI/2, true);
-      ctx.lineTo(cx - r*0.15, y+height);
-    }
-    ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx - (isLeft? -r*0.2 : r*0.2), y + r*0.35, r*0.35, r*0.22, 0, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fill();
-  };
-  drawCap(x + r, true);
-  drawCap(x + width - r, false);
-
-  // glowing cyan light strip in center
-  const stripH = height * 0.22;
-  const stripY = y + height/2 - stripH/2;
-  const stripX = midX + midW*0.08;
-  const stripW = midW * 0.84;
-
-  ctx.shadowColor = '#00e5ff';
-  ctx.shadowBlur = height * 0.7;
-  const cyanGrad = ctx.createLinearGradient(0, stripY, 0, stripY+stripH);
-  cyanGrad.addColorStop(0, '#6af2ff');
-  cyanGrad.addColorStop(0.5, '#00c8e0');
-  cyanGrad.addColorStop(1, '#00a0b8');
+  const cyanGrad = ctx.createLinearGradient(cx + capR, centerY, cx + width - capR, centerY);
+  cyanGrad.addColorStop(0, 'rgba(0, 220, 255, 0.25)');
+  cyanGrad.addColorStop(0.2, 'rgba(0, 255, 255, 0.95)');
+  cyanGrad.addColorStop(0.5, 'rgba(200, 255, 255, 1)');
+  cyanGrad.addColorStop(0.8, 'rgba(0, 255, 255, 0.95)');
+  cyanGrad.addColorStop(1, 'rgba(0, 220, 255, 0.25)');
+  ctx.shadowColor = 'rgba(0, 255, 255, 0.8)';
+  ctx.shadowBlur = 10;
   ctx.fillStyle = cyanGrad;
-  ctx.fillRect(stripX, stripY, stripW, stripH);
+  ctx.beginPath();
+  ctx.roundRect(cx + capR + 6, centerY - 2, width - capR * 2 - 12, 4, 2);
+  ctx.fill();
   ctx.shadowBlur = 0;
 
-  // bright center core
-  ctx.fillStyle = '#b8ffff';
-  ctx.fillRect(stripX + stripW*0.25, stripY + stripH*0.25, stripW*0.5, stripH*0.5);
-
-  // top edge highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.fillRect(midX, y, midW, height*0.18);
-
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(cx + capR, centerY + h / 2 - 2, width - capR * 2, 2);
+  
   // Laser turrets
   if (hasLaser) {
     const turretW = 8;
     const turretH = 12;
     const turret1X = x + width * 0.25 - turretW / 2;
     const turret2X = x + width * 0.75 - turretW / 2;
+    
     [turret1X, turret2X].forEach(tx => {
-      const tTop = y;
+      const tTop = centerY - h / 2;
+      // Turret base
       const tGrad = ctx.createLinearGradient(tx, tTop - turretH, tx, tTop);
       tGrad.addColorStop(0, 'hsl(210, 10%, 85%)');
       tGrad.addColorStop(0.5, 'hsl(210, 8%, 70%)');
@@ -968,20 +969,30 @@ export const drawPaddle = (
       ctx.beginPath();
       ctx.roundRect(tx, tTop - turretH, turretW, turretH + 2, [2, 2, 0, 0]);
       ctx.fill();
+      // Barrel
       ctx.fillStyle = 'hsl(210, 5%, 50%)';
       ctx.fillRect(tx + turretW / 2 - 1.5, tTop - turretH - 3, 3, 5);
+      // Rings
+      ctx.strokeStyle = 'hsl(210, 5%, 60%)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tx, tTop - turretH + 3);
+      ctx.lineTo(tx + turretW, tTop - turretH + 3);
+      ctx.moveTo(tx, tTop - turretH + 7);
+      ctx.lineTo(tx + turretW, tTop - turretH + 7);
+      ctx.stroke();
     });
   }
-
-  // Ghost effect
+  
+  // Ghost effect - emoji floating ABOVE paddle
   if (isGhost) {
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const bobY = Math.sin(Date.now() / 300) * 3;
-    ctx.fillText('👻', x + width / 2, y - 14 + bobY);
+    ctx.fillText('👻', x + width / 2, centerY - h / 2 - 14 + bobY);
   }
-
+  
   // Shield glow
   if (hasShield) {
     ctx.shadowColor = 'hsla(200, 100%, 60%, 0.8)';
@@ -989,16 +1000,13 @@ export const drawPaddle = (
     ctx.strokeStyle = 'hsla(200, 100%, 70%, 0.8)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(x - 2, y - 2, width + 4, height + 4, height / 2 + 2);
+    ctx.roundRect(x - 2, centerY - h / 2 - 2, width + 4, h + 4, h / 2 + 2);
     ctx.stroke();
     ctx.shadowBlur = 0;
   }
-
+  
   ctx.restore();
 };
-
-// Keep old name as alias so existing imports work
-export const drawPremiumPaddle = drawPaddle;
   
 
 export const drawPremiumBall = (
