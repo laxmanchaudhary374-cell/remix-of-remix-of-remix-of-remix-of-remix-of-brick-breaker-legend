@@ -2679,40 +2679,26 @@ explosions.forEach(explosion => {
       }
     }
 
-        // Draw balls with premium 3D rendering
+                // Draw balls with premium 3D rendering
     balls.forEach(ball => {
-                      balls.forEach(ball => {
-      // Dark streak trail — Meta AI
+      // Light ball trail — simple circles with alpha
       if (ball.history && ball.history.length > 1) {
         const hist = ball.history;
-        ctx.save();
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
         for (let i = 0; i < hist.length - 1; i++) {
-          const t = i / (hist.length - 1);
-          const p1 = hist[i];
-          const p2 = hist[i+1];
-          const alpha = Math.pow(t, 1.6) * 0.52;
-          const w = ball.radius * (0.15 + t * 1.1);
-          ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(p2.x, p2.y);
-          ctx.strokeStyle = isFireball
-            ? `rgba(200, 120, 40, ${alpha})`
-            : `rgba(175, 185, 205, ${alpha})`;
-          ctx.lineWidth = w;
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(p1.x, p1.y, w/2, 0, Math.PI*2);
+          const t = i / hist.length;
+          const alpha = (1 - t) * 0.5;
+          const size = ball.radius * (1 - t * 0.6);
+          if (size < 0.5) continue;
+          ctx.globalAlpha = alpha;
           ctx.fillStyle = isFireball
-            ? `rgba(200,120,40,${alpha*0.85})`
-            : `rgba(175,185,205,${alpha*0.85})`;
+            ? `rgb(255, 140, 30)`
+            : `rgb(120, 200, 255)`;
+          ctx.beginPath();
+          ctx.arc(hist[i].x, hist[i].y, size, 0, Math.PI * 2);
           ctx.fill();
         }
-        ctx.restore();
+        ctx.globalAlpha = 1;
       }
-
-      drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall);
 
       drawPremiumBall(ctx, ball.position.x, ball.position.y, ball.radius, isFireball, isBigBall);
       
