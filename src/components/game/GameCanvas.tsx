@@ -753,6 +753,23 @@ const stepDt = clampedDt / numSteps;
     if (magnetEndTimeRef.current > 0 && nextGameTime >= magnetEndTimeRef.current) {
       magnetEndTimeRef.current = 0;
       setPaddle(prev => ({ ...prev, hasMagnet: false }));
+      // Auto-release all stuck balls when magnet expires
+      if (magnetBallsRef.current.size > 0) {
+        const stuckIds = new Set(magnetBallsRef.current);
+        magnetBallsRef.current.clear();
+        audioManager.playMagnetRelease();
+        setBalls(prevBalls => prevBalls.map(ball => {
+          if (stuckIds.has(ball.id)) {
+            const speed = engineRef.current.ballSpeed;
+            const releaseAngle = -Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+            return {
+              ...ball,
+              velocity: { dx: Math.cos(releaseAngle) * speed, dy: Math.sin(releaseAngle) * speed },
+            };
+          }
+          return ball;
+        }));
+      }
     }
     if (shockEndTimeRef.current > 0 && nextGameTime >= shockEndTimeRef.current) {
       shockEndTimeRef.current = 0;
@@ -1143,7 +1160,7 @@ paddleRef.current = {
           velocity: { dx: 0, dy: 0 },
           radius: BALL_RADIUS,
         };
-        magnetBallRef.current = newBall;
+        magnetBallsRef.current = new Set([newBall.id]);
 ballsRef.current = [newBall];
 setBalls([newBall]);
 
@@ -1160,17 +1177,9 @@ setBalls([newBall]);
     // Update balls with sub-stepping for smoothness
     setBalls(prevBalls => {
       const newBalls = prevBalls.map(ball => {
-        if (magnetBallRef.current && ball.id === magnetBallRef.current.id) {
-          // Auto-release ball when auto-paddle is active + magnet
-                    if (isAutoPaddle && performance.now() - levelStartTimeRef.current > ENTRANCE_MS + 400) {
-            const releaseAngle = -Math.PI / 2 + (Math.random() - 0.5) * 0.4;
-            magnetBallRef.current = null;
-            return {
-              ...ball,
-              position: { x: paddle.x + paddle.width / 2, y: paddle.y - ball.radius - 1 },
-              velocity: { dx: Math.cos(releaseAngle) * ballSpeed, dy: Math.sin(releaseAngle) * ballSpeed },
-            };
-          }
+        if (magnetBallsRef.current.has(ball.id)) {
+          // Ball is stuck to paddle — keep it on top of paddle, no velocity.
+          // It only releases on user tap or magnet expiry (no auto-release).
           return {
             ...ball,
             position: { x: paddle.x + paddle.width / 2, y: paddle.y - ball.radius - 1 },
@@ -1288,13 +1297,14 @@ paddleRef.current = {
         }
         setLasers([]);
         
-        magnetBallRef.current = {
+        const respawnBall: Ball = {
           id: generateId(),
           position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 90 },
           velocity: { dx: 0, dy: 0 },
           radius: BALL_RADIUS,
         };
-        return [magnetBallRef.current];
+        magnetBallsRef.current = new Set([respawnBall.id]);
+        return [respawnBall];
       }
 
       return aliveBalls;
@@ -1303,7 +1313,7 @@ paddleRef.current = {
     // Check paddle collision
     setBalls(prevBalls => {
       return prevBalls.map(ball => {
-        if (magnetBallRef.current?.id === ball.id) return ball;
+        if (magnetBallsRef.current.has(ball.id)) return ball;
         if (ball.velocity.dy <= 0) return ball;
         
         if (checkBallPaddleCollision(ball, paddle)) {
@@ -1313,8 +1323,8 @@ paddleRef.current = {
           audioManager.playPaddleHit();
           createParticles(ball.position.x, ball.position.y, 'hsl(180, 100%, 50%)', 4);
           
-          if (paddle.hasMagnet && !magnetBallRef.current) {
-            magnetBallRef.current = ball;
+          if (paddle.hasMagnet && !magnetBallsRef.current.has(ball.id)) {
+            magnetBallsRef.current.add(ball.id);
             audioManager.playMagnetCatch();
             return {
               ...ball,
@@ -1708,7 +1718,8 @@ explosions.forEach(explosion => {
               break;
             case 'magnet':
               setPaddle(prev => ({ ...prev, hasMagnet: true }));
-              setTimeout(() => setPaddle(prev => ({ ...prev, hasMagnet: false })), 10000);
+              engineRef.current.hasMagnet = true;
+              magnetEndTimeRef.current = nextGameTime + 10;
               break;
             case 'shield': {
   const endTime = nextGameTime + 15;
@@ -2421,9 +2432,9 @@ explosions.forEach(explosion => {
           const delay = (((brick.y * 0.6 + brick.x * 0.4) % 260) / 260) * 0.35;
           const p = Math.max(0, Math.min(1, (entranceT - delay) / (1 - delay)));
           const offset = -(brick.y + 120) * (1 - easeOutCubic(p));
-          if (p <= 0) return;
+          // Always render — minimum 10% alpha so bricks never go invisible
           ctx.save();
-          ctx.globalAlpha = Math.min(1, p * 2);
+          ctx.globalAlpha = Math.max(0.1, Math.min(1, p * 2));
           ctx.translate(0, offset);
           drawPremiumBrick(ctx, brick, gameTime);
           ctx.restore();
@@ -2641,8 +2652,9 @@ explosions.forEach(explosion => {
     );
 
     // Draw aiming line when ball is stationary on paddle - FIXED to paddle center
-    if (magnetBallRef.current) {
-      const ball = balls.find(b => b.id === magnetBallRef.current?.id);
+    if (magnetBallsRef.current.size > 0) {
+      const stuckId = magnetBallsRef.current.values().next().value;
+      const ball = balls.find(b => b.id === stuckId);
       if (ball) {
         // Arrow starts from paddle center, not ball position
         const startX = paddle.x + paddle.width / 2;
