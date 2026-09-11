@@ -176,7 +176,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const paddleTargetRef = useRef(GAME_WIDTH / 2 - PADDLE_WIDTH / 2);
 
-  const magnetBallRef = useRef<Ball | null>(null);
+  const magnetBallsRef = useRef<Set<string>>(new Set());
   const laserAutoFireRef = useRef<NodeJS.Timeout | null>(null);
   const aimAngleRef = useRef<number>(-Math.PI / 2);
   const lastAutoTimerRef = useRef(0);
@@ -366,14 +366,15 @@ setBricks(newBricks);
     setLevelCoins(newLevelCoins);
     
     // Reset ball
-    magnetBallRef.current = {
+    const initialBall: Ball = {
       id: generateId(),
       position: { x: GAME_WIDTH / 2, y: GAME_HEIGHT - 90 },
       velocity: { dx: 0, dy: 0 },
       radius: BALL_RADIUS,
     };
-    ballsRef.current = [magnetBallRef.current];
-setBalls([magnetBallRef.current]);
+    magnetBallsRef.current = new Set([initialBall.id]);
+    ballsRef.current = [initialBall];
+setBalls([initialBall]);
 
   }
 }, [gameState.status, gameState.level]);
@@ -398,7 +399,7 @@ lastHudSecondRef.current = -1;
       setAlienShips([]);
       setAlienBullets([]);
       setMonsterFires([]);
-      magnetBallRef.current = null;
+      magnetBallsRef.current.clear();
       aimAngleRef.current = -Math.PI / 2;
       levelCompletingRef.current = false;
       audioManager.setBossMode(false);
@@ -555,9 +556,11 @@ if (isShockRef.current) {
     
     const pw = engineRef.current.paddleWidth;
 
-    // During aiming (ball on paddle), rotate aim arrow
-    if (magnetBallRef.current) {
-      const ball = ballsRef.current.find(b => b.id === magnetBallRef.current?.id);
+    // Initial aiming (ball on paddle before launch, magnet NOT active):
+    // rotate the aim arrow but don't move the paddle yet.
+    if (magnetBallsRef.current.size > 0 && !engineRef.current.hasMagnet) {
+      const stuckId = magnetBallsRef.current.values().next().value;
+      const ball = ballsRef.current.find(b => b.id === stuckId);
       if (ball) {
         const dx = x - ball.position.x;
         const dy = y - ball.position.y;
@@ -566,12 +569,10 @@ if (isShockRef.current) {
         if (angle < -Math.PI) angle = -Math.PI + 0.01;
         aimAngleRef.current = angle;
       }
-      // Only allow paddle movement during magnet powerup, NOT initial aiming
-      if (engineRef.current.hasMagnet) {
-        paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - pw, x - pw / 2));
-      }
       return;
     }
+    // When magnet power-up is active the paddle ALWAYS moves freely,
+    // even with balls stuck to it (falls through to normal movement below).
     
     // Auto-paddle: user touching = instant override
     if (engineRef.current.isAutoPaddle) {
@@ -612,28 +613,32 @@ if (isShockRef.current) {
     };
 
     const releaseMagnetBall = () => {
+      if (magnetBallsRef.current.size === 0) return;
       // Bricks must finish falling into place before the ball can launch
-            if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS + 250) return;
-      if (magnetBallRef.current) {
-        const ballId = magnetBallRef.current.id;
-        const angle = aimAngleRef.current;
-        magnetBallRef.current = null;
-        audioManager.playMagnetRelease();
-        setBalls(prevBalls => prevBalls.map(ball => {
-          if (ball.id === ballId) {
-            const speed = engineRef.current.ballSpeed;
-            return {
-              ...ball,
-              velocity: { 
-                dx: Math.cos(angle) * speed, 
-                dy: Math.sin(angle) * speed 
-              },
-            };
-          }
-          return ball;
-        }));
-        aimAngleRef.current = -Math.PI / 2;
-      }
+      if (performance.now() - levelStartTimeRef.current < ENTRANCE_MS + 250) return;
+      audioManager.playMagnetRelease();
+      const stuckIds = new Set(magnetBallsRef.current);
+      magnetBallsRef.current.clear();
+      const isMagnet = engineRef.current.hasMagnet;
+      const angle = aimAngleRef.current;
+      setBalls(prevBalls => prevBalls.map(ball => {
+        if (stuckIds.has(ball.id)) {
+          const speed = engineRef.current.ballSpeed;
+          // Initial launch follows the aim arrow; magnet releases go up randomly
+          const releaseAngle = isMagnet
+            ? -Math.PI / 2 + (Math.random() - 0.5) * 0.6
+            : angle;
+          return {
+            ...ball,
+            velocity: {
+              dx: Math.cos(releaseAngle) * speed,
+              dy: Math.sin(releaseAngle) * speed
+            },
+          };
+        }
+        return ball;
+      }));
+      aimAngleRef.current = -Math.PI / 2;
     };
 
     const handleTouchStart = (e: TouchEvent) => {
@@ -645,7 +650,7 @@ if (isShockRef.current) {
     
     // When user releases touch/mouse, fire ball if aiming + resume auto-paddle
     const handlePointerUp = () => {
-      if (magnetBallRef.current) {
+      if (magnetBallsRef.current.size > 0) {
         releaseMagnetBall();
       }
       if (engineRef.current.isAutoPaddle) {
