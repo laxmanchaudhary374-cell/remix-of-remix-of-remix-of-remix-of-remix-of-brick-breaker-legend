@@ -753,6 +753,7 @@ const stepDt = clampedDt / numSteps;
     if (magnetEndTimeRef.current > 0 && nextGameTime >= magnetEndTimeRef.current) {
       magnetEndTimeRef.current = 0;
       setPaddle(prev => ({ ...prev, hasMagnet: false }));
+      engineRef.current.hasMagnet = false;
       // Auto-release all stuck balls when magnet expires
       if (magnetBallsRef.current.size > 0) {
         const stuckIds = new Set(magnetBallsRef.current);
