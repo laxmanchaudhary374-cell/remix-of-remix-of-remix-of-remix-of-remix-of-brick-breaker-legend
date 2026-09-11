@@ -94,18 +94,27 @@ const drawFireballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, s
 // Draw multi-ball icon (2 white balls in blue circle)
 const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
-  
-  const ballRadius = size * 0.12;
-  const spacing = size * 0.15;
-  
-  [x - spacing, x + spacing].forEach(bx => {
-    const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, y - ballRadius * 0.3, 0, bx, y, ballRadius);
+
+  const ballRadius = size * 0.09;
+  // 5 balls in a cluster pattern
+  const positions = [
+    { dx: 0, dy: -0.15 },      // top
+    { dx: -0.13, dy: 0 },      // left
+    { dx: 0.13, dy: 0 },       // right
+    { dx: -0.07, dy: 0.15 },   // bottom left
+    { dx: 0.07, dy: 0.15 },    // bottom right
+  ];
+
+  positions.forEach(pos => {
+    const bx = x + pos.dx * size;
+    const by = y + pos.dy * size;
+    const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, by - ballRadius * 0.3, 0, bx, by, ballRadius);
     ballGrad.addColorStop(0, 'white');
     ballGrad.addColorStop(0.5, 'hsl(0, 0%, 90%)');
-    ballGrad.addColorStop(1, 'hsl(0, 0%, 75%)');
+    ballGrad.addColorStop(1, 'hsl(0, 0%, 70%)');
     ctx.fillStyle = ballGrad;
     ctx.beginPath();
-    ctx.arc(bx, y, ballRadius, 0, Math.PI * 2);
+    ctx.arc(bx, by, ballRadius, 0, Math.PI * 2);
     ctx.fill();
   });
 };
@@ -241,35 +250,37 @@ const drawWidenIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
 // Draw shrink paddle icon (SMALL paddle with inward arrows in blue circle)
 const drawShrinkIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
-  
-  const paddleWidth = size * 0.18;
-  const paddleHeight = size * 0.09;
-  
-  // Small white paddle
+
+  const paddleWidth = size * 0.16;
+  const paddleHeight = size * 0.08;
+
+  // Small white paddle in center
   ctx.fillStyle = 'white';
   ctx.beginPath();
   ctx.roundRect(x - paddleWidth/2, y - paddleHeight/2, paddleWidth, paddleHeight, paddleHeight/2);
   ctx.fill();
-  
-  // Inward arrows
+
+  // Inward arrows on both sides pointing toward the small paddle
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
-  
-  // Left arrow (pointing right/inward)
+
+  // Left arrow pointing right (inward)
   ctx.beginPath();
   ctx.moveTo(x - size * 0.28, y);
   ctx.lineTo(x - paddleWidth/2 - size * 0.03, y);
+  // Arrow head
   ctx.moveTo(x - paddleWidth/2 - size * 0.03, y);
   ctx.lineTo(x - paddleWidth/2 - size * 0.09, y - size * 0.06);
   ctx.moveTo(x - paddleWidth/2 - size * 0.03, y);
   ctx.lineTo(x - paddleWidth/2 - size * 0.09, y + size * 0.06);
   ctx.stroke();
-  
-  // Right arrow (pointing left/inward)
+
+  // Right arrow pointing left (inward)
   ctx.beginPath();
   ctx.moveTo(x + size * 0.28, y);
   ctx.lineTo(x + paddleWidth/2 + size * 0.03, y);
+  // Arrow head
   ctx.moveTo(x + paddleWidth/2 + size * 0.03, y);
   ctx.lineTo(x + paddleWidth/2 + size * 0.09, y - size * 0.06);
   ctx.moveTo(x + paddleWidth/2 + size * 0.03, y);
@@ -459,27 +470,27 @@ const drawGhostIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size
   ctx.quadraticCurveTo(x - gs, y - gs, x, y - gs);
   ctx.quadraticCurveTo(x + gs, y - gs, x + gs, y - gs * 0.3);
   ctx.lineTo(x + gs, y + gs * 0.6);
-  // Wavy bottom
-  ctx.lineTo(x + gs * 0.6, y + gs * 0.3);
-  ctx.lineTo(x + gs * 0.3, y + gs * 0.6);
-  ctx.lineTo(x, y + gs * 0.3);
-  ctx.lineTo(x - gs * 0.3, y + gs * 0.6);
-  ctx.lineTo(x - gs * 0.6, y + gs * 0.3);
+  // Wavy bottom — 3 waves
+  ctx.lineTo(x + gs * 0.66, y + gs * 0.35);
+  ctx.lineTo(x + gs * 0.33, y + gs * 0.6);
+  ctx.lineTo(x, y + gs * 0.35);
+  ctx.lineTo(x - gs * 0.33, y + gs * 0.6);
+  ctx.lineTo(x - gs * 0.66, y + gs * 0.35);
   ctx.closePath();
   ctx.fill();
   
-  // Eyes
+  // Eyes — two dark oval eyes
   ctx.fillStyle = 'hsl(220, 30%, 15%)';
   ctx.beginPath();
-  ctx.ellipse(x - gs * 0.3, y - gs * 0.2, gs * 0.15, gs * 0.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - gs * 0.3, y - gs * 0.2, gs * 0.15, gs * 0.22, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(x + gs * 0.3, y - gs * 0.2, gs * 0.15, gs * 0.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + gs * 0.3, y - gs * 0.2, gs * 0.15, gs * 0.22, 0, 0, Math.PI * 2);
   ctx.fill();
-  
-  // Mouth
+
+  // Small mouth — surprised "O" shape
   ctx.beginPath();
-  ctx.ellipse(x, y + gs * 0.05, gs * 0.2, gs * 0.15, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y + gs * 0.1, gs * 0.12, gs * 0.1, 0, 0, Math.PI * 2);
   ctx.fill();
 };
 
