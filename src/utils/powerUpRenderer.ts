@@ -91,30 +91,21 @@ const drawFireballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, s
   ctx.fill();
 };
 
-// Draw multi-ball icon (2 white balls in blue circle)
 const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
 
-  const ballRadius = size * 0.09;
-  // 5 balls in a cluster pattern
-  const positions = [
-    { dx: 0, dy: -0.15 },      // top
-    { dx: -0.13, dy: 0 },      // left
-    { dx: 0.13, dy: 0 },       // right
-    { dx: -0.07, dy: 0.15 },   // bottom left
-    { dx: 0.07, dy: 0.15 },    // bottom right
-  ];
+  // 2 balls (gives 1 extra ball = 2 total)
+  const ballRadius = size * 0.13;
+  const spacing = size * 0.17;
 
-  positions.forEach(pos => {
-    const bx = x + pos.dx * size;
-    const by = y + pos.dy * size;
-    const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, by - ballRadius * 0.3, 0, bx, by, ballRadius);
+  [x - spacing, x + spacing].forEach(bx => {
+    const ballGrad = ctx.createRadialGradient(bx - ballRadius * 0.3, y - ballRadius * 0.3, 0, bx, y, ballRadius);
     ballGrad.addColorStop(0, 'white');
     ballGrad.addColorStop(0.5, 'hsl(0, 0%, 90%)');
-    ballGrad.addColorStop(1, 'hsl(0, 0%, 70%)');
+    ballGrad.addColorStop(1, 'hsl(0, 0%, 75%)');
     ctx.fillStyle = ballGrad;
     ctx.beginPath();
-    ctx.arc(bx, by, ballRadius, 0, Math.PI * 2);
+    ctx.arc(bx, y, ballRadius, 0, Math.PI * 2);
     ctx.fill();
   });
 };
