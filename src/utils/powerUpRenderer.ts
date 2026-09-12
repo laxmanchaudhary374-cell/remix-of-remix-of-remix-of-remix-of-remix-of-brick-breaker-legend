@@ -110,15 +110,20 @@ const drawMultiballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   });
 };
 
-// Draw 7-ball icon (3 white balls in triangle pattern inside blue circle)
+// Draw 7-ball icon (7 white balls in cluster pattern inside blue circle)
 const drawSevenballIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
   
-  const ballRadius = size * 0.09;
+  const ballRadius = size * 0.08;
+  // 7 balls: 1 center + 6 around
   const positions = [
-    { dx: 0, dy: -0.12 },
-    { dx: -0.13, dy: 0.1 },
-    { dx: 0.13, dy: 0.1 },
+    { dx: 0, dy: 0 },           // center
+    { dx: 0, dy: -0.2 },        // top
+    { dx: 0.18, dy: -0.08 },    // top right
+    { dx: 0.18, dy: 0.12 },     // bottom right
+    { dx: 0, dy: 0.2 },         // bottom
+    { dx: -0.18, dy: 0.12 },    // bottom left
+    { dx: -0.18, dy: -0.08 },   // top left
   ];
   
   positions.forEach(pos => {
@@ -451,37 +456,41 @@ const drawExtraLifeIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
 const drawGhostIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
   
-  const gs = size * 0.28;
+  const gs = size * 0.30;
   
-  // Ghost body (white)
+  // Ghost body — flowing sheet shape with rounded top
   ctx.fillStyle = 'white';
   ctx.beginPath();
-  ctx.moveTo(x - gs, y + gs * 0.6);
+  // Start at bottom left
+  ctx.moveTo(x - gs, y + gs * 0.5);
+  // Left side going up
   ctx.lineTo(x - gs, y - gs * 0.3);
+  // Rounded top — left curve
   ctx.quadraticCurveTo(x - gs, y - gs, x, y - gs);
+  // Rounded top — right curve
   ctx.quadraticCurveTo(x + gs, y - gs, x + gs, y - gs * 0.3);
-  ctx.lineTo(x + gs, y + gs * 0.6);
-  // Wavy bottom — 3 waves
-  ctx.lineTo(x + gs * 0.66, y + gs * 0.35);
-  ctx.lineTo(x + gs * 0.33, y + gs * 0.6);
-  ctx.lineTo(x, y + gs * 0.35);
-  ctx.lineTo(x - gs * 0.33, y + gs * 0.6);
-  ctx.lineTo(x - gs * 0.66, y + gs * 0.35);
+  // Right side going down
+  ctx.lineTo(x + gs, y + gs * 0.5);
+  // Wavy bottom — 4 waves for flowing fabric look
+  ctx.quadraticCurveTo(x + gs * 0.75, y + gs * 0.25, x + gs * 0.5, y + gs * 0.5);
+  ctx.quadraticCurveTo(x + gs * 0.25, y + gs * 0.25, x, y + gs * 0.5);
+  ctx.quadraticCurveTo(x - gs * 0.25, y + gs * 0.25, x - gs * 0.5, y + gs * 0.5);
+  ctx.quadraticCurveTo(x - gs * 0.75, y + gs * 0.25, x - gs, y + gs * 0.5);
   ctx.closePath();
   ctx.fill();
   
-  // Eyes — two dark oval eyes
+  // Two oval dark eyes
   ctx.fillStyle = 'hsl(220, 30%, 15%)';
   ctx.beginPath();
-  ctx.ellipse(x - gs * 0.3, y - gs * 0.2, gs * 0.15, gs * 0.22, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - gs * 0.32, y - gs * 0.2, gs * 0.14, gs * 0.22, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(x + gs * 0.3, y - gs * 0.2, gs * 0.15, gs * 0.22, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + gs * 0.32, y - gs * 0.2, gs * 0.14, gs * 0.22, 0, 0, Math.PI * 2);
   ctx.fill();
-
-  // Small mouth — surprised "O" shape
+  
+  // Small surprised mouth
   ctx.beginPath();
-  ctx.ellipse(x, y + gs * 0.1, gs * 0.12, gs * 0.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y + gs * 0.1, gs * 0.1, gs * 0.12, 0, 0, Math.PI * 2);
   ctx.fill();
 };
 
