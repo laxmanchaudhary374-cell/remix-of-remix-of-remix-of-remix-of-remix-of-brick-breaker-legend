@@ -556,9 +556,8 @@ if (isShockRef.current) {
     
     const pw = engineRef.current.paddleWidth;
 
-    // Initial aiming (ball on paddle before launch, magnet NOT active):
-    // rotate the aim arrow but don't move the paddle yet.
-    if (magnetBallsRef.current.size > 0 && !engineRef.current.hasMagnet) {
+        // Update aiming arrow when balls are stuck to paddle
+    if (magnetBallsRef.current.size > 0) {
       const stuckId = magnetBallsRef.current.values().next().value;
       const ball = ballsRef.current.find(b => b.id === stuckId);
       if (ball) {
@@ -569,16 +568,14 @@ if (isShockRef.current) {
         if (angle < -Math.PI) angle = -Math.PI + 0.01;
         aimAngleRef.current = angle;
       }
-      return;
     }
-    // When magnet power-up is active the paddle ALWAYS moves freely,
-    // even with balls stuck to it (falls through to normal movement below).
-    
+
     // Auto-paddle: user touching = instant override
     if (engineRef.current.isAutoPaddle) {
       userOverrideRef.current = true;
     }
     
+    // ALWAYS move paddle — even when balls are stuck
     paddleTargetRef.current = Math.max(0, Math.min(GAME_WIDTH - pw, x - pw / 2));
   }, []);
 
