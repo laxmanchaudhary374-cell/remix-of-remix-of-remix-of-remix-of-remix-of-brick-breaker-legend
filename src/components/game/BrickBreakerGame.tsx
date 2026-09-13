@@ -487,14 +487,13 @@ useEffect(() => {
 
   useEffect(() => {
     // Keep music running across level transitions (levelcomplete -> playing)
-    // so it never stutters on/off between levels.
-    const inGame =
-      screenState === 'playing' ||
-      screenState === 'paused' ||
-      screenState === 'levelcomplete';
-    if (inGame && !isAdActive() && !audioManager.isMuted) {
+        // Music plays from the moment the app opens (like Candy Crush)
+    // and continues through menu, playing, paused, and level complete.
+    // Only stops during game over, ads, or when muted.
+    const stopMusic = screenState === 'gameover' || isAdActive();
+    if (!stopMusic && !audioManager.isMuted) {
       audioManager.startBackgroundMusic();
-    } else if (!inGame) {
+    } else if (stopMusic) {
       audioManager.stopBackgroundMusic();
     }
   }, [screenState]);
