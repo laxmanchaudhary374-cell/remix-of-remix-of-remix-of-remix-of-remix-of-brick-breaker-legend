@@ -2649,20 +2649,19 @@ explosions.forEach(explosion => {
       isGhostPaddle
     );
 
-    // Draw aiming line when ball is stationary on paddle - FIXED to paddle center
+    //     // Draw aiming line — yellow dots like reference game
     if (magnetBallsRef.current.size > 0) {
       const stuckId = magnetBallsRef.current.values().next().value;
       const ball = balls.find(b => b.id === stuckId);
       if (ball) {
-        // Arrow starts from paddle center, not ball position
         const startX = paddle.x + paddle.width / 2;
         const startY = paddle.y;
-        const lineLength = 200;
+        const lineLength = 350;
         const angle = aimAngleRef.current;
         
         ctx.save();
         
-        const dotSpacing = 15;
+        const dotSpacing = 18;
         const numDots = Math.floor(lineLength / dotSpacing);
         
         for (let i = 0; i < numDots; i++) {
@@ -2671,24 +2670,13 @@ explosions.forEach(explosion => {
           const dotX = startX + Math.cos(angle) * (i * dotSpacing + animOffset);
           const dotY = startY + Math.sin(angle) * (i * dotSpacing + animOffset);
           
-          const alpha = 0.9 - t * 0.6;
-          const dotSize = 4 - t * 2;
-          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          const alpha = 0.9 - t * 0.5;
+          const dotSize = 4 - t * 1.5;
+          ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
           ctx.beginPath();
           ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2);
           ctx.fill();
         }
-        
-        // Arrow tip
-        const tipX = startX + Math.cos(angle) * lineLength;
-        const tipY = startY + Math.sin(angle) * lineLength;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.beginPath();
-        ctx.moveTo(tipX + Math.cos(angle) * 10, tipY + Math.sin(angle) * 10);
-        ctx.lineTo(tipX + Math.cos(angle + 2.5) * 10, tipY + Math.sin(angle + 2.5) * 10);
-        ctx.lineTo(tipX + Math.cos(angle - 2.5) * 10, tipY + Math.sin(angle - 2.5) * 10);
-        ctx.closePath();
-        ctx.fill();
         
         ctx.restore();
       }
