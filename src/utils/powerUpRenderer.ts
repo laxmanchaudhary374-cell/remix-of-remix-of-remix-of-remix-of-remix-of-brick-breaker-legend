@@ -452,45 +452,59 @@ const drawExtraLifeIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.fill();
 };
 
-// Draw ghost icon (white ghost in blue circle)
+// Draw ghost icon (white ghost in bl
 const drawGhostIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
   drawBlueCircleBackground(ctx, x, y, size);
   
-  const gs = size * 0.30;
+  const gs = size * 0.32;
+  const darkColor = 'hsl(220, 30%, 15%)';
   
-  // Ghost body — flowing sheet shape with rounded top
+  // Ghost body — flowing sheet with rounded dome top and wavy tail bottom
   ctx.fillStyle = 'white';
+  ctx.strokeStyle = darkColor;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  // Start at bottom left
-  ctx.moveTo(x - gs, y + gs * 0.5);
+  // Start bottom-left tail point
+  ctx.moveTo(x - gs * 0.9, y + gs * 0.55);
   // Left side going up
-  ctx.lineTo(x - gs, y - gs * 0.3);
-  // Rounded top — left curve
-  ctx.quadraticCurveTo(x - gs, y - gs, x, y - gs);
-  // Rounded top — right curve
-  ctx.quadraticCurveTo(x + gs, y - gs, x + gs, y - gs * 0.3);
+  ctx.quadraticCurveTo(x - gs, y - gs * 0.1, x - gs * 0.8, y - gs * 0.3);
+  // Rounded dome top — left to right
+  ctx.quadraticCurveTo(x - gs * 0.8, y - gs, x, y - gs);
+  ctx.quadraticCurveTo(x + gs * 0.8, y - gs, x + gs * 0.8, y - gs * 0.3);
   // Right side going down
-  ctx.lineTo(x + gs, y + gs * 0.5);
-  // Wavy bottom — 4 waves for flowing fabric look
-  ctx.quadraticCurveTo(x + gs * 0.75, y + gs * 0.25, x + gs * 0.5, y + gs * 0.5);
-  ctx.quadraticCurveTo(x + gs * 0.25, y + gs * 0.25, x, y + gs * 0.5);
-  ctx.quadraticCurveTo(x - gs * 0.25, y + gs * 0.25, x - gs * 0.5, y + gs * 0.5);
-  ctx.quadraticCurveTo(x - gs * 0.75, y + gs * 0.25, x - gs, y + gs * 0.5);
+  ctx.quadraticCurveTo(x + gs, y - gs * 0.1, x + gs * 0.9, y + gs * 0.4);
+  // Wavy bottom — 4 scallops going right to left
+  ctx.quadraticCurveTo(x + gs * 0.65, y + gs * 0.2, x + gs * 0.45, y + gs * 0.45);
+  ctx.quadraticCurveTo(x + gs * 0.25, y + gs * 0.2, x + gs * 0.05, y + gs * 0.45);
+  ctx.quadraticCurveTo(x - gs * 0.15, y + gs * 0.2, x - gs * 0.35, y + gs * 0.5);
+  ctx.quadraticCurveTo(x - gs * 0.6, y + gs * 0.25, x - gs * 0.9, y + gs * 0.55);
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
   
-  // Two oval dark eyes
-  ctx.fillStyle = 'hsl(220, 30%, 15%)';
+  // Fabric fold lines inside body
+  ctx.strokeStyle = 'rgba(200, 210, 220, 0.6)';
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.ellipse(x - gs * 0.32, y - gs * 0.2, gs * 0.14, gs * 0.22, 0, 0, Math.PI * 2);
+  ctx.moveTo(x - gs * 0.3, y - gs * 0.4);
+  ctx.quadraticCurveTo(x - gs * 0.35, y, x - gs * 0.2, y + gs * 0.3);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y - gs * 0.5);
+  ctx.quadraticCurveTo(x - gs * 0.05, y, x + gs * 0.05, y + gs * 0.3);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + gs * 0.3, y - gs * 0.4);
+  ctx.quadraticCurveTo(x + gs * 0.35, y, x + gs * 0.25, y + gs * 0.3);
+  ctx.stroke();
+  
+  // Two dark oval eyes — no mouth
+  ctx.fillStyle = darkColor;
+  ctx.beginPath();
+  ctx.ellipse(x - gs * 0.28, y - gs * 0.3, gs * 0.1, gs * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(x + gs * 0.32, y - gs * 0.2, gs * 0.14, gs * 0.22, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Small surprised mouth
-  ctx.beginPath();
-  ctx.ellipse(x, y + gs * 0.1, gs * 0.1, gs * 0.12, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + gs * 0.28, y - gs * 0.3, gs * 0.1, gs * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
 };
 
