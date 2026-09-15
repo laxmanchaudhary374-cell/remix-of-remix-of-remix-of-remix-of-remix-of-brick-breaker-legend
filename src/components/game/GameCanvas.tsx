@@ -578,6 +578,7 @@ if (isShockRef.current) {
         }
         aimAngleRef.current = angle;
       }
+      return;
     }
 
     // Auto-paddle: user touching = instant override
@@ -2666,37 +2667,36 @@ explosions.forEach(explosion => {
 
       if (ball) {
         const angle = aimAngleRef.current;
-        const dotCount = 22;
-        const dotSpacing = 10;
+        const dotCount = 32;
+        const dotSpacing = 12;
         const startDistance = 8;
         const arrowLength = startDistance + (dotCount - 1) * dotSpacing;
 
         ctx.save();
         ctx.fillStyle = '#ffe84a';
-        ctx.shadowColor = 'rgba(255, 220, 40, 0.85)';
-        ctx.shadowBlur = 5;
+        ctx.shadowColor = 'rgba(255, 220, 40, 0.9)';
+        ctx.shadowBlur = 4;
 
         for (let i = 0; i < dotCount; i += 1) {
           const distance = startDistance + i * dotSpacing;
           const progress = i / (dotCount - 1);
           const dotX = ball.position.x + Math.cos(angle) * distance;
           const dotY = ball.position.y + Math.sin(angle) * distance;
-          const dotRadius = 3.1 - progress * 1.25;
+          const dotRadius = 3.2 - progress * 1.0;
 
-          ctx.globalAlpha = 1 - progress * 0.45;
+          ctx.globalAlpha = 1 - progress * 0.35;
           ctx.beginPath();
-          ctx.arc(dotX, dotY, Math.max(1.8, dotRadius), 0, Math.PI * 2);
+                    ctx.arc(dotX, dotY, 3.2 - progress * 1.0, 0, Math.PI * 2);
           ctx.fill();
         }
 
         // Small arrowhead at the fixed end of the dotted arrow.
         const tipX = ball.position.x + Math.cos(angle) * (arrowLength + 8);
         const tipY = ball.position.y + Math.sin(angle) * (arrowLength + 8);
-        const wingLength = 9;
+        const wingLength = 10;
         const wingAngle = Math.PI * 0.78;
 
-        ctx.globalAlpha = 0.95;
-        ctx.shadowBlur = 4;
+        ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.moveTo(tipX, tipY);
         ctx.lineTo(
