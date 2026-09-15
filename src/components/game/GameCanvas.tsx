@@ -578,8 +578,6 @@ if (isShockRef.current) {
         }
         aimAngleRef.current = angle;
       }
-              aimAngleRef.current = angle;
-      }
       // Freeze paddle ONLY during initial aiming (no ball in flight).
       // During live play (magnet catch), keep the paddle movable
       // so the player can manage the other balls.
@@ -587,7 +585,6 @@ if (isShockRef.current) {
       if (!anyBallInFlight) {
         return;
       }
-  }
     }
 
     // Auto-paddle: user touching = instant override
