@@ -2655,146 +2655,108 @@ explosions.forEach(explosion => {
       isGhostPaddle
     );
 
-        // Draw the aiming trajectory from the stationary ball.
-    // The preview is visual only: it never mutates balls, bricks, or gameplay state.
+            // Draw the aiming arrow from the stationary ball.
     if (magnetBallsRef.current.size > 0) {
       const stuckId = magnetBallsRef.current.values().next().value;
       const ball = balls.find((item) => item.id === stuckId);
 
       if (ball) {
         const angle = aimAngleRef.current;
-        const directionX = Math.cos(angle);
-        const directionY = Math.sin(angle);
-        const dotSpacing = 15;
-        const stepLength = 4;
+        const radius = ball.radius;
+        const spacing = 14;
         const previewLength = 520;
-        const maxBounces = 3;
+        const maxBounces = 2;
+        const points: Array<{ x: number; y: number }> = [];
 
-        type AimPoint = { x: number; y: number };
-        const segments: AimPoint[][] = [];
-
-        let px = ball.position.x;
-        let py = ball.position.y;
-        let pdx = directionX;
-        let pdy = directionY;
+        let ax = ball.position.x;
+        let ay = ball.position.y;
+        let adx = Math.cos(angle);
+        let ady = Math.sin(angle);
         let remaining = previewLength;
-        let bounceCount = 0;
-        let segment: AimPoint[] = [{ x: px, y: py }];
+        let bounces = 0;
 
-        while (remaining > 0 && bounceCount <= maxBounces) {
-          const distance = Math.min(stepLength, remaining);
-          const nextX = px + pdx * distance;
-          const nextY = py + pdy * distance;
+        points.push({ x: ax, y: ay });
 
-          // Stop at the lower play-field boundary.
-          if (nextY + ball.radius >= GAME_HEIGHT - 15) {
-            const wallY = GAME_HEIGHT - 15 - ball.radius;
-            segment.push({ x: nextX, y: wallY });
-            segments.push(segment);
-            break;
+        while (remaining > 0 && bounces <= maxBounces) {
+          const leftDistance = adx < 0
+            ? (radius - ax) / adx
+            : Number.POSITIVE_INFINITY;
+          const rightDistance = adx > 0
+            ? (GAME_WIDTH - radius - ax) / adx
+            : Number.POSITIVE_INFINITY;
+          const wallDistance = Math.min(leftDistance, rightDistance);
+
+          if (wallDistance > 0 && wallDistance < remaining) {
+            ax += adx * wallDistance;
+            ay += ady * wallDistance;
+            points.push({ x: ax, y: ay });
+            remaining -= wallDistance;
+            adx = -adx;
+            bounces += 1;
+            ax += adx * 0.5;
+            ay += ady * 0.5;
+            points.push({ x: ax, y: ay });
+          } else {
+            ax += adx * remaining;
+            ay += ady * remaining;
+            points.push({ x: ax, y: ay });
+            remaining = 0;
           }
-
-          // Reflect from the left and right walls.
-          if (nextX - ball.radius <= 0 || nextX + ball.radius >= GAME_WIDTH) {
-            const wallX = nextX - ball.radius <= 0
-              ? ball.radius
-              : GAME_WIDTH - ball.radius;
-
-            segment.push({ x: wallX, y: nextY });
-            segments.push(segment);
-
-            px = wallX;
-            py = nextY;
-            pdx = -pdx;
-            remaining -= distance;
-            bounceCount += 1;
-            segment = [{ x: px, y: py }];
-            continue;
-          }
-
-          // Reflect from the first undestroyed brick reached by the ray.
-          const hitBrick = bricksRef.current.find((brick) => {
-            if (brick.destroyed) return false;
-
-            const closestX = Math.max(brick.x, Math.min(nextX, brick.x + brick.width));
-            const closestY = Math.max(brick.y, Math.min(nextY, brick.y + brick.height));
-            const brickDx = nextX - closestX;
-            const brickDy = nextY - closestY;
-
-            return brickDx * brickDx + brickDy * brickDy <= ball.radius * ball.radius;
-          });
-
-          if (hitBrick) {
-            segment.push({ x: nextX, y: nextY });
-            segments.push(segment);
-
-            const brickCenterX = hitBrick.x + hitBrick.width / 2;
-            const brickCenterY = hitBrick.y + hitBrick.height / 2;
-            const offsetX = nextX - brickCenterX;
-            const offsetY = nextY - brickCenterY;
-            const overlapX = ball.radius + hitBrick.width / 2 - Math.abs(offsetX);
-            const overlapY = ball.radius + hitBrick.height / 2 - Math.abs(offsetY);
-
-            if (overlapX < overlapY) {
-              pdx = -pdx;
-            } else {
-              pdy = -pdy;
-            }
-
-            px = nextX;
-            py = nextY;
-            remaining -= distance;
-            bounceCount += 1;
-            segment = [{ x: px, y: py }];
-            continue;
-          }
-
-          segment.push({ x: nextX, y: nextY });
-          px = nextX;
-          py = nextY;
-          remaining -= distance;
-        }
-
-        if (segment.length > 1 && segments.length < maxBounces + 1) {
-          segments.push(segment);
         }
 
         ctx.save();
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
 
-        let animationOffset = (gameTime * 45) % dotSpacing;
+        const animatedOffset = (gameTime * 42) % spacing;
+        let travelled = -animatedOffset;
+        let lastPoint = points[0];
 
-        for (const points of segments) {
-          for (let i = 0; i < points.length - 1; i += 1) {
-            const from = points[i];
-            const to = points[i + 1];
-            const segmentDx = to.x - from.x;
-            const segmentDy = to.y - from.y;
-            const segmentDistance = Math.hypot(segmentDx, segmentDy);
+        for (let i = 1; i < points.length; i += 1) {
+          const nextPoint = points[i];
+          const segmentDx = nextPoint.x - lastPoint.x;
+          const segmentDy = nextPoint.y - lastPoint.y;
+          const segmentLength = Math.hypot(segmentDx, segmentDy);
 
-            if (segmentDistance === 0) continue;
+          if (segmentLength <= 0) continue;
 
-            for (let distance = animationOffset; distance < segmentDistance; distance += dotSpacing) {
-              const progress = distance / segmentDistance;
-              const dotX = from.x + segmentDx * progress;
-              const dotY = from.y + segmentDy * progress;
-              const alpha = 0.95 - progress * 0.45;
+          for (let distance = Math.max(0, -travelled); distance < segmentLength; distance += spacing) {
+            const ratio = distance / segmentLength;
+            const dotX = lastPoint.x + segmentDx * ratio;
+            const dotY = lastPoint.y + segmentDy * ratio;
+            const fade = Math.max(0.35, 0.95 - (travelled + distance) / previewLength * 0.55);
 
-              ctx.globalAlpha = Math.max(0.35, alpha);
-              ctx.beginPath();
-              ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
-              ctx.fill();
-            }
-
-            animationOffset = (animationOffset - segmentDistance) % dotSpacing;
-            if (animationOffset < 0) animationOffset += dotSpacing;
+            ctx.globalAlpha = fade;
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
+            ctx.fill();
           }
+
+          travelled += segmentLength;
+          lastPoint = nextPoint;
         }
 
-        ctx.globalAlpha = 1;
+        // Arrowhead at the end of the preview path.
+        const tip = points[points.length - 1];
+        const previous = points[Math.max(0, points.length - 2)];
+        const tipAngle = Math.atan2(tip.y - previous.y, tip.x - previous.x);
+
+        ctx.globalAlpha = 0.95;
+        ctx.beginPath();
+        ctx.moveTo(tip.x + Math.cos(tipAngle) * 10, tip.y + Math.sin(tipAngle) * 10);
+        ctx.lineTo(
+          tip.x + Math.cos(tipAngle + Math.PI * 0.78) * 10,
+          tip.y + Math.sin(tipAngle + Math.PI * 0.78) * 10,
+        );
+        ctx.lineTo(
+          tip.x + Math.cos(tipAngle - Math.PI * 0.78) * 10,
+          tip.y + Math.sin(tipAngle - Math.PI * 0.78) * 10,
+        );
+        ctx.closePath();
+        ctx.fill();
+
         ctx.restore();
       }
-    }    
+    }  
 
                 // Draw balls with premium 3D rendering
     balls.forEach(ball => {
