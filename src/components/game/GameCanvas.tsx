@@ -563,14 +563,18 @@ if (isShockRef.current) {
       if (ball) {
         const dx = x - ball.position.x;
         const dy = y - ball.position.y;
-                let angle = Math.atan2(dy, dx);
+                                let angle = Math.atan2(dy, dx);
 
-        // The ball must always launch upward, as in the recording.
-        // Prevent nearly horizontal and downward launch angles.
-        const minUpwardAngle = 0.08;
-        if (angle > -minUpwardAngle) angle = -minUpwardAngle;
-        if (angle < -Math.PI + minUpwardAngle) {
-          angle = -Math.PI + minUpwardAngle;
+        // Canvas Y increases downward. Keep the aim in the upper half.
+        // Allow shallow upward angles, but never allow horizontal/downward launch.
+        const minimumUpwardAngle = 0.10;
+
+        if (angle > -minimumUpwardAngle) {
+          angle = -minimumUpwardAngle;
+        }
+
+        if (angle < -Math.PI + minimumUpwardAngle) {
+          angle = -Math.PI + minimumUpwardAngle;
         }
         aimAngleRef.current = angle;
       }
@@ -2655,105 +2659,58 @@ explosions.forEach(explosion => {
       isGhostPaddle
     );
 
-            // Draw the aiming arrow from the stationary ball.
+                // Draw the fixed-length aiming arrow from the stationary ball.
     if (magnetBallsRef.current.size > 0) {
       const stuckId = magnetBallsRef.current.values().next().value;
       const ball = balls.find((item) => item.id === stuckId);
 
       if (ball) {
         const angle = aimAngleRef.current;
-        const radius = ball.radius;
-        const spacing = 14;
-        const previewLength = 520;
-        const maxBounces = 2;
-        const points: Array<{ x: number; y: number }> = [];
-
-        let ax = ball.position.x;
-        let ay = ball.position.y;
-        let adx = Math.cos(angle);
-        let ady = Math.sin(angle);
-        let remaining = previewLength;
-        let bounces = 0;
-
-        points.push({ x: ax, y: ay });
-
-        while (remaining > 0 && bounces <= maxBounces) {
-          const leftDistance = adx < 0
-            ? (radius - ax) / adx
-            : Number.POSITIVE_INFINITY;
-          const rightDistance = adx > 0
-            ? (GAME_WIDTH - radius - ax) / adx
-            : Number.POSITIVE_INFINITY;
-          const wallDistance = Math.min(leftDistance, rightDistance);
-
-          if (wallDistance > 0 && wallDistance < remaining) {
-            ax += adx * wallDistance;
-            ay += ady * wallDistance;
-            points.push({ x: ax, y: ay });
-            remaining -= wallDistance;
-            adx = -adx;
-            bounces += 1;
-            ax += adx * 0.5;
-            ay += ady * 0.5;
-            points.push({ x: ax, y: ay });
-          } else {
-            ax += adx * remaining;
-            ay += ady * remaining;
-            points.push({ x: ax, y: ay });
-            remaining = 0;
-          }
-        }
+        const dotCount = 22;
+        const dotSpacing = 10;
+        const startDistance = 8;
+        const arrowLength = startDistance + (dotCount - 1) * dotSpacing;
 
         ctx.save();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillStyle = '#ffe84a';
+        ctx.shadowColor = 'rgba(255, 220, 40, 0.85)';
+        ctx.shadowBlur = 5;
 
-        const animatedOffset = (gameTime * 42) % spacing;
-        let travelled = -animatedOffset;
-        let lastPoint = points[0];
+        for (let i = 0; i < dotCount; i += 1) {
+          const distance = startDistance + i * dotSpacing;
+          const progress = i / (dotCount - 1);
+          const dotX = ball.position.x + Math.cos(angle) * distance;
+          const dotY = ball.position.y + Math.sin(angle) * distance;
+          const dotRadius = 3.1 - progress * 1.25;
 
-        for (let i = 1; i < points.length; i += 1) {
-          const nextPoint = points[i];
-          const segmentDx = nextPoint.x - lastPoint.x;
-          const segmentDy = nextPoint.y - lastPoint.y;
-          const segmentLength = Math.hypot(segmentDx, segmentDy);
-
-          if (segmentLength <= 0) continue;
-
-          for (let distance = Math.max(0, -travelled); distance < segmentLength; distance += spacing) {
-            const ratio = distance / segmentLength;
-            const dotX = lastPoint.x + segmentDx * ratio;
-            const dotY = lastPoint.y + segmentDy * ratio;
-            const fade = Math.max(0.35, 0.95 - (travelled + distance) / previewLength * 0.55);
-
-            ctx.globalAlpha = fade;
-            ctx.beginPath();
-            ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
-            ctx.fill();
-          }
-
-          travelled += segmentLength;
-          lastPoint = nextPoint;
+          ctx.globalAlpha = 1 - progress * 0.45;
+          ctx.beginPath();
+          ctx.arc(dotX, dotY, Math.max(1.8, dotRadius), 0, Math.PI * 2);
+          ctx.fill();
         }
 
-        // Arrowhead at the end of the preview path.
-        const tip = points[points.length - 1];
-        const previous = points[Math.max(0, points.length - 2)];
-        const tipAngle = Math.atan2(tip.y - previous.y, tip.x - previous.x);
+        // Small arrowhead at the fixed end of the dotted arrow.
+        const tipX = ball.position.x + Math.cos(angle) * (arrowLength + 8);
+        const tipY = ball.position.y + Math.sin(angle) * (arrowLength + 8);
+        const wingLength = 9;
+        const wingAngle = Math.PI * 0.78;
 
         ctx.globalAlpha = 0.95;
+        ctx.shadowBlur = 4;
         ctx.beginPath();
-        ctx.moveTo(tip.x + Math.cos(tipAngle) * 10, tip.y + Math.sin(tipAngle) * 10);
+        ctx.moveTo(tipX, tipY);
         ctx.lineTo(
-          tip.x + Math.cos(tipAngle + Math.PI * 0.78) * 10,
-          tip.y + Math.sin(tipAngle + Math.PI * 0.78) * 10,
+          tipX + Math.cos(angle + wingAngle) * wingLength,
+          tipY + Math.sin(angle + wingAngle) * wingLength,
         );
         ctx.lineTo(
-          tip.x + Math.cos(tipAngle - Math.PI * 0.78) * 10,
-          tip.y + Math.sin(tipAngle - Math.PI * 0.78) * 10,
+          tipX + Math.cos(angle - wingAngle) * wingLength,
+          tipY + Math.sin(angle - wingAngle) * wingLength,
         );
         ctx.closePath();
         ctx.fill();
 
+        ctx.globalAlpha = 1;
         ctx.restore();
       }
     }  
