@@ -452,7 +452,7 @@ const drawExtraLifeIcon = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.fill();
 };
 
-// Draw ghost icon (white ghost in bl
+// Draw the reference-style white sheet ghost inside the shared power-up circle.
 const drawGhostIcon = (
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -461,75 +461,72 @@ const drawGhostIcon = (
 ) => {
   drawBlueCircleBackground(ctx, x, y, size);
 
-  const s = size * 0.34;
-  const outline = '#292268';
+  const s = size * 0.36;
+  const purple = '#292268';
 
   ctx.save();
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
-  // White ghost body with a rounded head and flowing bottom.
+  // Thick dark-purple outline.
   ctx.beginPath();
-  ctx.moveTo(x - s, y + s * 0.82);
-  ctx.lineTo(x - s, y - s * 0.12);
+  ctx.moveTo(x - s * 0.92, y + s * 0.92);
   ctx.bezierCurveTo(
-    x - s,
-    y - s * 0.72,
-    x - s * 0.48,
-    y - s,
-    x,
-    y - s,
+    x - s * 0.70, y + s * 0.60,
+    x - s * 0.63, y + s * 0.22,
+    x - s * 0.62, y - s * 0.18,
   );
   ctx.bezierCurveTo(
-    x + s * 0.48,
-    y - s,
-    x + s,
-    y - s * 0.72,
-    x + s,
-    y - s * 0.12,
+    x - s * 0.62, y - s * 0.78,
+    x - s * 0.28, y - s,
+    x, y - s,
   );
-  ctx.lineTo(x + s, y + s * 0.82);
-
-  // Three soft waves at the bottom of the sheet.
-  ctx.quadraticCurveTo(x + s * 0.72, y + s * 0.58, x + s * 0.48, y + s * 0.82);
-  ctx.quadraticCurveTo(x + s * 0.22, y + s * 0.56, x, y + s * 0.82);
-  ctx.quadraticCurveTo(x - s * 0.22, y + s * 0.56, x - s * 0.48, y + s * 0.82);
-  ctx.quadraticCurveTo(x - s * 0.72, y + s * 0.58, x - s, y + s * 0.82);
+  ctx.bezierCurveTo(
+    x + s * 0.34, y - s,
+    x + s * 0.62, y - s * 0.72,
+    x + s * 0.62, y - s * 0.16,
+  );
+  ctx.bezierCurveTo(
+    x + s * 0.62, y + s * 0.18,
+    x + s * 0.77, y + s * 0.48,
+    x + s * 0.94, y + s * 0.74,
+  );
+  ctx.bezierCurveTo(
+    x + s * 0.73, y + s * 0.83,
+    x + s * 0.53, y + s * 0.68,
+    x + s * 0.40, y + s * 0.55,
+  );
+  ctx.bezierCurveTo(
+    x + s * 0.28, y + s * 0.76,
+    x + s * 0.10, y + s * 0.96,
+    x - s * 0.02, y + s * 0.86,
+  );
+  ctx.bezierCurveTo(
+    x - s * 0.18, y + s * 0.70,
+    x - s * 0.23, y + s * 0.47,
+    x - s * 0.31, y + s * 0.28,
+  );
+  ctx.bezierCurveTo(
+    x - s * 0.48, y + s * 0.62,
+    x - s * 0.68, y + s * 0.85,
+    x - s * 0.92, y + s * 0.92,
+  );
   ctx.closePath();
 
   ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = outline;
-  ctx.lineWidth = Math.max(1.5, size * 0.045);
-  ctx.shadowColor = 'rgba(255, 255, 255, 0.65)';
-  ctx.shadowBlur = 2;
+  ctx.strokeStyle = purple;
+  ctx.lineWidth = Math.max(2, size * 0.07);
   ctx.fill();
-  ctx.shadowBlur = 0;
   ctx.stroke();
 
-  // Two dark oval eyes.
-  ctx.fillStyle = outline;
+  // Reference-style tall oval eyes.
+  ctx.fillStyle = purple;
   ctx.beginPath();
-  ctx.ellipse(
-    x - s * 0.30,
-    y - s * 0.25,
-    s * 0.13,
-    s * 0.22,
-    -0.12,
-    0,
-    Math.PI * 2,
-  );
+  ctx.ellipse(x - s * 0.25, y - s * 0.27, s * 0.12, s * 0.23, 0.18, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.beginPath();
-  ctx.ellipse(
-    x + s * 0.30,
-    y - s * 0.25,
-    s * 0.13,
-    s * 0.22,
-    0.12,
-    0,
-    Math.PI * 2,
-  );
+  ctx.ellipse(x + s * 0.25, y - s * 0.27, s * 0.12, s * 0.23, -0.18, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.restore();
