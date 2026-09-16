@@ -514,7 +514,7 @@ const drawGhostIcon = (
   ctx.closePath();
 
   ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = purple;
+   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = Math.max(2, size * 0.07);
   ctx.fill();
   ctx.stroke();
