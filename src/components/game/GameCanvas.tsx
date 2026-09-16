@@ -633,15 +633,12 @@ if (isShockRef.current) {
       audioManager.playMagnetRelease();
       const stuckIds = new Set(magnetBallsRef.current);
       magnetBallsRef.current.clear();
-      const isMagnet = engineRef.current.hasMagnet;
       const angle = aimAngleRef.current;
       setBalls(prevBalls => prevBalls.map(ball => {
         if (stuckIds.has(ball.id)) {
           const speed = engineRef.current.ballSpeed;
           // Initial launch follows the aim arrow; magnet releases go up randomly
-          const releaseAngle = isMagnet
-            ? -Math.PI / 2 + (Math.random() - 0.5) * 0.6
-            : angle;
+                    const releaseAngle = angle;
           return {
             ...ball,
             velocity: {
@@ -2681,7 +2678,7 @@ explosions.forEach(explosion => {
         ctx.save();
         ctx.fillStyle = '#ffe84a';
         ctx.shadowColor = 'rgba(255, 220, 40, 0.9)';
-        ctx.shadowBlur = 4;
+        ctx.shadowBlur = 0;
 
         for (let i = 0; i < dotCount; i += 1) {
           const distance = startDistance + i * dotSpacing;
