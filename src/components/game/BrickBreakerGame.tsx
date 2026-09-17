@@ -497,7 +497,26 @@ useEffect(() => {
       audioManager.stopBackgroundMusic();
     }
   }, [screenState]);
-
+  // Unlock audio on the first tap anywhere.
+  // Android blocks all sound until the user touches the screen once.
+  // After that first tap (splash screen, menu, anywhere), music plays
+  // for the rest of the session — exactly like the reference game.
+  useEffect(() => {
+    const unlockAudio = () => {
+      audioManager.init().then(() => {
+        audioManager.resume();
+        audioManager.startBackgroundMusic();
+      });
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
   const handleTogglePause = useCallback(() => {
     if (screenState === 'playing') {
       setScreenState('paused');
