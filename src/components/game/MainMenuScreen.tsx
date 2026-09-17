@@ -1,3 +1,4 @@
+import StarfieldBackground from './StarfieldBackground';
 import React, { useState } from 'react';
 import { Play, Settings, Trophy, Grid3X3, Volume2, VolumeX, ChevronLeft, Star, Lock, ShoppingBag, Gift, Globe } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
@@ -305,6 +306,7 @@ const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
       }}
     >
       <div className="absolute inset-0" style={{ background: 'rgba(3, 5, 15, 0.7)' }} />
+            <StarfieldBackground />
 
       <div className="relative z-10 mb-6">
         <h1 className="font-display text-3xl font-black text-white"
