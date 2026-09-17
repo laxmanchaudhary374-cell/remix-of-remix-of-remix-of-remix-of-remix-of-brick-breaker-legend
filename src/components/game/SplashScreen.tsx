@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import spaceBackground from '@/assets/space-background.jpg';
+      import StarfieldBackground from './StarfieldBackground';
 
 interface SplashScreenProps {
   onPlay: () => void;
@@ -18,6 +19,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onPlay }) => {
     >
       {/* Overlay for better text visibility */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
+            <StarfieldBackground />
       
       {/* Title Section - Upper portion */}
       <div className="relative z-10 flex flex-col items-center mt-16">
